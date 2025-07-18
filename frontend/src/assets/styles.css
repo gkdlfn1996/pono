@@ -1,0 +1,53 @@
+/* 전역 리셋 */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+
+.v-application {
+   margin: 0 auto;
+   padding: 20px;
+}
+
+/* 입력 행 스타일 */
+.input-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  /* 가운데 정렬을 위해 가로 여백 양쪽으로 자동 */
+  justify-content: center;
+}
+
+/* v-autocomplete 너비 제한 */
+.input-row .v-autocomplete {
+  max-width: 300px;
+  width: 100%;
+}
+
+/* 버튼 간격 보강 */
+.input-row .v-btn {
+  min-width: 64px;
+}
+
+/* 테이블 컨테이너 */
+.table-container {
+  width: 100%;
+  margin-top: 20px;
+  max-height: 1200px;
+  overflow-x: auto;
+}
+
+.shots-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.shots-table th,
+.shots-table td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: center;
+}
