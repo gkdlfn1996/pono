@@ -1,5 +1,6 @@
 // frontend/src/composables/useWebSocket.js
 import { ref, onUnmounted } from 'vue';
+import { API_BASE_URL } from '../api'; // API_BASE_URL 임포트
 
 export default function useWebSocket() {
   const ws = ref(null);
@@ -12,10 +13,10 @@ export default function useWebSocket() {
       return;
     }
 
-    // WebSocket URL은 백엔드 API URL과 동일한 호스트를 사용하고, 포트는 웹소켓 포트(예: 8001)를 사용합니다.
-    // 프로토콜은 ws:// 또는 wss:// (HTTPS의 경우)를 사용합니다.
+    // WebSocket URL은 백엔드 API URL과 동일한 호스트를 사용하고, 포트는 웹소켓 포트(예: 8001)를 사용합니다。
+    // 프로토콜은 ws:// 또는 wss:// (HTTPS의 경우)를 사용합니다。
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = process.env.VUE_APP_API_BASE_URL.replace(/^(http|https):/, protocol);
+    const host = API_BASE_URL.replace(/^(http|https):/, protocol); // API_BASE_URL 사용
     const websocketUrl = `${host}/ws/${versionId}`;
 
     console.log(`Attempting to connect WebSocket to: ${websocketUrl}`);
