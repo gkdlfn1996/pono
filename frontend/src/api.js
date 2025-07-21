@@ -2,7 +2,7 @@
 
 // VUE_APP_API_BASE_URL이 .env.development에 정의되어 있으면 그 값을 사용하고,
 // 그렇지 않으면 현재 호스트 이름을 기반으로 동적으로 API URL을 생성합니다.
-const API_BASE_URL = process.env.VUE_APP_API_BASE_URL || `http://${window.location.hostname}:8001`;
+const API_BASE_URL = `http://${window.location.hostname}:8001`;
 
 export async function fetchShots(projectName) {
     const res = await fetch(`${API_BASE_URL}/api/project/${projectName}/shots`);
