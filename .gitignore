@@ -16,6 +16,7 @@ __pycache__/
 
 # Build artifacts
 /frontend/dist/
+/frontend/.env.development
 
 # Log files
 *.log
