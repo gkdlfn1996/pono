@@ -1,6 +1,6 @@
 // frontend/src/composables/useAuth.js
 import { ref } from 'vue';
-import axios from 'axios';
+import { login as apiLogin } from '../api'; // api.js에서 login 함수를 apiLogin으로 임포트
 
 export default function useAuth() {
   const username = ref('');
@@ -13,14 +13,11 @@ export default function useAuth() {
     loginError.value = null;
     console.log(`Attempting login for user: ${username.value}`);
     try {
-      const response = await axios.post(`${process.env.VUE_APP_API_BASE_URL}/api/auth/login`, { // 환경 변수 사용
-        username: username.value,
-        password: password.value,
-      });
-      if (response.data.user) {
-        loggedInUser.value = response.data.user.name;
-        loggedInUserId.value = response.data.user.id;
-        sessionStorage.setItem('loggedInUser', JSON.stringify(response.data.user));
+      const response = await apiLogin(username.value, password.value); // apiLogin은 이미 response.data를 반환
+      if (response.user) { // response.data.user 대신 response.user로 직접 접근
+        loggedInUser.value = response.user.name;
+        loggedInUserId.value = response.user.id;
+        sessionStorage.setItem('loggedInUser', JSON.stringify(response.user)); // response.data.user 대신 response.user 저장
         // 로그인 성공 후 추가적인 로직이 필요하면 여기서 처리하거나,
         // 이 composable을 사용하는 컴포넌트에서 콜백으로 처리할 수 있습니다.
       }

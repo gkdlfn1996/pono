@@ -1,4 +1,5 @@
 // API 호출을 모듈화
+import axios from 'axios'; // axios 임포트 추가
 
 // VUE_APP_API_BASE_URL이 .env.development에 정의되어 있으면 그 값을 사용하고,
 // 그렇지 않으면 현재 호스트 이름을 기반으로 동적으로 API URL을 생성합니다.
@@ -38,3 +39,13 @@ export async function fetchAllNotesForVersion(versionId) {
     const res = await fetch(`${API_BASE_URL}/api/notes/${versionId}`);
     return res.json();
 }
+
+// 로그인 API 호출 함수 추가
+export async function login(username, password) {
+    const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
+        username,
+        password,
+    });
+    return response.data;
+}
+
