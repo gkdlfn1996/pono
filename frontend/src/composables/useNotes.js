@@ -1,7 +1,7 @@
 // frontend/src/composables/useNotes.js
 import { ref } from 'vue';
 import axios from 'axios';
-import { fetchNoteForVersionAndUser, fetchAllNotesForVersion } from '../api'; // fetchAllNotesForVersion 추가
+import { fetchNoteForVersionAndUser, fetchAllNotesForVersion, API_BASE_URL } from '../api'; // fetchAllNotesForVersion, API_BASE_URL 추가
 
 // Simple debounce utility function
 function debounce(func, delay) {
@@ -75,8 +75,8 @@ export default function useNotes(loggedInUserIdRef) { // loggedInUserId를 ref�
     isSaving.value[versionId] = true;
     const startTime = Date.now();
 
-    try {
-      await axios.post(`${process.env.VUE_APP_API_BASE_URL}/api/notes`, { // 환경 변수 사용
+    try { // API_BASE_URL 사용
+      await axios.post(`${API_BASE_URL}/api/notes`, {
         version_id: versionId,
         owner_id: loggedInUserIdRef.value,
         content: content,
