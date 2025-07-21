@@ -1,0 +1,25 @@
+# Virtual Environments
+.venv/
+venv/
+env/
+
+# IDE and editor files
+.idea/
+.vscode/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Node.js dependencies
+/frontend/node_modules/
+
+# Build artifacts
+/frontend/dist/
+
+# Log files
+*.log
+
+# OS-specific files
+.DS_Store
+Thumbs.db
