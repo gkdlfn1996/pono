@@ -1,5 +1,13 @@
 <template>
   <v-app>
+    <template v-if="loggedInUser">
+      <!-- AppHeader 컴포넌트 -->
+      <AppHeader />
+
+      <!-- AppSidebar 컴포넌트 -->
+      <AppSidebar />
+    </template>
+
     <v-main>
       <!-- 로그인 섹션 (로그인되지 않았을 때만 표시) -->
       <LoginSection
@@ -13,43 +21,67 @@
       />
 
       <!-- 로그인 성공 시 표시되는 메인 UI -->
-      <v-container fluid v-else-if="loggedInUser" :class="{'mt-5': loggedInUser}">
-        <v-alert type="success" dense text class="mb-5">
-          <span>환영합니다, {{ loggedInUser }}!</span>
-        </v-alert>
-
-        <!-- 샷 선택 컴포넌트 -->
-        <ShotSelector
-          :projectName="projectName"
-          :projects="projects"
-          :shots="shots"
-          :selectedShotName="selectedShotName"
-          @update:projectName="projectName = $event"
-          @update:selectedShotName="selectedShotName = $event"
-          @onProjectSelected="onProjectSelected"
-          @loadVersions="loadVersions"
-          @clear="clear"
-        />
-
-        <!-- 버전 테이블 컴포넌트 -->
-        <VersionTable
-          :versions="versions"
-          :notes="notesContent"
-          :notesComposable="notes"
-          :isSaving="isSaving"
-          @save-note="handleSaveNote"
-          @input-note="handleInputNote"
-          @refresh-versions="loadVersions"
-          @reload-other-notes="notes.reloadOtherNotesForVersion"
-          :sendMessage="sendMessage"
-        />
+      <v-container fluid v-else-if="loggedInUser" class="main-content-container">
+        <v-row>
+          <v-col cols="12">
+            <v-alert type="success" dense text class="mb-5">
+              <span>환영합니다, {{ loggedInUser }}!</span>
+            </v-alert>
+          </v-col>
+        </v-row>
+        <v-row>
+          <v-col cols="12">
+            <!-- 샷 선택 컴포넌트 -->
+            <ShotSelector
+              :projectName="projectName"
+              :projects="projects"
+              :shots="shots"
+              :selectedShotName="selectedShotName"
+              @update:projectName="projectName = $event"
+              @update:selectedShotName="selectedShotName = $event"
+              @onProjectSelected="onProjectSelected"
+              @loadVersions="loadVersions"
+              @clear="clear"
+            />
+          </v-col>
+        </v-row>
+        <v-row>
+          <v-col cols="12">
+            <!-- 버전 리스트 컴포넌트 -->
+            <VersionList
+              :versions="versions"
+              :notes="notesContent"
+              :notesComposable="notes"
+              :isSaving="isSaving"
+              @save-note="handleSaveNote"
+              @input-note="handleInputNote"
+              @refresh-versions="loadVersions"
+              @reload-other-notes="notes.reloadOtherNotesForVersion"
+              :sendMessage="sendMessage"
+            />
+          </v-col>
+        </v-row>
       </v-container>
     </v-main>
+
+    <template v-if="loggedInUser">
+      <!-- FloatingMenu 컴포넌트 -->
+      <FloatingMenu
+        @open-notes-panel="showNotesPanel = true"
+        @open-shot-detail-panel="showShotDetailPanel = true"
+      />
+    </template>
+
+    <!-- NotesPanel 컴포넌트 -->
+    <NotesPanel v-model="showNotesPanel" />
+
+    <!-- ShotDetailPanel 컴포넌트 -->
+    <ShotDetailPanel v-model="showShotDetailPanel" />
   </v-app>
 </template>
 
 <script>
-import { onMounted, computed, watch } from 'vue'; // onMounted는 App.vue에서 직접 사용
+import { onMounted, computed, watch, ref } from 'vue'; // onMounted는 App.vue에서 직접 사용
 import useAuth from './composables/useAuth'; // 인증 로직
 import useShotGridData from './composables/useShotGridData'; // ShotGrid 데이터 로직
 import useNotes from './composables/useNotes'; // 노트 로직
@@ -57,16 +89,28 @@ import { fetchVersionsForShot } from './api'; // API 호출 함수
 
 import useWebSocket from './composables/useWebSocket'; // 웹소켓 로직
 
-import LoginSection from './components/LoginSection.vue'; // 로그인 컴포넌트
-import ShotSelector from './components/ShotSelector.vue'; // 샷 선택 컴포넌트
-import VersionTable from './components/VersionTable.vue'; // 버전 테이블 컴포넌트
+import LoginSection from './components/layout/LoginSection.vue'; // 로그인 컴포넌트
+import ShotSelector from './components/layout/ShotSelector.vue'; // 샷 선택 컴포넌트
+import VersionList from './components/versions/VersionList.vue'; // 버전 리스트 컴포넌트
+
+// 새로운 레이아웃 및 패널 컴포넌트 임포트
+import AppHeader from './components/layout/AppHeader.vue';
+import AppSidebar from './components/layout/AppSidebar.vue';
+import FloatingMenu from './components/layout/FloatingMenu.vue';
+import NotesPanel from './components/panels/NotesPanel.vue';
+import ShotDetailPanel from './components/panels/ShotDetailPanel.vue';
 
 
 export default {
   components: {
     LoginSection,
     ShotSelector,
-    VersionTable,
+    VersionList,
+    AppHeader,
+    AppSidebar,
+    FloatingMenu,
+    NotesPanel,
+    ShotDetailPanel,
   },
   setup() {
     const auth = useAuth();
@@ -161,6 +205,10 @@ export default {
     };
     disconnectWebSocket(); // Clear 시 웹소켓 연결 해제
 
+    // 패널 가시성 상태
+    const showNotesPanel = ref(false);
+    const showShotDetailPanel = ref(false);
+
     return {
       // useAuth에서 노출된 속성/함수
       username: auth.username,
@@ -189,6 +237,8 @@ export default {
       handleInputNote,
       sendMessage, // VersionTable로 전달
       handleLoginEvent, // 새로 추가한 로그인 이벤트 핸들러 노출
+      showNotesPanel,
+      showShotDetailPanel,
     };
   },
 };
