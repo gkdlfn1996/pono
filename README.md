@@ -27,8 +27,8 @@ npm run serve
 
 ## IP
 ### 개발 서버
-- Backend : 30.0.1.101:8001
-- Frontend : 30.0.1.101:8081
+- Backend : 30.0.1.141:8001
+- Frontend : 30.0.1.141:8081
 
 ### PONO
 - Backend : 10.0.1.110:8001

@@ -13,18 +13,42 @@ class ShotGridClient:
         script_sg = ScriptSG("idea")
         self.sg = script_sg.sg
 
-    def get_project_by_name(self, name: str):
-        return self.sg.find_one(
-            "Project",
-            [["name", "is", name]],
-            ["id"]
+    def get_tasks_for_project(self, project_id: int):
+        """
+        특정 프로젝트에 연결된 Task 목록을 조회합니다。
+        """
+        raw_tasks = self.sg.find(
+            "Task",
+            [["project.Project.id", "is", project_id]],
+            ["id", "content"] # 필요한 필드만 가져옵니다.
         )
 
-    def get_shots(self, project_id: int):
+        # 중복된 content를 가진 태스크를 제거하고, id와 content를 포함하는 새 형식으로 변환
+        # content를 키로 사용하여 중복을 제거하고, 마지막으로 발견된 태스크의 id를 사용합니다.
+        unique_tasks_map = {}
+        for task in raw_tasks:
+            if 'content' in task and task['content']: # content 필드가 있고 비어있지 않은 경우만 처리
+                unique_tasks_map[task['content']] = {'name': task['content'], 'id': task['id']}
+        
+        processed_tasks = list(unique_tasks_map.values())
+
+        # 태스크 이름을 알파벳 순으로 정렬
+        processed_tasks.sort(key=lambda x: x.get('name', '').lower())
+        
+        print(f"ShotGrid tasks for project_id {project_id}: {processed_tasks}")
+        return processed_tasks
+
+    def get_versions_for_task(self, task_id: int):
+        """
+        특정 Task에 연결된 Version 목록을 조회합니다。
+        """
+        # ShotGrid에서 Version 엔티티를 쿼리합니다.
+        # 'sg_task' 필드를 통해 특정 Task에 연결된 Version만 필터링합니다.
+        # 필요한 Version 필드를 추가합니다.
         return self.sg.find(
-            "Shot",
-            [["project.Project.id", "is", project_id]],
-            ["id", "code", "sg_task", "sg_cut_in", "sg_cut_out"]
+            "Version",
+            [["sg_task", "is", {"type": "Task", "id": task_id}]],
+            ["id", "code", "sg_status_list", "entity", "sg_uploaded_movie", "image", "description", "created_at"]
         )
 
     def get_projects(self):
@@ -36,19 +60,10 @@ class ShotGridClient:
             [["archived", "is", False],
              ["sg_restricted_user", "is", False],
              ["is_template", "is", False]], 
-            ["name"]
+            ["name", "id"]
         )
-        return [p["name"] for p in result]
+        return result
 
-    def get_versions_for_shot(self, shot_id: int):
-        """
-        특정 Shot에 연결된 Version 목록을 조회합니다。
-        """
-        return self.sg.find(
-            "Version",
-            [["entity", "is", {"type": "Shot", "id": shot_id}]], # Shot 엔티티에 연결된 버전 필터링
-            ["id", "code", "sg_status_list"] # 필요한 필드 추가
-        )
 
     def authenticate_human_user(self, login: str, password: str):
         """
@@ -67,12 +82,13 @@ class ShotGridClient:
             print(f"ShotGrid 사용자 인증 실패: {login} - {e}")
             return None
         
-if __name__ == "__main__":
+
+if __name__ == "__main__":    
     # 테스트를 위한 사용자 이름과 비밀번호를 여기에 입력하세요.
-    # 실제 ShotGrid 계정 정보를 사용해야 합니다.
+    # 실제 ShotGrid 계정 정보를 사용해야 합니다. 
     test_username = "d10583"
     test_password = "rlatpdus123@"
-
+                                                                                                          
     client = ShotGridClient()
     print(f"ShotGrid 사용자 '{test_username}' 인증 시도...")
     user_data = client.authenticate_human_user(test_username, test_password)

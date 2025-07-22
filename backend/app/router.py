@@ -33,7 +33,7 @@ class UserInfo(BaseModel):
     username: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class NoteInfo(BaseModel):
     id: int
@@ -42,19 +42,9 @@ class NoteInfo(BaseModel):
     owner: UserInfo
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
-@router.post("/api/echo")
-def echo(req: EchoRequest):
-    return {"echo": req.text}
 
-@router.get("/api/project/{project_name}/shots")
-def project_shots(project_name: str):
-    project = sg_client.get_project_by_name(project_name)
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
-    shots = sg_client.get_shots(project.get("id"))
-    return {"shots": shots}
 
 @router.get("/api/projects")
 def project_list():
@@ -64,12 +54,23 @@ def project_list():
     projects = sg_client.get_projects()
     return {"projects": projects}
 
-@router.get("/api/shot/{shot_id}/versions")
-def shot_versions(shot_id: int):
+
+# Task 목록을 반환하는 엔드포인트 추가
+@router.get("/api/project/{project_id}/tasks")
+def project_tasks(project_id: int):
     """
-    특정 Shot의 버전 목록을 반환합니다。
+    특정 프로젝트의 Task 목록을 반환합니다.
     """
-    versions = sg_client.get_versions_for_shot(shot_id)
+    tasks = sg_client.get_tasks_for_project(project_id)
+    return {"tasks": tasks}
+
+# Task에 연결된 버전 목록을 반환하는 엔드포인트 추가
+@router.get("/api/task/{task_id}/versions")
+def task_versions(task_id: int):
+    """
+    특정 Task에 연결된 Version 목록을 반환합니다。
+    """
+    versions = sg_client.get_versions_for_task(task_id)
     return {"versions": versions}
 
 #---------------------------------------- Login -----------------------------------------------
@@ -99,6 +100,8 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
     else:
         print("ShotGrid authentication failed. Returning 401.")
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+#---------------------------------------- Note -----------------------------------------------
 
 @router.post("/api/notes")
 def create_or_update_note(
@@ -152,15 +155,3 @@ def get_notes_for_version(version_id: int, db: Session = Depends(get_db)):
     # response_model에 맞게 데이터 구조를 변환하여 반환
     return notes
 
-# ---------------------------------------- TEST -----------------------------------------------
-
-@router.get("/db-test")
-async def db_test(db: Session = Depends(get_db)):
-    try:
-        result = db.execute(text("SELECT 1")).scalar()
-        if result == 1:
-            return {"message": "Database connection successful!"}
-        else:
-            return {"message": "Database connection failed: Unexpected result."}
-    except Exception as e:
-        return {"message": f"Database connection failed: {e}"}

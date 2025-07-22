@@ -1,5 +1,8 @@
 <template>
-  <v-navigation-drawer app>
+  <v-navigation-drawer app
+    :model-value="modelValue"
+    @update:modelValue="emit('update:modelValue', $event)"
+  >
     <v-list>
       <v-list-item link title="Download Template"></v-list-item>
       <v-list-item link title="Import Bulk Notes"></v-list-item>
@@ -11,7 +14,13 @@
 </template>
 
 <script setup>
-// Script setup for AppSidebar
+
+
+const props = defineProps({
+  modelValue: Boolean,
+});
+
+const emit = defineEmits(['update:modelValue']);
 </script>
 
 <style scoped>

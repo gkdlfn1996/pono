@@ -15,10 +15,23 @@ export async function fetchProjects() {
     return res.json()
 }
 
-export async function fetchVersionsForShot(shotId) {
-    const res = await fetch(`${API_BASE_URL}/api/shot/${shotId}/versions`);
-    return res.json();
-}
+// 특정 프로젝트의 Task 목록을 가져오는 함수
+export const fetchTasksForProject = async (projectId) => {
+  const response = await axios.get(`${API_BASE_URL}/api/project/${projectId}/tasks`);
+  return response.data;
+};
+
+// 특정 Task에 연결된 Version 목록을 가져오는 함수
+export const fetchVersionsForTask = async (taskId) => {
+  const response = await axios.get(`${API_BASE_URL}/api/task/${taskId}/versions`);
+  return response.data;
+};
+
+// 기존 fetchVersionsForShot은 더 이상 사용하지 않으므로 제거
+// export const fetchVersionsForShot = async (shotId) => {
+//   const response = await axios.get(`${API_BASE_URL}/api/shot/${shotId}/versions`);
+//   return response.data;
+// };
 
 export async function fetchNoteForVersionAndUser(versionId, ownerId) {
     try {
