@@ -1,91 +1,87 @@
 <template>
   <v-app-bar app>
-    <v-app-bar-nav-icon @click="emit('toggle-drawer')"></v-app-bar-nav-icon>
-
-    <!-- PONO 로고 -->
-    <v-toolbar-title class="font-weight-black text-blue-lighten-2 mr-1">PONO</v-toolbar-title>
-
-    <!-- Project 선택 -->
-    <v-autocomplete
-      label="Project"
-      :items="projects"
-      item-title="name"
-      item-value="name"
-      v-model="projectName"
-      @update:modelValue="handleProjectSelection"
-      variant="outlined"
-      density="compact"
-      hide-details
-      class="mr-1"
-      style="max-width: 180px;"
-    ></v-autocomplete>
-
-    <!-- Task 선택 -->
-    <v-autocomplete
-      label="Task"
-      :items="tasks"
-      item-title="name"
-      item-value="name"
-      v-model="selectedTaskName"
-      @update:modelValue="onTaskSelected"
-      variant="outlined"
-      density="compact"
-      hide-details
-      class="mr-1"
-      style="max-width: 180px;"
-    ></v-autocomplete>
-
-    <v-spacer></v-spacer> <!-- 검색창을 중앙으로 밀기 위한 스페이서 -->
-
-    <!-- 검색 및 필터 입력란 -->
-    <v-menu :close-on-content-click="false" v-model="showSearchOptions">
-      <template v-slot:activator="{ props: menuProps }">
-        <v-text-field
-          label="Search or Filter"
-          v-model="searchQuery"
-          variant="outlined"
-          density="compact"
-          hide-details
-          prepend-inner-icon="mdi-magnify"
-          style="width: 100%; max-width: 600px;"
-          v-bind="menuProps"
-          @keydown.enter="handleSearchInputEnter"
-        ></v-text-field>
-      </template>
-      <v-list>
-        <v-list-item @click="addSearchLabel('Shot')">
-          <v-list-item-title>Shot</v-list-item-title>
-        </v-list-item>
-        <v-list-item disabled>
-          <v-list-item-title>Playlist</v-list-item-title>
-        </v-list-item>
-        <v-list-item disabled>
-          <v-list-item-title>Subject</v-list-item-title>
-        </v-list-item>
-        <v-list-item disabled>
-          <v-list-item-title>Version</v-list-item-title>
-        </v-list-item>
-        <v-list-item disabled>
-          <v-list-item-title>Tag</v-list-item-title>
-        </v-list-item>
-      </v-list>
-    </v-menu>
-
-    <!-- 검색 라벨들 -->
+    <!-- 1. 좌측 그룹 -->
     <div class="d-flex align-center mr-4">
-      <v-chip v-for="(label, index) in searchLabels" :key="index" closable @click:close="removeSearchLabel(index)" class="mr-1">
-        {{ label.type }}: {{ label.value }}
-      </v-chip>
+      <v-app-bar-nav-icon @click="emit('toggle-drawer')"></v-app-bar-nav-icon>
+      <v-toolbar-title class="font-weight-black text-blue-lighten-2 mr-2">PONO</v-toolbar-title>
+    </div>
+    <!-- 2. 프로젝트, 테스크 선택 그룹 -->
+    <div class="d-flex align-center">
+      <v-autocomplete
+        label="Project"
+        :items="projects"
+        item-title="name"
+        item-value="name"
+        v-model="projectName"
+        @update:modelValue="handleProjectSelection"
+        variant="outlined"
+        density="compact"
+        hide-details
+        style="width: 200px;"
+        class="mr-2"
+      ></v-autocomplete>
+      <v-autocomplete
+        label="Task"
+        :items="tasks"
+        item-title="name"
+        item-value="name"
+        v-model="selectedTaskName"
+        @update:modelValue="onTaskSelected"
+        variant="outlined"
+        density="compact"
+        hide-details
+        style="width: 200px;"
+      ></v-autocomplete>
     </div>
 
-    <!-- 사용자 이름 표시 -->
-    <v-spacer></v-spacer> <!-- 검색창을 중앙으로 밀기 위한 스페이서 -->
-    <v-icon class="mr-2 text-grey-lighten-1">mdi-account-circle</v-icon>
-    <span class="text-subtitle-1 mr-4 text-grey-lighten-1">{{ loggedInUser }}</span>
 
-    <v-btn icon>
-      <v-icon>mdi-dots-vertical</v-icon>
-    </v-btn>
+    <!-- 3. 첫 번째 스페이서 -->
+    <v-spacer></v-spacer>
+
+    <!-- 4. 중앙 요소들 -->
+    <div class="d-flex align-center" style="position: absolute; left: 50%; transform: translateX(-50%);">
+        <v-menu :close-on-content-click="false" v-model="showSearchOptions">
+            <template v-slot:activator="{ props: menuProps }">
+                <v-text-field
+                    label="Search or Filter"
+                    v-model="searchQuery"
+                    variant="outlined"
+                    density="compact"
+                    hide-details
+                    prepend-inner-icon="mdi-magnify"
+                    style="width: 800px;"
+                    v-bind="menuProps"
+                    @keydown.enter="handleSearchInputEnter"
+                ></v-text-field>
+            </template>
+            <v-list>
+                <v-list-item @click="addSearchLabel('Shot')">
+                    <v-list-item-title>Shot</v-list-item-title>
+                </v-list-item>
+                <v-list-item disabled><v-list-item-title>Playlist</v-list-item-title></v-list-item>
+                <v-list-item disabled><v-list-item-title>Subject</v-list-item-title></v-list-item>
+                <v-list-item disabled><v-list-item-title>Version</v-list-item-title></v-list-item>
+                <v-list-item disabled><v-list-item-title>Tag</v-list-item-title></v-list-item>
+            </v-list>
+        </v-menu>
+        <div class="d-flex align-center ml-2">
+            <v-chip v-for="(label, index) in searchLabels" :key="index" closable @click:close="removeSearchLabel(index)" class="mr-1">
+                {{ label.type }}: {{ label.value }}
+            </v-chip>
+        </div>
+    </div>
+
+    <!-- 5. 두 번째 스페이서 -->
+    <v-spacer></v-spacer>
+
+    <!-- 6. 우측 그룹 -->
+    <div class="d-flex align-center">
+      <v-icon color="grey-lighten-1" class="mr-2">mdi-account-circle</v-icon>
+      <span class="text-subtitle-1 mr-4" style="color: #BDBDBD;">{{ loggedInUser }}</span>
+      <v-btn icon>
+        <v-icon>mdi-dots-vertical</v-icon>
+      </v-btn>
+    </div>
   </v-app-bar>
 </template>
 
