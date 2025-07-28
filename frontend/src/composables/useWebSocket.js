@@ -7,6 +7,10 @@ export default function useWebSocket() {
   const receivedMessage = ref(null);
   const isConnected = ref(false);
 
+  const reconnectAttempts = ref(0);
+  const maxReconnectAttempts = 5;
+  const reconnectDelay = 2000; // 2초
+
   const connectWebSocket = (versionId, userId) => {
     if (ws.value && isConnected.value) {
       console.warn('WebSocket is already connected.');
@@ -37,7 +41,19 @@ export default function useWebSocket() {
     ws.value.onclose = (event) => {
       isConnected.value = false;
       console.log('WebSocket disconnected:', event.code, event.reason);
-      // 연결이 끊겼을 때 재연결 로직을 추가할 수 있습니다.
+      
+      if (reconnectAttempts.value < maxReconnectAttempts) {
+        reconnectAttempts.value++;
+        console.log(`Attempting to reconnect WebSocket (attempt ${reconnectAttempts.value}/${maxReconnectAttempts})...`);
+        setTimeout(() => {
+          // 기존 ws 인스턴스를 null로 설정하여 새 연결을 강제
+          ws.value = null;
+          connectWebSocket(versionId, userId);
+        }, reconnectDelay);
+      } else {
+        console.error('Max WebSocket reconnect attempts reached. Please refresh the page.');
+        reconnectAttempts.value = 0; // 재연결 시도 횟수 초기화 (수동 새로고침 시 다시 시도 가능하도록)
+      }
     };
 
     ws.value.onerror = (error) => {

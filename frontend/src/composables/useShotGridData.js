@@ -57,6 +57,10 @@ export default function useShotGridData() {
     versions.value = newVersions;
   };
 
+  const setSelectedTaskName = (newTaskName) => {
+    selectedTaskName.value = newTaskName;
+  };
+
   return {
     projectName,
     projects,
@@ -66,5 +70,6 @@ export default function useShotGridData() {
     loadProjects,
     onProjectSelected,
     setVersions, // 외부에서 버전 목록을 설정할 수 있도록 노출
+    setSelectedTaskName, // 새로 추가
   };
 }

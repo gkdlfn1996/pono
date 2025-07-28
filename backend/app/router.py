@@ -9,10 +9,8 @@ from .shotgrid_client import ShotGridClient # sg_client 사용을 위해 추가
 
 router = APIRouter()
 sg_client = ShotGridClient() # 라우터 파일에서 sg_client 초기화
-
 class EchoRequest(BaseModel):
     text: str
-
 class LoginRequest(BaseModel):
     username: str
     password: str
@@ -49,7 +47,7 @@ class NoteInfo(BaseModel):
 @router.get("/api/projects")
 def project_list():
     """
-    프로젝트 이름 목록을 반환합니다。
+    프로젝트 이름 목록을 반환합니다.
     """
     projects = sg_client.get_projects()
     return {"projects": projects}
@@ -71,7 +69,7 @@ def task_versions(task_id: int):
     특정 Task에 연결된 Version 목록을 반환합니다。
     """
     versions = sg_client.get_versions_for_task(task_id)
-    return {"versions": versions}
+    return versions
 
 #---------------------------------------- Login -----------------------------------------------
 

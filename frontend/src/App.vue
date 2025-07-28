@@ -2,7 +2,7 @@
   <v-app>
     <template v-if="loggedInUser">
       <!-- AppHeader 컴포넌트 -->
-      <AppHeader :loggedInUser="loggedInUser" @toggle-drawer="drawer = !drawer" />
+      <AppHeader :loggedInUser="loggedInUser" @toggle-drawer="drawer = !drawer" @load-versions="loadVersions" />
 
       <!-- 환영 스낵바 (로그인 성공 시 표시) -->
       <v-alert
@@ -42,7 +42,7 @@
           
         </v-row>
         <!-- 버전 리스트 컴포넌트 (프로젝트와 태스크가 모두 선택되었을 때만 표시) -->
-        <v-row v-if="projectName.value && selectedTaskName.value">
+        <v-row v-if="projectName && selectedTaskName">
           <v-col cols="12">
             <!-- 버전 리스트 컴포넌트 -->
             <VersionList
@@ -167,33 +167,56 @@ export default {
         setTimeout(() => {
           showWelcomeSnackbar.value = false;
         }, 3000); // 3초 후 사라짐
-      }
+      } // 로그인 성공 시 프로젝트 로드 로직은 onMounted로 이동
     }, { immediate: true }); // 컴포넌트 마운트 시 즉시 실행
 
     onMounted(async () => {
       const storedUser = sessionStorage.getItem('loggedInUser');
       if (storedUser) {
+        console.log('Stored user from sessionStorage:', storedUser);
         const user = JSON.parse(storedUser);
         auth.loggedInUser.value = user.name; // useAuth의 loggedInUser 업데이트
         auth.loggedInUserId.value = user.id; // useAuth의 loggedInUserId 업데이트
+        console.log('Restored loggedInUser:', auth.loggedInUser.value);
+        console.log('Restored loggedInUserId:', auth.loggedInUserId.value);
+        // 로그인 상태가 복원되면 프로젝트 로드
+        await shotGridData.loadProjects();
       }
-      await shotGridData.loadProjects();
     });
 
     // loadVersions 함수는 App.vue에서 직접 관리 (ShotGridData와 Notes를 연결)
-    const loadVersions = async (versionsData) => { // AppHeader에서 버전 데이터를 직접 받음
+    const loadVersions = async ({ taskName, versions: versionsData }) => { // AppHeader에서 객체를 직접 받음
       try {
-        const loadedVersions = versionsData || [];
+        shotGridData.setSelectedTaskName(taskName); // 상태 업데이트
+
+        // 백엔드에서 배열을 직접 반환하므로, Array.isArray로 유효성 검사
+        const loadedVersions = Array.isArray(versionsData) ? versionsData : [];
+
+        if (loadedVersions.length === 0) {
+          console.warn(`No versions found for task: ${taskName}`);
+          shotGridData.setVersions([]); // 기존 버전 목록 초기화
+          disconnectWebSocket(); // 웹소켓 연결 해제
+          return; // 버전이 없으면 더 이상 진행하지 않음
+        }
+
+        console.log('Loaded versions:', loadedVersions);
 
         // useNotes의 loadVersionNotes 함수를 호출하여 노트 데이터 로딩
         await notes.loadVersionNotes(loadedVersions);
 
         // 웹소켓 연결 (선택된 Task의 모든 버전에 대해 연결)
         // Task ID를 version_id로 사용
-        connectWebSocket(loadedVersions[0].sg_task.id, auth.loggedInUserId.value); // 첫 번째 버전의 Task ID를 사용
+        // loadedVersions[0]이 존재하고, sg_task가 존재하며, sg_task.id가 존재할 때만 연결 시도
+        if (loadedVersions[0] && loadedVersions[0].sg_task && loadedVersions[0].sg_task.id) {
+          connectWebSocket(loadedVersions[0].sg_task.id, auth.loggedInUserId.value); // 첫 번째 버전의 Task ID를 사용
+        } else {
+          console.warn('Could not connect WebSocket: sg_task ID not found in first version or versions array is empty.');
+          disconnectWebSocket(); // 연결할 수 없으면 해제
+        }
 
         // 모든 데이터가 준비되면 버전 목록 업데이트 (UI 렌더링 유발)
         shotGridData.setVersions(loadedVersions);
+        console.log('shotGridData.versions after setVersions:', shotGridData.versions.value);
       } catch (error) {
         console.error("Error in loadVersions:", error);
         // 사용자에게 에러를 알리는 로직을 추가할 수 있습니다.

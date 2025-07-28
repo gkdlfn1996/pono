@@ -5,7 +5,7 @@
         <!-- 1. 좌측 그룹 -->
         <v-app-bar-nav-icon @click="emit('toggle-drawer')"></v-app-bar-nav-icon>
         <v-col cols="auto" class="pa-0 flex-shrink-0">
-          <v-toolbar-title class="font-weight-black text-blue-lighten-2 mr-2">PONO</v-toolbar-title>
+          <v-toolbar-title class="font-weight-black text-blue-lighten-2 pl-4 mr-2 d-none d-xl-flex">PONO</v-toolbar-title>
         </v-col>
         <v-spacer></v-spacer>
         <!-- 프로젝트 & 테스크 -->
@@ -20,7 +20,7 @@
           density="compact"
           hide-details
           class="mr-2"
-          style="max-width: 150px;"
+          style="max-width: 200px;"
           ></v-autocomplete>
         <v-autocomplete
           label="Task"
@@ -28,11 +28,11 @@
           item-title="name"
           item-value="name"
           v-model="selectedTaskName"
-          @update:modelValue="onTaskSelected"
+          @update:modelValue="handleTaskSelection"
           variant="outlined"
           density="compact"
           hide-details
-          style="max-width: 150px;"
+          style="max-width: 200px;"
         ></v-autocomplete>
       </v-col>
       
@@ -109,11 +109,23 @@ const handleProjectSelection = async (newProjectName) => {
   await onProjectSelected(newProjectName); // useShotGridData의 onProjectSelected 호출
 };
 
-const onTaskSelected = async (newTaskName) => {
-  const selectedTask = tasks.value.find(t => t.name === newTaskName);
+const handleTaskSelection = async (newTaskName) => {
+  selectedTaskName.value = newTaskName;
+  await nextTick(); // DOM 업데이트 및 상태 변경을 기다립니다.
+  onTaskSelected(); // 업데이트된 상태로 onTaskSelected 호출
+};
+
+const onTaskSelected = async () => {
+  if (!selectedTaskName.value) return;
+  const selectedTask = tasks.value.find(t => t.name === selectedTaskName.value);
+  console.log('Selected task in AppHeader:', selectedTask); // selectedTask 확인
   if (selectedTask) {
-    const versions = await fetchVersionsForTask(selectedTask.id);
-    emit('load-versions', versions);
+    try {
+      const versions = await fetchVersionsForTask(selectedTask.id);
+      emit('load-versions', { taskName: selectedTaskName.value, versions: versions });
+    } catch (error) {
+      console.error('Error fetching versions in AppHeader:', error);
+    }
   }
 };
 

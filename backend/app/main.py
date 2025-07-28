@@ -3,19 +3,10 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from . import models
-from contextlib import asynccontextmanager
 from . import router
 import json
 
-
-# Lifespan 이벤트 핸들러 정의
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    from .database import engine
-    models.Base.metadata.create_all(bind=engine)
-    yield
-
-app = FastAPI(lifespan=lifespan)
+app = FastAPI()
 
 # CORS 설정: 프론트엔드( localhost:8080 )에서 호출 허용
 app.add_middleware(
@@ -43,9 +34,13 @@ class ConnectionManager:
         print(f"WebSocket connected: version_id={version_id}, total connections for this version: {len(self.active_connections[version_id])})")
 
     def disconnect(self, websocket: WebSocket, version_id: int):
+        print(f"Disconnecting: Checking version_id {version_id}")
         if version_id in self.active_connections:
+            print(f"Disconnecting: version_id {version_id} found. Removing websocket.")
             self.active_connections[version_id].remove(websocket)
+            print(f"Disconnecting: Websocket removed. Checking if list is empty.")
             if not self.active_connections[version_id]: # If no connections left for this version
+                print(f"Disconnecting: No connections left for version {version_id}. Deleting key.")
                 del self.active_connections[version_id]
         print(f"WebSocket disconnected: version_id={version_id}")
 

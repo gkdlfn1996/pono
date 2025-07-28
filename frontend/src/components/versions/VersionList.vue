@@ -1,13 +1,13 @@
 <!-- frontend/src/components/versions/VersionList.vue -->
 <template>
-  <div class="versions-section" v-if="versions.length">
+  <div class="versions-section" v-if="versions && versions.value.length">
     <div class="d-flex align-center mb-2">
       <h2 class="mr-2">Version</h2>
       <v-btn icon="mdi-refresh" size="small" variant="text" @click="emit('refresh-versions')"></v-btn>
     </div>
     <div class="version-list">
       <VersionCard
-        v-for="versionItem in versions"
+        v-for="versionItem in versions.value"
         :key="versionItem.id"
         :version="versionItem"
         :notes="notes"
@@ -26,7 +26,7 @@
 import VersionCard from './VersionCard.vue'; // VersionCard 컴포넌트 임포트
 
 const props = defineProps({
-  versions: Array,
+  versions: Object, // ref 객체를 받기 위해 Object로 변경
   notes: Object, // notesContent 객체 (초기값 및 외부 업데이트용)
   notesComposable: Object, // notes composable 전체를 받음
   isSaving: Object, // isSaving prop 타입을 Object로 변경
