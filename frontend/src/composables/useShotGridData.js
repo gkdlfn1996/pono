@@ -1,75 +1,96 @@
 // frontend/src/composables/useShotGridData.js
-import { ref } from 'vue';
-import { fetchProjects, fetchTasksForProject } from '../api'; // api.js에서 함수 임포트
+import { ref, readonly } from 'vue';
+import { fetchProjects, fetchTasksForProject, fetchVersionsForTask } from '../api'; // fetchVersionsForTask 추가
 
 export default function useShotGridData() {
-  const projectName = ref('');
-  const projects = ref([]);
-  const tasks = ref([]); // 샷 대신 Task 목록을 저장
-  const selectedTaskName = ref(''); // 선택된 Task 이름
-  const versions = ref([]);
+  // --- State ---
+  // 컴포저블 외부에서 상태를 직접 수정하는 것을 방지하기 위해 내부 상태로 관리합니다.
+  const _projects = ref([]);
+  const _tasks = ref([]);
+  const _versions = ref([]);
+  const _selectedProject = ref(null);
+  const _selectedTask = ref(null);
+  const _isLoading = ref(false);
 
-  // 프로젝트 목록 불러오기
-  const loadProjects = async () => {
+  // --- Getters ---
+  // 외부에서는 이 readonly 버전의 상태들을 사용하게 하여, 의도치 않은 변경을 막습니다.
+  const projects = readonly(_projects);
+  const tasks = readonly(_tasks);
+  const versions = readonly(_versions);
+  const selectedProject = readonly(_selectedProject);
+  const selectedTask = readonly(_selectedTask);
+  const isLoading = readonly(_isLoading);
+
+  // --- Actions ---
+  async function loadProjects() {
+    _isLoading.value = true;
     try {
       const projData = await fetchProjects();
-      projects.value = projData.projects || [];
-      console.log('Loaded projects:', projects.value);
+      _projects.value = projData.projects || [];
+      console.log('Loaded projects:', _projects.value);
     } catch (error) {
       console.error('프로젝트 목록 불러오기 실패:', error);
+      _projects.value = [];
+    } finally {
+      _isLoading.value = false;
     }
-  };
+  }
 
-  // 프로젝트 선택 시 해당 프로젝트의 샷 목록을 불러오는 함수
-  const onProjectSelected = async (newProjectName) => {
-    
+  async function selectProject(projectId) {
+    if (_selectedProject.value?.id === projectId) return;
 
-    projectName.value = newProjectName; // 선택된 프로젝트 이름 업데이트
-    selectedTaskName.value = ''; // 프로젝트 변경 시 Task 선택 초기화
-    versions.value = []; // 프로젝트 변경 시 버전 목록 초기화
-    tasks.value = []; // Task 목록 초기화
+    _selectedProject.value = _projects.value.find(p => p.id === projectId) || null;
+    _selectedTask.value = null;
+    _tasks.value = [];
+    _versions.value = [];
 
-    if (newProjectName) {
-      
-      try {
-        const selectedProject = projects.value.find(p => p.name === newProjectName);
-        console.log('Selected project:', selectedProject);
-        if (!selectedProject) {
-          console.error('Selected project not found in projects list.');
-          return; // 프로젝트를 찾지 못했으므로 여기서 함수 종료
-        }
-        const data = await fetchTasksForProject(selectedProject.id);
-        tasks.value = data.tasks || []; // 백엔드에서 이미 처리된 태스크 목록을 직접 할당
-        console.log('Loaded tasks:', tasks.value);
-      } catch (error) {
-        console.error('Task 목록 불러오기 실패:', error);
-        tasks.value = [];
-      }
-    } else {
-      tasks.value = [];
+    if (!_selectedProject.value) return;
+
+    _isLoading.value = true;
+    try {
+      const data = await fetchTasksForProject(_selectedProject.value.id);
+      _tasks.value = data.tasks || [];
+      console.log('Loaded tasks:', _tasks.value);
+    } catch (error) {
+      console.error('Task 목록 불러오기 실패:', error);
+      _tasks.value = [];
+    } finally {
+      _isLoading.value = false;
     }
-  };
+  }
 
-  // 외부에서 버전 목록을 로드할 수 있도록 노출 (App.vue에서 호출)
-  // 이 함수는 App.vue의 loadVersions 함수에서 호출될 예정이므로,
-  // 여기서는 버전 목록만 관리하고 노트 로딩은 useNotes에서 담당합니다。
-  const setVersions = (newVersions) => {
-    versions.value = newVersions;
-  };
+  async function selectTask(taskId) {
+    if (_selectedTask.value?.id === taskId) return;
 
-  const setSelectedTaskName = (newTaskName) => {
-    selectedTaskName.value = newTaskName;
-  };
+    _selectedTask.value = _tasks.value.find(t => t.id === taskId) || null;
+    _versions.value = [];
+
+    if (!_selectedTask.value) return;
+
+    _isLoading.value = true;
+    try {
+      // 백엔드 API는 taskId만 요구하므로, selectedTask의 id만 전달합니다.
+      const data = await fetchVersionsForTask(_selectedTask.value.id);
+      // 백엔드가 { versions: [...] } 형태가 아닌, [...] 배열 자체를 반환하므로 data를 직접 할당합니다.
+      _versions.value = data || [];
+      console.log('Loaded versions:', _versions.value);
+    } catch (error) {
+      console.error('Version 목록 불러오기 실패:', error);
+      _versions.value = [];
+    } finally {
+      _isLoading.value = false;
+    }
+  }
 
   return {
-    projectName,
     projects,
     tasks,
-    selectedTaskName,
     versions,
+    selectedProject,
+    selectedTask,
+    isLoading,
     loadProjects,
-    onProjectSelected,
-    setVersions, // 외부에서 버전 목록을 설정할 수 있도록 노출
-    setSelectedTaskName, // 새로 추가
+    selectProject,
+    selectTask,
   };
 }

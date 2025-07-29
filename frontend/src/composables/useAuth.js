@@ -32,7 +32,7 @@ export default function useAuth() {
   // 로그인 상태를 외부에서 감지할 수 있도록 노출
   const isLoggedIn = ref(false);
   // onMounted에서 sessionStorage를 확인하는 로직은 App.vue에서 처리하도록 남겨둡니다.
-  // 왜냐하면 App.vue가 전체 앱의 초기화와 관련된 책임을 가지기 때문입니다.
+  // 왜냐하면 App.vue가 전체 앱의 초기화와 관련된 책임을 가지기 때문입니다。
 
   return {
     username,

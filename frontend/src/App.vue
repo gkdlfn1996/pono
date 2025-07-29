@@ -42,7 +42,7 @@
           
         </v-row>
         <!-- 버전 리스트 컴포넌트 (프로젝트와 태스크가 모두 선택되었을 때만 표시) -->
-        <v-row v-if="projectName && selectedTaskName">
+        <v-row v-if="selectedProject && selectedTask">
           <v-col cols="12">
             <!-- 버전 리스트 컴포넌트 -->
             <VersionList
@@ -73,6 +73,13 @@
       </v-container>
     </v-main>
 
+    <!-- FloatingMenu 컴포넌트 -->
+    <FloatingMenu
+      @open-notes-panel="showNotesPanel = true"
+      @open-shot-detail-panel="showShotDetailPanel = true"
+    />
+  
+
     <!-- NotesPanel 컴포넌트 -->
     <NotesPanel v-model="showNotesPanel" />
 
@@ -84,15 +91,13 @@
 <script>
 import { onMounted, computed, watch, ref } from 'vue'; // onMounted는 App.vue에서 직접 사용
 import useAuth from './composables/useAuth'; // 인증 로직
-import useShotGridData from './composables/useShotGridData'; // ShotGrid 데이터 로직
-import useNotes from './composables/useNotes'; // 노트 로직
-
-import useWebSocket from './composables/useWebSocket'; // 웹소켓 로직
+import useShotGridData from './composables/useShotGridData'; // useShotGridData 임포트
 
 import LoginSection from './components/layout/LoginSection.vue'; // 로그인 컴포넌트
-// import ShotSelector from './components/layout/ShotSelector.vue'; // 샷 선택 컴포넌트 (제거)
 import VersionList from './components/versions/VersionList.vue'; // 버전 리스트 컴포넌트
 
+import useNotes from './composables/useNotes'; // 노트 로직
+import useWebSocket from './composables/useWebSocket'; // 웹소켓 로직
 // 새로운 레이아웃 및 패널 컴포넌트 임포트
 import AppHeader from './components/layout/AppHeader.vue';
 import AppSidebar from './components/layout/AppSidebar.vue';
@@ -104,7 +109,6 @@ import ShotDetailPanel from './components/panels/ShotDetailPanel.vue';
 export default {
   components: {
     LoginSection,
-    // ShotSelector, // 제거
     VersionList,
     AppHeader,
     AppSidebar,
@@ -120,6 +124,12 @@ export default {
 
     const drawer = ref(false); // 사이드바 상태 관리
     const showWelcomeSnackbar = ref(false); // 환영 스낵바 상태 관리
+
+    // LoginSection에서 발생한 'login' 이벤트를 처리하는 함수
+    const handleLoginEvent = async () => {
+      console.log('handleLoginEvent triggered in App.vue');
+      await auth.login();
+    };
     // Create local computed property for isSaving
     
 
@@ -149,16 +159,60 @@ export default {
         const { version_id, owner_id, content, updated_at, owner_username } = newMessage.payload;
         // 현재 사용자의 노트가 아닌 경우에만 업데이트
         if (owner_id !== auth.loggedInUserId.value) {
-          notes.setNewOtherNotesFlag(version_id, true); // 새로운 노트 알림 플래그 설정
+          notes.setNewOtherNotesFlag(version_id, true);
         }
       }
     });
 
-    // LoginSection에서 발생한 'login' 이벤트를 처리하는 함수
-    const handleLoginEvent = async () => {
-      console.log('handleLoginEvent triggered in App.vue');
-      await auth.login();
+    // loadVersions 함수는 App.vue에서 직접 관리 (ShotGridData와 Notes를 연결)
+    const loadVersions = async ({ taskName, versions: versionsData }) => { // AppHeader에서 객체를 직접 받음
+      try {
+        // shotGridData.setSelectedTaskName(taskName); // 상태 업데이트
+
+        // 백엔드에서 배열을 직접 반환하므로, Array.isArray로 유효성 검사
+        const loadedVersions = Array.isArray(versionsData) ? versionsData : [];
+
+        if (loadedVersions.length === 0) {
+          console.warn(`No versions found for task: ${taskName}`);
+          shotGridData.versions.value = []; // 기존 버전 목록 초기화
+          disconnectWebSocket();
+          return;
+        }
+
+        console.log('Loaded versions:', loadedVersions);
+
+        // useNotes의 loadVersionNotes 함수를 호출하여 노트 데이터 로딩
+        await notes.loadVersionNotes(loadedVersions);
+
+        // 웹소켓 연결 (선택된 Task의 모든 버전에 대해 연결)
+        // loadedVersions[0]이 존재하고, sg_task가 존재하며, sg_task.id가 존재할 때만 연결 시도
+        if (loadedVersions[0] && loadedVersions[0].sg_task && loadedVersions[0].sg_task.id) {
+          connectWebSocket(loadedVersions[0].sg_task.id, auth.loggedInUserId.value);
+        } else {
+          console.warn('Could not connect WebSocket: sg_task ID not found in first version or versions array is empty.');
+          disconnectWebSocket();
+        }
+
+        // 모든 데이터가 준비되면 버전 목록 업데이트 (UI 렌더링 유발)
+        shotGridData.versions.value = loadedVersions;
+        console.log('shotGridData.versions after setVersions:', shotGridData.versions.value);
+      } catch (error) {
+        console.error("Error in loadVersions:", error);
+        // 사용자에게 에러를 알리는 로직을 추가할 수 있습니다.
+      }
     };
+
+    // Clear 함수 (App.vue에서 직접 관리)
+    const clear = () => { // useShotGridData의 clear 로직을 호출
+      shotGridData.projects.value = [];
+      shotGridData.tasks.value = [];
+      shotGridData.versions.value = [];
+      shotGridData.selectedProject.value = null;
+      shotGridData.selectedTask.value = null;
+      auth.loginError.value = null;
+      notes.notesContent.value = {};
+    };
+    disconnectWebSocket(); // Clear 시 웹소켓 연결 해제
 
     // 로그인 상태 변화 감지 및 환영 메시지 표시
     watch(() => auth.loggedInUser.value, (newVal) => {
@@ -175,64 +229,14 @@ export default {
       if (storedUser) {
         console.log('Stored user from sessionStorage:', storedUser);
         const user = JSON.parse(storedUser);
-        auth.loggedInUser.value = user.name; // useAuth의 loggedInUser 업데이트
-        auth.loggedInUserId.value = user.id; // useAuth의 loggedInUserId 업데이트
+        auth.loggedInUser.value = user.name;
+        auth.loggedInUserId.value = user.id;
         console.log('Restored loggedInUser:', auth.loggedInUser.value);
         console.log('Restored loggedInUserId:', auth.loggedInUserId.value);
         // 로그인 상태가 복원되면 프로젝트 로드
-        await shotGridData.loadProjects();
+        await loadProjects();
       }
     });
-
-    // loadVersions 함수는 App.vue에서 직접 관리 (ShotGridData와 Notes를 연결)
-    const loadVersions = async ({ taskName, versions: versionsData }) => { // AppHeader에서 객체를 직접 받음
-      try {
-        shotGridData.setSelectedTaskName(taskName); // 상태 업데이트
-
-        // 백엔드에서 배열을 직접 반환하므로, Array.isArray로 유효성 검사
-        const loadedVersions = Array.isArray(versionsData) ? versionsData : [];
-
-        if (loadedVersions.length === 0) {
-          console.warn(`No versions found for task: ${taskName}`);
-          shotGridData.setVersions([]); // 기존 버전 목록 초기화
-          disconnectWebSocket(); // 웹소켓 연결 해제
-          return; // 버전이 없으면 더 이상 진행하지 않음
-        }
-
-        console.log('Loaded versions:', loadedVersions);
-
-        // useNotes의 loadVersionNotes 함수를 호출하여 노트 데이터 로딩
-        await notes.loadVersionNotes(loadedVersions);
-
-        // 웹소켓 연결 (선택된 Task의 모든 버전에 대해 연결)
-        // Task ID를 version_id로 사용
-        // loadedVersions[0]이 존재하고, sg_task가 존재하며, sg_task.id가 존재할 때만 연결 시도
-        if (loadedVersions[0] && loadedVersions[0].sg_task && loadedVersions[0].sg_task.id) {
-          connectWebSocket(loadedVersions[0].sg_task.id, auth.loggedInUserId.value); // 첫 번째 버전의 Task ID를 사용
-        } else {
-          console.warn('Could not connect WebSocket: sg_task ID not found in first version or versions array is empty.');
-          disconnectWebSocket(); // 연결할 수 없으면 해제
-        }
-
-        // 모든 데이터가 준비되면 버전 목록 업데이트 (UI 렌더링 유발)
-        shotGridData.setVersions(loadedVersions);
-        console.log('shotGridData.versions after setVersions:', shotGridData.versions.value);
-      } catch (error) {
-        console.error("Error in loadVersions:", error);
-        // 사용자에게 에러를 알리는 로직을 추가할 수 있습니다.
-      }
-    };
-
-    // Clear 함수 (App.vue에서 직접 관리)
-    const clear = () => { // useShotGridData의 clear 로직을 호출
-      shotGridData.projectName.value = '';
-      shotGridData.tasks.value = []; // tasks로 변경
-      shotGridData.versions.value = [];
-      shotGridData.selectedTaskName.value = ''; // selectedTaskName으로 변경
-      auth.loginError.value = null;
-      notes.notesContent.value = {}; // 노트 내용도 초기화
-    };
-    disconnectWebSocket(); // Clear 시 웹소켓 연결 해제
 
     // 패널 가시성 상태
     const showNotesPanel = ref(false);
@@ -247,12 +251,14 @@ export default {
       login: auth.login,
 
       // useShotGridData에서 노출된 속성/함수
-      projectName: shotGridData.projectName,
+      projectName: shotGridData.selectedProject.value?.name,
       projects: shotGridData.projects,
-      tasks: shotGridData.tasks, // tasks로 변경
-      selectedTaskName: shotGridData.selectedTaskName, // selectedTaskName으로 변경
+      tasks: shotGridData.tasks,
+      selectedTaskName: shotGridData.selectedTask.value?.name,
       versions: shotGridData.versions,
-      onProjectSelected: shotGridData.onProjectSelected,
+      onProjectSelected: shotGridData.selectProject,
+      selectedProject: shotGridData.selectedProject, // useShotGridData에서 직접 가져온 상태
+      selectedTask: shotGridData.selectedTask,    // useShotGridData에서 직접 가져온 상태
 
       // useNotes에서 노출된 속성/함수
       notesContent: notes.notesContent, // notesContent ref 자체를 전달
@@ -262,15 +268,14 @@ export default {
       // App.vue에서 직접 관리하는 속성/함수
       loadVersions,
       clear,
-      handleSaveNote,
-      handleInputNote,
-      sendMessage, // VersionTable로 전달
-      handleLoginEvent, // 새로 추가한 로그인 이벤트 핸들러 노출
+      handleLoginEvent,
       drawer, // 사이드바 상태 노출
       showWelcomeSnackbar, // 환영 스낵바 상태 노출
       showNotesPanel,
       showShotDetailPanel,
-      
+      handleSaveNote,
+      handleInputNote,
+      sendMessage,
      };
    },
  };

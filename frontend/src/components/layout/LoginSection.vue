@@ -1,7 +1,7 @@
 <!-- frontend/src/components/LoginSection.vue -->
 <template>
   <v-container class="fill-height">
-    <v-row align="center" justify="center">
+    <v-row justify="center">
       <v-card class="pa-5 login-card" elevation="2">
            <v-card-title class="text-h5">로그인</v-card-title>
            <v-card-text>

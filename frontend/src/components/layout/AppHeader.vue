@@ -13,22 +13,22 @@
           label="Project"
           :items="projects"
           item-title="name"
-          item-value="name"
-          v-model="projectName"
-          @update:modelValue="handleProjectSelection"
+          item-value="id"
+          :model-value="selectedProject?.id"
+          @update:model-value="selectProject"
           variant="outlined"
           density="compact"
           hide-details
           class="mr-2"
           style="max-width: 200px;"
-          ></v-autocomplete>
+        ></v-autocomplete>
         <v-autocomplete
           label="Task"
           :items="tasks"
           item-title="name"
-          item-value="name"
-          v-model="selectedTaskName"
-          @update:modelValue="handleTaskSelection"
+          item-value="id"
+          :model-value="selectedTask?.id"
+          @update:model-value="selectTask"
           variant="outlined"
           density="compact"
           hide-details
@@ -85,58 +85,27 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, nextTick } from 'vue'; // nextTick 추가
+import { ref, onMounted, nextTick } from 'vue';
 import useShotGridData from '../../composables/useShotGridData';
-import { fetchVersionsForTask } from '../../api';
+
+const shotGridData = useShotGridData();
+
+const projects = shotGridData.projects;
+const tasks = shotGridData.tasks;
+const selectedProject = shotGridData.selectedProject;
+const selectedTask = shotGridData.selectedTask;
+const loadProjects = shotGridData.loadProjects;
+const selectProject = shotGridData.selectProject;
+const selectTask = shotGridData.selectTask;
 
 const props = defineProps({
   loggedInUser: String,
 });
 
-const emit = defineEmits(['toggle-drawer', 'load-versions']);
-
-const {
-  projectName,
-  projects,
-  tasks,
-  selectedTaskName,
-  loadProjects,
-  onProjectSelected,
-} = useShotGridData();
-
-const handleProjectSelection = async (newProjectName) => {
-  console.log('handleProjectSelection called with:', newProjectName);
-  await onProjectSelected(newProjectName); // useShotGridData의 onProjectSelected 호출
-};
-
-const handleTaskSelection = async (newTaskName) => {
-  selectedTaskName.value = newTaskName;
-  await nextTick(); // DOM 업데이트 및 상태 변경을 기다립니다.
-  onTaskSelected(); // 업데이트된 상태로 onTaskSelected 호출
-};
-
-const onTaskSelected = async () => {
-  if (!selectedTaskName.value) return;
-  const selectedTask = tasks.value.find(t => t.name === selectedTaskName.value);
-  console.log('Selected task in AppHeader:', selectedTask); // selectedTask 확인
-  if (selectedTask) {
-    try {
-      const versions = await fetchVersionsForTask(selectedTask.id);
-      emit('load-versions', { taskName: selectedTaskName.value, versions: versions });
-    } catch (error) {
-      console.error('Error fetching versions in AppHeader:', error);
-    }
-  }
-};
+const emit = defineEmits(['toggle-drawer']);
 
 onMounted(async () => {
   await loadProjects();
-});
-
-watch(() => props.loggedInUser, (newVal) => {
-  if (newVal) {
-    loadProjects();
-  }
 });
 
 const searchQuery = ref('');
@@ -173,28 +142,6 @@ const handleSearchInputEnter = () => {
     }
   }
 };
-
-// 기존 watch(searchQuery)는 handleSearchInputEnter로 대체되므로 제거
-// watch(searchQuery, (newQuery) => {
-//   if (newQuery.startsWith('Shot: ') && newQuery.endsWith('\n')) { // 엔터 키 감지
-//     const shotName = newQuery.replace('Shot: ', '').trim();
-//     if (shotName) {
-//       searchLabels.value.push({ type: 'Shot', value: shotName });
-//       searchQuery.value = ''; // 입력란 초기화
-//     }
-//   }
-// });
-
-defineExpose({
-  projectName,
-  projects,
-  tasks,
-  selectedTaskName,
-  onProjectSelected,
-  onTaskSelected,
-  searchQuery,
-  searchLabels,
-});
 </script>
 
 <style scoped>
