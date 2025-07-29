@@ -1,10 +1,5 @@
-import os
-from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from . import models
-from . import router
-import json
 
 app = FastAPI()
 
@@ -15,9 +10,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# 라우터 포함
-app.include_router(router.router)
 
 # WebSocket Connection Manager
 class ConnectionManager:
@@ -55,18 +47,3 @@ class ConnectionManager:
             print(f"Broadcasted message to version {version_id}: {message}")
 
 manager = ConnectionManager()
-
-@app.websocket("/ws/{version_id}")
-async def websocket_endpoint(websocket: WebSocket, version_id: int):
-    await manager.connect(websocket, version_id)
-    try:
-        while True:
-            data = await websocket.receive_text()
-            print(f"Received message from version {version_id}: {data}")
-            await manager.broadcast(data, version_id, exclude_websocket=websocket)
-    except WebSocketDisconnect:
-        manager.disconnect(websocket, version_id)
-        print(f"Client disconnected from version {version_id}")
-    except Exception as e:
-        print(f"WebSocket error for version {version_id}: {e}")
-        manager.disconnect(websocket, version_id)

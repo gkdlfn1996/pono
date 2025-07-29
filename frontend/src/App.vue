@@ -89,22 +89,15 @@
 </template>
 
 <script>
-import { onMounted, computed, watch, ref } from 'vue'; // onMounted는 App.vue에서 직접 사용
-import useAuth from './composables/useAuth'; // 인증 로직
-import useShotGridData from './composables/useShotGridData'; // useShotGridData 임포트
+import { ref } from 'vue';
 
-import LoginSection from './components/layout/LoginSection.vue'; // 로그인 컴포넌트
-import VersionList from './components/versions/VersionList.vue'; // 버전 리스트 컴포넌트
-
-import useNotes from './composables/useNotes'; // 노트 로직
-import useWebSocket from './composables/useWebSocket'; // 웹소켓 로직
-// 새로운 레이아웃 및 패널 컴포넌트 임포트
+import LoginSection from './components/layout/LoginSection.vue';
 import AppHeader from './components/layout/AppHeader.vue';
 import AppSidebar from './components/layout/AppSidebar.vue';
 import FloatingMenu from './components/layout/FloatingMenu.vue';
 import NotesPanel from './components/panels/NotesPanel.vue';
 import ShotDetailPanel from './components/panels/ShotDetailPanel.vue';
-
+import VersionList from './components/versions/VersionList.vue';
 
 export default {
   components: {
@@ -117,168 +110,53 @@ export default {
     ShotDetailPanel,
   },
   setup() {
-    const auth = useAuth();
-    const shotGridData = useShotGridData();
-    const notes = useNotes(auth.loggedInUserId);
-    const { connectWebSocket, sendMessage, disconnectWebSocket, receivedMessage } = useWebSocket();
+    // --- 로그인 기능에 필요한 상태 ---
+    const loggedInUser = ref(null); // null이면 로그인 화면, 값이 있으면 메인 화면
+    const username = ref('');
+    const password = ref('');
+    const loginError = ref(null);
 
-    const drawer = ref(false); // 사이드바 상태 관리
-    const showWelcomeSnackbar = ref(false); // 환영 스낵바 상태 관리
-
-    // LoginSection에서 발생한 'login' 이벤트를 처리하는 함수
-    const handleLoginEvent = async () => {
-      console.log('handleLoginEvent triggered in App.vue');
-      await auth.login();
+    // 로그인 버튼 클릭 시 실행될 임시 함수
+    const handleLoginEvent = () => {
+      console.log('Login attempt with:', username.value);
+      // 실제 로그인은 다음 단계에서 구현합니다.
+      // 지금은 로그인 성공을 시뮬레이션하기 위해 임시 사용자를 설정합니다.
+      if (username.value) {
+        loggedInUser.value = username.value;
+      } else {
+        loginError.value = "Username cannot be empty.";
+      }
     };
-    // Create local computed property for isSaving
+    // --- 여기까지 ---
+
+    // 메인 UI에 필요한 더미 데이터 (현재는 기능하지 않음)
+    const drawer = ref(false);
+    const showWelcomeSnackbar = ref(false);
     
-
-    // Watch for changes in notes.isSaving.value for debugging
-    watch(() => notes.isSaving.value, (newValue) => {
-      console.log('isSaving changed:', newValue);
-    });
-
-    // Create local wrapper functions for notes composable methods
-    const handleSaveNote = async (versionId, content) => {
-      // 진행중인 디바운스 저장이 있다면 취소
-      notes.debouncedSave.cancel();
-      // UI에 즉시 반영 (한글 입력 문제 해결을 위해)
-      notes.notesContent.value[versionId] = content;
-      await notes.saveImmediately(versionId, content);
-    };
-
-    const handleInputNote = (versionId, content) => {
-      // UI에 즉시 반영
-      notes.notesContent.value[versionId] = content;
-      notes.debouncedSave(versionId, content);
-    };
-
-    // 웹소켓 메시지 수신 감지 및 otherNotes 업데이트
-    watch(receivedMessage, (newMessage) => {
-      if (newMessage && newMessage.type === 'note_update') {
-        const { version_id, owner_id, content, updated_at, owner_username } = newMessage.payload;
-        // 현재 사용자의 노트가 아닌 경우에만 업데이트
-        if (owner_id !== auth.loggedInUserId.value) {
-          notes.setNewOtherNotesFlag(version_id, true);
-        }
-      }
-    });
-
-    // loadVersions 함수는 App.vue에서 직접 관리 (ShotGridData와 Notes를 연결)
-    const loadVersions = async ({ taskName, versions: versionsData }) => { // AppHeader에서 객체를 직접 받음
-      try {
-        // shotGridData.setSelectedTaskName(taskName); // 상태 업데이트
-
-        // 백엔드에서 배열을 직접 반환하므로, Array.isArray로 유효성 검사
-        const loadedVersions = Array.isArray(versionsData) ? versionsData : [];
-
-        if (loadedVersions.length === 0) {
-          console.warn(`No versions found for task: ${taskName}`);
-          shotGridData.versions.value = []; // 기존 버전 목록 초기화
-          disconnectWebSocket();
-          return;
-        }
-
-        console.log('Loaded versions:', loadedVersions);
-
-        // useNotes의 loadVersionNotes 함수를 호출하여 노트 데이터 로딩
-        await notes.loadVersionNotes(loadedVersions);
-
-        // 웹소켓 연결 (선택된 Task의 모든 버전에 대해 연결)
-        // loadedVersions[0]이 존재하고, sg_task가 존재하며, sg_task.id가 존재할 때만 연결 시도
-        if (loadedVersions[0] && loadedVersions[0].sg_task && loadedVersions[0].sg_task.id) {
-          connectWebSocket(loadedVersions[0].sg_task.id, auth.loggedInUserId.value);
-        } else {
-          console.warn('Could not connect WebSocket: sg_task ID not found in first version or versions array is empty.');
-          disconnectWebSocket();
-        }
-
-        // 모든 데이터가 준비되면 버전 목록 업데이트 (UI 렌더링 유발)
-        shotGridData.versions.value = loadedVersions;
-        console.log('shotGridData.versions after setVersions:', shotGridData.versions.value);
-      } catch (error) {
-        console.error("Error in loadVersions:", error);
-        // 사용자에게 에러를 알리는 로직을 추가할 수 있습니다.
-      }
-    };
-
-    // Clear 함수 (App.vue에서 직접 관리)
-    const clear = () => { // useShotGridData의 clear 로직을 호출
-      shotGridData.projects.value = [];
-      shotGridData.tasks.value = [];
-      shotGridData.versions.value = [];
-      shotGridData.selectedProject.value = null;
-      shotGridData.selectedTask.value = null;
-      auth.loginError.value = null;
-      notes.notesContent.value = {};
-    };
-    disconnectWebSocket(); // Clear 시 웹소켓 연결 해제
-
-    // 로그인 상태 변화 감지 및 환영 메시지 표시
-    watch(() => auth.loggedInUser.value, (newVal) => {
-      if (newVal) {
-        showWelcomeSnackbar.value = true;
-        setTimeout(() => {
-          showWelcomeSnackbar.value = false;
-        }, 3000); // 3초 후 사라짐
-      } // 로그인 성공 시 프로젝트 로드 로직은 onMounted로 이동
-    }, { immediate: true }); // 컴포넌트 마운트 시 즉시 실행
-
-    onMounted(async () => {
-      const storedUser = sessionStorage.getItem('loggedInUser');
-      if (storedUser) {
-        console.log('Stored user from sessionStorage:', storedUser);
-        const user = JSON.parse(storedUser);
-        auth.loggedInUser.value = user.name;
-        auth.loggedInUserId.value = user.id;
-        console.log('Restored loggedInUser:', auth.loggedInUser.value);
-        console.log('Restored loggedInUserId:', auth.loggedInUserId.value);
-        // 로그인 상태가 복원되면 프로젝트 로드
-        await loadProjects();
-      }
-    });
-
-    // 패널 가시성 상태
-    const showNotesPanel = ref(false);
-    const showShotDetailPanel = ref(false);
-
     return {
-      // useAuth에서 노출된 속성/함수
-      username: auth.username,
-      password: auth.password,
-      loggedInUser: auth.loggedInUser,
-      loginError: auth.loginError,
-      login: auth.login,
-
-      // useShotGridData에서 노출된 속성/함수
-      projectName: shotGridData.selectedProject.value?.name,
-      projects: shotGridData.projects,
-      tasks: shotGridData.tasks,
-      selectedTaskName: shotGridData.selectedTask.value?.name,
-      versions: shotGridData.versions,
-      onProjectSelected: shotGridData.selectProject,
-      selectedProject: shotGridData.selectedProject, // useShotGridData에서 직접 가져온 상태
-      selectedTask: shotGridData.selectedTask,    // useShotGridData에서 직접 가져온 상태
-
-      // useNotes에서 노출된 속성/함수
-      notesContent: notes.notesContent, // notesContent ref 자체를 전달
-      notes: notes, // VersionTable에 notes composable 전체를 전달하기 위해 필요
-      isSaving: notes.isSaving, // useNotes의 isSaving을 직접 노출
-
-      // App.vue에서 직접 관리하는 속성/함수
-      loadVersions,
-      clear,
+      // 로그인 관련
+      loggedInUser,
+      username,
+      password,
+      loginError,
       handleLoginEvent,
-      drawer, // 사이드바 상태 노출
-      showWelcomeSnackbar, // 환영 스낵바 상태 노출
-      showNotesPanel,
-      showShotDetailPanel,
-      handleSaveNote,
-      handleInputNote,
-      sendMessage,
-     };
-   },
- };
-</script>
 
-<style src="./assets/styles.css"></style>
+      // 레이아웃 관련 (현재는 더미)
+      drawer,
+      showWelcomeSnackbar,
+      showNotesPanel: ref(false),
+      showShotDetailPanel: ref(false),
+      versions: ref([]),
+      notesContent: ref({}),
+      isSaving: ref({}),
+      selectedProject: ref(null),
+      selectedTask: ref(null),
+      loadVersions: () => {},
+      handleSaveNote: () => {},
+      handleInputNote: () => {},
+      sendMessage: () => {},
+      notes: { reloadOtherNotesForVersion: () => {} },
+    };
+  },
+};
+</script>
