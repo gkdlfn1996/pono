@@ -75,7 +75,7 @@
     <!-- 6. 우측 그룹 -->
     <v-col cols="3" class="d-flex align-center pr-4 justify-end">
       <v-icon color="grey-lighten-1" class="mr-2">mdi-account-circle</v-icon>
-      <span class="text-subtitle-1 mr-4" style="color: #BDBDBD;">{{ loggedInUser }}</span>
+      <span class="text-subtitle-1 mr-4" style="color: #BDBDBD;">{{ username }}</span>
       <v-btn icon>
         <v-icon>mdi-dots-vertical</v-icon>
       </v-btn>
@@ -86,20 +86,20 @@
 
 <script setup>
 import { ref, onMounted, nextTick } from 'vue';
-import useShotGridData from '../../composables/useShotGridData';
+import { useShotGridData } from '../../composables/useShotGridData';
 
-const shotGridData = useShotGridData();
-
-const projects = shotGridData.projects;
-const tasks = shotGridData.tasks;
-const selectedProject = shotGridData.selectedProject;
-const selectedTask = shotGridData.selectedTask;
-const loadProjects = shotGridData.loadProjects;
-const selectProject = shotGridData.selectProject;
-const selectTask = shotGridData.selectTask;
+const {
+  projects,
+  tasks,
+  selectedProject,
+  selectedTask,
+  loadProjects,
+  selectProject,
+  selectTask,
+} = useShotGridData();
 
 const props = defineProps({
-  loggedInUser: String,
+  username: String,
 });
 
 const emit = defineEmits(['toggle-drawer']);

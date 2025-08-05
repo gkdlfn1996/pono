@@ -7,3 +7,5 @@ python-dotenv
 websockets==10.4
 tenacity
 uvloop==0.17.0
+PyJWT
+python-multipart

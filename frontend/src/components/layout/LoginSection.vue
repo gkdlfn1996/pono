@@ -1,66 +1,82 @@
-<!-- frontend/src/components/LoginSection.vue -->
+
 <template>
-  <v-container class="fill-height">
-    <v-row justify="center">
-      <v-card class="pa-5 login-card" elevation="2">
-           <v-card-title class="text-h5">로그인</v-card-title>
-           <v-card-text>
-             <v-text-field
-               :model-value="username"
-               @update:modelValue="emit('update:username', $event)"
-               label="ShotGrid ID"
-               required
-             ></v-text-field>
-             <v-text-field
-               :model-value="password"
-               @update:modelValue="emit('update:password', $event)"
-               label="ShotGrid Password"
-               :type="passwordVisible ? 'text' : 'password'"
-               @keyup.enter="handleLogin"
-               :append-inner-icon="passwordVisible ? 'mdi-eye-off' : 'mdi-eye'"
-               @click:append-inner="togglePasswordVisibility"
-               required
-             ></v-text-field>
-             <v-alert
-               v-if="loginError"
-               type="error"
-               dense
-               text
-               class="mb-3"
-             >{{ loginError }}</v-alert>
-            <v-btn color="primary" @click="handleLogin">Login</v-btn>
-           </v-card-text>
-         </v-card>
-     </v-row>
-   </v-container>
- </template>
- 
- <script setup>
- import { ref } from 'vue';
- 
- const props = defineProps({
-   username: String,
-   password: String,
-   loginError: String,
- });
- 
- const emit = defineEmits(['update:username', 'update:password', 'login']);
- 
- const handleLogin = () => {
-   console.log('Login button clicked in LoginSection.vue');
-   emit('login');
- };
- 
- const passwordVisible = ref(false);
- const togglePasswordVisibility = () => {
-   passwordVisible.value = !passwordVisible.value;
- };
- </script>
- 
- <style scoped>
- .login-card {
-   max-width: 700px; /* 최대 너비 설정 */
-   width: 100%; /* 부모 요소에 맞춰 너비 조절 */
-   margin-top: -10vh; /* 화면 중앙보다 살짝 위로 올리기 */
- }
- </style>
+  <!-- 1. 중앙 정렬 레이아웃 적용 -->
+  <v-container class="fill-height d-flex align-center justify-center">
+    <v-card class="pa-5" elevation="2" max-width="600" width="100%">
+      <v-card-title class="text-h5">Login</v-card-title>
+      <v-card-text>
+        <!-- 4. 현재 스크립트 구조와 연동 -->
+        <v-form @submit.prevent="submitLogin">
+          <v-text-field
+            v-model="username"
+            label="ShotGrid ID"
+            required
+          ></v-text-field>
+          
+          <!-- 3. 눈 아이콘 기능 및 타입 바인딩 추가 -->
+          <v-text-field
+            v-model="password"
+            label="Password"
+            :type="isPasswordVisible ? 'text' : 'password'"
+            :append-inner-icon="isPasswordVisible ? 'mdi-eye-off' : 'mdi-eye'"
+            @click:append-inner="isPasswordVisible = !isPasswordVisible"
+            required
+            @keyup.enter="submitLogin"
+          ></v-text-field>
+
+          <v-alert v-if="loginError" type="error" dense text class="mb-3">
+            {{ loginError }}
+          </v-alert>
+          
+          <!-- 4. 현재 스크립트 구조와 연동 -->
+          <v-row class="mt-3" justify="end">
+            <v-col cols="auto">
+              <v-btn color="secondary" @click="developerLogin">개발자용</v-btn>
+            </v-col>
+            <v-col cols="auto">
+              <v-btn color="primary" @click="submitLogin">Login</v-btn>
+            </v-col>
+          </v-row>
+        </v-form>
+      </v-card-text>
+    </v-card>
+  </v-container>
+</template>
+
+<script>
+import { ref } from 'vue';
+
+export default {
+  props: {
+    loginError: String,
+  },
+  emits: ['login'],
+  setup(props, { emit }) {
+    const username = ref('');
+    const password = ref('');
+    // 3. '눈' 아이콘 기능을 위한 상태 변수 추가
+    const isPasswordVisible = ref(false);
+
+    const submitLogin = () => {
+      if (!username.value || !password.value) return;
+      emit('login', { username: username.value, password: password.value });
+    };
+
+    const developerLogin = () => {
+      emit('login', { username: 'ideatd', password: 'fnxmdkagh1!' });
+    };
+
+    return {
+      username,
+      password,
+      isPasswordVisible,
+      submitLogin,
+      developerLogin,
+    };
+  },
+};
+</script>
+
+<style scoped>
+/* 필요한 스타일이 있다면 여기에 추가 */
+</style>

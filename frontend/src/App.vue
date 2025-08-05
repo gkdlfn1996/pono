@@ -1,50 +1,29 @@
 <template>
   <v-app>
-    <template v-if="loggedInUser">
-      <!-- AppHeader 컴포넌트 -->
-      <AppHeader :loggedInUser="loggedInUser" @toggle-drawer="drawer = !drawer" @load-versions="loadVersions" />
+    <!-- AppHeader는 로그인 상태일 때만 표시됩니다. -->
+    <AppHeader 
+      v-if="isAuthenticated" 
+      :username="user?.name" 
+      @toggle-drawer="drawer = !drawer" 
+      @logout="handleLogout"
+    />
 
-      <!-- 환영 스낵바 (로그인 성공 시 표시) -->
-      <v-alert
-        v-if="showWelcomeSnackbar"
-        type="success"
-        dense
-        text
-        class="welcome-snackbar"
-        style="position: absolute; top: 64px; left: 0; width: 100%; z-index: 1000;"
-      >
-        <span>환영합니다, {{ loggedInUser }}!</span>
-      </v-alert>
-
-      <!-- AppSidebar 컴포넌트 -->
-      <AppSidebar v-model="drawer" />
-    </template>
+    <!-- AppSidebar는 로그인 상태일 때만 표시됩니다. -->
+    <AppSidebar v-if="isAuthenticated" v-model="drawer" />
 
     <v-main style="min-height: 100vh;">
       <!-- 로그인 섹션 (로그인되지 않았을 때만 표시) -->
       <LoginSection
-        v-if="!loggedInUser"
-        :username="username"
-        :password="password"
-        :loginError="loginError"
-        @update:username="username = $event"
-        @update:password="password = $event"
-        @login="handleLoginEvent"
+        v-if="!isAuthenticated"
+        :login-error="loginError"
+        @login="handleLogin"
       />
 
-       <!-- 로그인 성공 시 표시되는 메인 UI -->
-       <v-container fluid v-else-if="loggedInUser" class="main-content-container fill-height">
-         <v-row>
-           <v-col cols="12">
-           </v-col>
-         </v-row>
-        <v-row>
-          
-        </v-row>
+      <!-- 로그인 성공 시 표시되는 메인 UI -->
+      <v-container fluid v-else class="main-content-container fill-height">
         <!-- 버전 리스트 컴포넌트 (프로젝트와 태스크가 모두 선택되었을 때만 표시) -->
         <v-row v-if="selectedProject && selectedTask">
           <v-col cols="12">
-            <!-- 버전 리스트 컴포넌트 -->
             <VersionList
               :versions="versions"
               :notes="notesContent"
@@ -73,24 +52,18 @@
       </v-container>
     </v-main>
 
-    <!-- FloatingMenu 컴포넌트 -->
-    <FloatingMenu
-      @open-notes-panel="showNotesPanel = true"
-      @open-shot-detail-panel="showShotDetailPanel = true"
-    />
-  
-
-    <!-- NotesPanel 컴포넌트 -->
-    <NotesPanel v-model="showNotesPanel" />
-
-    <!-- ShotDetailPanel 컴포넌트 -->
-    <ShotDetailPanel v-model="showShotDetailPanel" />
+    <!-- FloatingMenu 등 다른 UI 요소들 (로그인 상태일 때만 표시) -->
+    <FloatingMenu v-if="isAuthenticated" />
+    <NotesPanel v-if="isAuthenticated" v-model="showNotesPanel" />
+    <ShotDetailPanel v-if="isAuthenticated" v-model="showShotDetailPanel" />
   </v-app>
 </template>
 
 <script>
-import { ref } from 'vue';
+import { ref, onMounted, onErrorCaptured } from 'vue';
+import { useAuth } from './composables/useAuth';
 
+// 컴포넌트 임포트
 import LoginSection from './components/layout/LoginSection.vue';
 import AppHeader from './components/layout/AppHeader.vue';
 import AppSidebar from './components/layout/AppSidebar.vue';
@@ -110,52 +83,76 @@ export default {
     ShotDetailPanel,
   },
   setup() {
-    // --- 로그인 기능에 필요한 상태 ---
-    const loggedInUser = ref(null); // null이면 로그인 화면, 값이 있으면 메인 화면
-    const username = ref('');
-    const password = ref('');
-    const loginError = ref(null);
+    // --- 인증 관련 상태 및 함수 ---
+    const { isAuthenticated, user, loginError, login, logout, checkAuthStatus } = useAuth();
 
-    // 로그인 버튼 클릭 시 실행될 임시 함수
-    const handleLoginEvent = () => {
-      console.log('Login attempt with:', username.value);
-      // 실제 로그인은 다음 단계에서 구현합니다.
-      // 지금은 로그인 성공을 시뮬레이션하기 위해 임시 사용자를 설정합니다.
-      if (username.value) {
-        loggedInUser.value = username.value;
-      } else {
-        loginError.value = "Username cannot be empty.";
-      }
-    };
-    // --- 여기까지 ---
+    // App 컴포넌트가 마운트될 때 (시작될 때) 인증 상태를 확인합니다.
+    onMounted(() => {
+      checkAuthStatus();
+    });
 
-    // 메인 UI에 필요한 더미 데이터 (현재는 기능하지 않음)
+    // 자식 컴포넌트에서 발생하는 처리되지 않은 에러를 여기서 감지합니다.
+    onErrorCaptured((err) => {
+      console.error("A critical error occurred in a child component: ", err);
+      // 치명적인 에러가 발생했음을 전역 플래그에 기록합니다.
+      
+      // return false; 를 제거하여 에러가 화면에 정상적으로 표시되도록 합니다.
+    });
+
+    // --- 기존 UI 및 데이터 관련 상태 ---
     const drawer = ref(false);
-    const showWelcomeSnackbar = ref(false);
-    
-    return {
-      // 로그인 관련
-      loggedInUser,
-      username,
-      password,
-      loginError,
-      handleLoginEvent,
+    const showNotesPanel = ref(false);
+    const showShotDetailPanel = ref(false);
+    const versions = ref([]);
+    const notesContent = ref({});
+    const isSaving = ref({});
+    const selectedProject = ref(null); // 실제로는 AppHeader 등에서 업데이트되어야 함
+    const selectedTask = ref(null);  // 실제로는 AppHeader 등에서 업데이트되어야 함
 
-      // 레이아웃 관련 (현재는 더미)
+    // --- 이벤트 핸들러 ---
+    const handleLogin = async (credentials) => {
+      await login(credentials.username, credentials.password);
+      // 로그인 성공 여부와 관계없이 프로젝트/태스크 선택 상태를 변경하지 않습니다.
+      // 이 로직은 향후 사용자가 직접 프로젝트와 태스크를 선택했을 때 실행되어야 합니다.
+      // if (isAuthenticated.value) {
+      //     selectedProject.value = { id: 1, name: 'Test Project' };
+      //     selectedTask.value = { id: 1, name: 'Test Task' };
+      // }
+    };
+
+    const handleLogout = () => {
+      logout();
+      selectedProject.value = null;
+      selectedTask.value = null;
+    };
+
+    // --- 기존 더미 함수들 ---
+    const loadVersions = () => console.log('loadVersions called');
+    const handleSaveNote = () => console.log('handleSaveNote called');
+    const handleInputNote = () => console.log('handleInputNote called');
+    const sendMessage = () => console.log('sendMessage called');
+    const notes = { reloadOtherNotesForVersion: () => console.log('reloadOtherNotesForVersion called') };
+
+    return {
+      isAuthenticated,
+      user,
+      loginError,
+      handleLogin,
+      handleLogout,
+      
       drawer,
-      showWelcomeSnackbar,
-      showNotesPanel: ref(false),
-      showShotDetailPanel: ref(false),
-      versions: ref([]),
-      notesContent: ref({}),
-      isSaving: ref({}),
-      selectedProject: ref(null),
-      selectedTask: ref(null),
-      loadVersions: () => {},
-      handleSaveNote: () => {},
-      handleInputNote: () => {},
-      sendMessage: () => {},
-      notes: { reloadOtherNotesForVersion: () => {} },
+      showNotesPanel,
+      showShotDetailPanel,
+      versions,
+      notesContent,
+      isSaving,
+      selectedProject,
+      selectedTask,
+      loadVersions,
+      handleSaveNote,
+      handleInputNote,
+      sendMessage,
+      notes,
     };
   },
 };
