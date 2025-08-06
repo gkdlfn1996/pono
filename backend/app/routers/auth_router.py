@@ -15,12 +15,13 @@ async def login_for_session_token(form_data: OAuth2PasswordRequestForm = Depends
     사용자 ID/PW로 ShotGrid에 인증하고, 성공 시 ShotGrid 세션 토큰을 반환합니다.
     """
     try:
-        user_sg_auth = UserSG(login_id=form_data.username, login_pwd=form_data.password)
-        token_data = user_sg_auth.get_session_token() # get_session_token 호출
+        user_sg_auth = UserSG(login_id=form_data.username, login_pwd=form_data.password) # UserSG 인스턴스 생성
+        sg_session_token = user_sg_auth.get_session_token() # get_session_token 호출 (세션 토큰 문자열 반환)
+        print(f"SESSION_TOKEN : {sg_session_token}")
         
-        # get_session_token이 반환하는 딕셔너리에서 session_token과 user 정보를 추출
-        sg_session_token = token_data.get("session_token")
-        user_info = token_data.get("user") # 'user' 키에 사용자 정보가 있다고 가정
+        # UserSG 인스턴스 내부에 있는 sg 객체를 사용하여 사용자 정보 조회
+        # user_sg_auth.sg는 UserSG.__init__에서 이미 인증된 Shotgun 객체입니다.
+        user_info = user_sg_auth.sg.find_one("HumanUser", [["login", "is", form_data.username]], ["id", "name", "login"])
         
         print(f"[SUCCESS] User '{form_data.username}' authenticated. Returning session token.")
         
