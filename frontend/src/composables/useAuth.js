@@ -2,8 +2,6 @@ import { ref, readonly } from 'vue';
 import axios from 'axios';
 
 
-
-
 // --- 상태 관리 ---
 const isAuthenticated = ref(false);
 const user = ref(null);
@@ -33,9 +31,7 @@ export function useAuth() {
     // 모든 인증 정보와 상태를 깨끗하게 초기화하는 함수
     const clearAllAuthData = () => {
         sessionStorage.removeItem('accessToken');
-        sessionStorage.removeItem('refreshToken');
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
+        sessionStorage.removeItem('user_info');
         isAuthenticated.value = false;
         user.value = null;
     };
@@ -47,17 +43,24 @@ export function useAuth() {
             clearAllAuthData();
             return;
         }
+        // 백엔드의 validate-session-token 엔드포인트를 호출하여 토큰 유효성만 검증합니다.
         try {
-            const response = await apiClient.get('/api/me');
-            if (response.data && response.data.username) {
+            const response = await apiClient.get('/api/auth/validate-session-token');
+            if (response.data === true) { // 토큰이 유효하면(백엔드에서 true/false 반환)
+                const storedUserInfoJson = sessionStorage.getItem('user_info');
+                if (storedUserInfoJson) {
+                    user.value = JSON.parse(storedUserInfoJson);
+                }
                 isAuthenticated.value = true;
-                user.value = response.data;
-            } else {
+                console.log("Auth status checked: Token is valid.");
+            } else { // 토큰이 유효하지 않으면
                 clearAllAuthData();
+                console.log("Auth status checked: Token invalid, cleared data.");
             }
-        } catch (error) {
-            console.error('Authentication check failed:', error);
+        } catch (e) {
+            console.error('Authentication check failed:', e);
             clearAllAuthData();
+            console.log("Auth status checked: Error during validation, cleared data.");
         }
     };
 
@@ -76,6 +79,7 @@ export function useAuth() {
 
             const { session_token, user_info } = response.data;
             sessionStorage.setItem('accessToken', session_token);
+            sessionStorage.setItem('user_info', JSON.stringify(user_info))
             isAuthenticated.value = true;
             user.value = user_info;
 

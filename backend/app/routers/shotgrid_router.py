@@ -31,9 +31,9 @@ async def get_versions_for_task(task_id, sg = Depends(get_shotgrid_instance)):
     """
     return shotgrid_service.get_versions_for_task(sg, int(task_id))
 
-@router.get("/me")
-async def read_users_me(sg = Depends(get_shotgrid_instance)):
-    """
-    현재 로그인된 사용자의 정보를 반환합니다.
-    """
-    return shotgrid_service.get_current_user_info(sg)
+# @router.get("/me")
+# async def read_users_me(sg = Depends(get_shotgrid_instance)):
+#     """
+#     현재 로그인된 사용자의 정보를 반환합니다.
+#     """
+#     return shotgrid_service.get_current_user_info(sg)

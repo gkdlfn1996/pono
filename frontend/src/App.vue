@@ -1,5 +1,5 @@
 <template>
-  <v-app>
+  <v-app v-if="isAuthCheckComplete">
     <!-- AppHeader는 로그인 상태일 때만 표시됩니다. -->
     <AppHeader 
       v-if="isAuthenticated" 
@@ -85,10 +85,12 @@ export default {
   setup() {
     // --- 인증 관련 상태 및 함수 ---
     const { isAuthenticated, user, loginError, login, logout, checkAuthStatus } = useAuth();
+    const isAuthCheckComplete = ref(false); // 인증 확인 완료 여부
 
     // App 컴포넌트가 마운트될 때 (시작될 때) 인증 상태를 확인합니다.
-    onMounted(() => {
-      checkAuthStatus();
+    onMounted(async() => {
+      await checkAuthStatus();
+      isAuthCheckComplete.value = true;
     });
 
     // 자식 컴포넌트에서 발생하는 처리되지 않은 에러를 여기서 감지합니다.
@@ -153,6 +155,7 @@ export default {
       handleInputNote,
       sendMessage,
       notes,
+      isAuthCheckComplete,
     };
   },
 };

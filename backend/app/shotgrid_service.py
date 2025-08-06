@@ -3,15 +3,6 @@
 """
 
 
-def get_current_user_info(sg):
-    """
-    현재 로그인된 ShotGrid 사용자의 상세 정보를 조회합니다.
-    """
-    # 필터를 비우고 HumanUser 정보를 가져옵니다.
-    user_info = sg.find_one("HumanUser", [], ["id", "name", "login", "email"])
-    return user_info
-
-
 def get_tasks_for_project(sg, project_id):
     """
     특정 프로젝트에 연결된 Task 목록을 조회합니다.

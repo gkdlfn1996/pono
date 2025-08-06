@@ -9,3 +9,4 @@ tenacity
 uvloop==0.17.0
 PyJWT
 python-multipart
+requests
