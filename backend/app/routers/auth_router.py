@@ -37,27 +37,6 @@ async def login_for_session_token(form_data: OAuth2PasswordRequestForm = Depends
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-async def get_shotgrid_instance(authorization: str = Header(None)):
-    """
-    요청 헤더의 세션 토큰으로 ShotGrid 인스턴스를 생성하고 반환하는 의존성.
-    """
-    if authorization is None:
-        raise HTTPException(status_code=401, detail="Authorization header missing")
-    
-    parts = authorization.split()
-    if len(parts) != 2 or parts[0].lower() != "bearer":
-        raise HTTPException(status_code=401, detail="Invalid authorization format")
-
-    session_token = parts[1]
-    try:
-        sg_instance = SessionTokenSG(session_token=session_token).sg
-        if not sg_instance:
-            raise Exception("Failed to create ShotGrid instance with session token.")
-        return sg_instance
-    except Exception as e:
-        raise HTTPException(status_code=401, detail=f"Could not validate credentials: {e}")
-    
-
 @router.get("/validate-session-token", response_model=bool)
 async def validate_session_token(authorization: str = Header(None)):
     """
@@ -85,3 +64,24 @@ async def validate_session_token(authorization: str = Header(None)):
 
     resp = requests.post(url, headers=headers, data=data)
     return resp.status_code == 200
+
+
+async def get_shotgrid_instance(authorization: str = Header(None)):
+    """
+    요청 헤더의 세션 토큰으로 ShotGrid 인스턴스를 생성하고 반환하는 의존성.
+    """
+    if authorization is None:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
+    
+    parts = authorization.split()
+    if len(parts) != 2 or parts[0].lower() != "bearer":
+        raise HTTPException(status_code=401, detail="Invalid authorization format")
+
+    session_token = parts[1]
+    try:
+        sg_instance = SessionTokenSG(session_token=session_token).sg
+        if not sg_instance:
+            raise Exception("Failed to create ShotGrid instance with session token.")
+        return sg_instance
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Could not validate credentials: {e}")
