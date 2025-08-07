@@ -24,10 +24,11 @@ async def get_tasks_for_project(project_id, sg = Depends(get_shotgrid_instance))
     """
     return shotgrid_api.get_tasks_for_project(sg, int(project_id))
 
-@router.get("/projects/{project_id}/tasks/{task_id}/versions")
-async def get_versions_for_task(task_id, sg = Depends(get_shotgrid_instance)):
+@router.get("/projects/{project_id}/tasks/{task_name}/versions")
+async def get_versions_for_task(task_name, sg = Depends(get_shotgrid_instance)):
     """
     특정 Task에 연결된 Version 목록을 조회합니다.
     """
-    return shotgrid_api.get_versions_for_task(sg, int(task_id))
+    print("호출됨")
+    return shotgrid_api.get_versions_for_task(sg, str(task_name))
 

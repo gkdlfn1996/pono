@@ -4,6 +4,7 @@ import axios from 'axios';
 // 반응형 상태 변수들
 const projects = ref([]);
 const tasks = ref([]);
+const versions = ref([]);
 const selectedProject = ref(null);
 const selectedTask = ref(null);
 
@@ -24,6 +25,9 @@ apiClient.interceptors.request.use(config => {
     }
     return config;
 });
+
+
+
 
 /**
  * ShotGrid 프로젝트 및 태스크 데이터를 관리하는 Composition API 훅
@@ -58,6 +62,27 @@ export function useShotGridData() {
         }
     };
 
+
+    /**
+     * 특정 프로젝트에 속한 태스크 목록을 불러옵니다.
+     * @param {number} taskName - 버전을 불러올 테스크의 이름
+     */
+    const loadVersions = async (taskName) => {
+        try {
+            const response = await apiClient.get(`/api/projects/${selectedProject.value.id}/tasks/${taskName}/versions`);
+            versions.value = response.data;
+            console.log(`Versions for Task ${taskName} loaded:`, versions.value);
+        } catch (error) {
+            console.error(`Failed to load versions for Task ${taskName}:`, error);
+            // TODO: 사용자에게 에러 메시지를 표시하는 로직 추가
+        }
+    };
+
+
+
+
+
+
     /**
      * 선택된 프로젝트를 설정하고 해당 프로젝트의 태스크를 불러옵니다.
      * @param {number} projectId - 선택할 프로젝트의 ID
@@ -73,22 +98,26 @@ export function useShotGridData() {
 
     /**
      * 선택된 태스크를 설정합니다.
-     * @param {number} taskId - 선택할 태스크의 ID
+     * @param {number} taskName - 선택할 태스크의 이름
      */
-    const selectTask = (taskId) => {
-        const task = tasks.value.find(t => t.id === taskId);
+    const selectTask = async (taskName) => {
+        const task = tasks.value.find(t => t.name === taskName);
         if (task) {
             selectedTask.value = task;
+            // console.log('[useShotGridData] selectTask executed. Central selectedTask is now:', selectedTask.value);
+            await loadVersions(taskName)
         }
     };
 
     return {
         projects: readonly(projects),
         tasks: readonly(tasks),
+        versions: readonly(versions),
         selectedProject: readonly(selectedProject),
         selectedTask: readonly(selectedTask),
         loadProjects,
         loadTasks,
+        loadVersions,
         selectProject,
         selectTask,
     };

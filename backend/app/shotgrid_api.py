@@ -13,15 +13,15 @@ def get_tasks_for_project(sg, project_id):
         ["id", "content"]
     )
 
-    # 이름으로 중복을 제거하되, 해당 이름에 속하는 모든 태스크 ID를 포함
+    # 이름으로 중복을 제거
     grouped_tasks = {}
     for task in raw_tasks:
         if 'content' in task and task['content']:
             task_name = task['content']
-            task_id = task['id']
+            # task_id = task['id']
             if task_name not in grouped_tasks:
-                grouped_tasks[task_name] = {'name': task_name, 'ids': []}
-            grouped_tasks[task_name]['ids'].append(task_id)
+                grouped_tasks[task_name] = {'name': task_name}
+            # grouped_tasks[task_name]['ids'].append(task_id)
     
     processed_tasks = list(grouped_tasks.values())
 
@@ -31,17 +31,17 @@ def get_tasks_for_project(sg, project_id):
     print(f"ShotGrid tasks for project_id {project_id}: {processed_tasks}")
     return processed_tasks
 
-def get_versions_for_task(sg, task_id):
+def get_versions_for_task(sg, task_name):
     """
     특정 Task에 연결된 Version 목록을 조회합니다。
     """
-    print(f"Attempting to fetch versions for task_id: {task_id}")
+    print(f"Attempting to fetch versions for task_name: {task_name}")
     versions = sg.find(
         "Version",
-        [["sg_task", "is", {"type": "Task", "id": task_id}]],
+        [["sg_task.Task.content", "is", task_name]],
         ["id", "code", "sg_status_list", "entity", "description", "created_at", "sg_task"]
     )
-    print(f"Successfully fetched {len(versions)} versions for task_id: {task_id}")
+    print(f"Successfully fetched {len(versions)} versions for task_name: {task_name}")
     return versions
 
 def get_projects(sg):

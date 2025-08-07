@@ -110,6 +110,7 @@ export default {
     const isSaving = ref({});
     const selectedProject = ref(null); // 실제로는 AppHeader 등에서 업데이트되어야 함
     const selectedTask = ref(null);  // 실제로는 AppHeader 등에서 업데이트되어야 함
+    console.log('[App.vue] setup executed. Initial local selectedTask:', selectedTask.value);
 
     // --- 이벤트 핸들러 ---
     const handleLogin = async (credentials) => {
@@ -129,7 +130,6 @@ export default {
     };
 
     // --- 기존 더미 함수들 ---
-    const loadVersions = () => console.log('loadVersions called');
     const handleSaveNote = () => console.log('handleSaveNote called');
     const handleInputNote = () => console.log('handleInputNote called');
     const sendMessage = () => console.log('sendMessage called');
@@ -150,7 +150,6 @@ export default {
       isSaving,
       selectedProject,
       selectedTask,
-      loadVersions,
       handleSaveNote,
       handleInputNote,
       sendMessage,
