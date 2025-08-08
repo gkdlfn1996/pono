@@ -31,17 +31,21 @@ def get_tasks_for_project(sg, project_id):
     print(f"ShotGrid tasks for project_id {project_id}: {processed_tasks}")
     return processed_tasks
 
-def get_versions_for_task(sg, task_name):
+def get_versions_for_task(sg, project_id, task_name):
     """
-    특정 Task에 연결된 Version 목록을 조회합니다。
+    특정 프로젝트와 태스크 이름에 연결된 Version 목록을 조회합니다.
     """
-    print(f"Attempting to fetch versions for task_name: {task_name}")
+    print(f"Attempting to fetch versions for task '{task_name}' in project {project_id}")
+    filters = [
+        ['project.Project.id', 'is', project_id],
+        ['sg_task.Task.content', 'is', task_name],
+    ]
     versions = sg.find(
         "Version",
-        [["sg_task.Task.content", "is", task_name]],
+        filters,
         ["id", "code", "sg_status_list", "entity", "description", "created_at", "sg_task"]
     )
-    print(f"Successfully fetched {len(versions)} versions for task_name: {task_name}")
+    print(f"Successfully fetched {len(versions)} versions.")
     return versions
 
 def get_projects(sg):
