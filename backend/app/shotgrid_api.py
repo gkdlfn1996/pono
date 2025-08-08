@@ -40,12 +40,19 @@ def get_versions_for_task(sg, project_id, task_name):
         ['project.Project.id', 'is', project_id],
         ['sg_task.Task.content', 'is', task_name],
     ]
-    versions = sg.find(
-        "Version",
-        filters,
-        ["id", "code", "sg_status_list", "entity", "description", "created_at", "sg_task"]
-    )
+
+    fields = [
+        "id", "code", "description", "created_at",
+        "sg_status_list", "image", "user", "sg_task", "entity",
+        "sg_task.Task.due_date",
+        "sg_task.Task.sg_status_list",
+        "entity.Shot.sg_status_list",
+        "entity.Shot.sg_end_date",  # Asset이면 None
+        "entity.Asset.sg_status_list",  # Asset일 경우의 상태
+    ]
+    versions = sg.find("Version", filters, fields)
     print(f"Successfully fetched {len(versions)} versions.")
+
     return versions
 
 def get_projects(sg):

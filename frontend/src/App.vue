@@ -20,7 +20,7 @@
       />
 
       <!-- 로그인 성공 시 표시되는 메인 UI -->
-      <v-container fluid v-else class="main-content-container fill-height">
+      <v-container fluid v-else class="main-content-container">
         <!-- 버전 리스트 컴포넌트 (프로젝트와 태스크가 모두 선택되었을 때만 표시) -->
         <v-row v-if="selectedProject && selectedTask">
           <v-col cols="12">
