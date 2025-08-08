@@ -39,9 +39,16 @@
             /> -->
             <VersionList
               :isLoading="isLoading"
-              :versions="versions"
+              :versions="displayVersions"
               @refresh-versions="loadVersions(selectedTask.name)"
             />
+            <div class="text-center mt-4" v-if="!isLoading && totalPages > 1">
+              <v-pagination
+                :model-value="currentPage"
+                :length="totalPages"
+                @update:model-value="changePage"
+              ></v-pagination>
+            </div>
           </v-col>
         </v-row>
 
@@ -87,11 +94,14 @@ const isAuthCheckComplete = ref(false);
 
 // --- ShotGrid 데이터 중앙 상태 ---
 const {
-  versions,
+  displayVersions,
   isLoading,
+  currentPage,
+  totalPages,
   selectedProject,
   selectedTask,
   loadVersions,
+  changePage,
 } = useShotGridData();
 
 // App 컴포넌트가 마운트될 때 인증 상태를 확인합니다.

@@ -4,10 +4,14 @@ import axios from 'axios';
 // 반응형 상태 변수들
 const projects = ref([]);
 const tasks = ref([]);
-const versions = ref([]);
+const allVersions = ref([]); // 전체 버전을 저장할 변수
+const displayVersions = ref([]); // 화면에 보여줄 버전만 저장할 변수
 const selectedProject = ref(null);
 const selectedTask = ref(null);
-const isLoading = ref(false); // 로딩 상태 변수 추가
+const isLoading = ref(false);
+const currentPage = ref(1);
+const totalPages = ref(1);
+const versionsPerPage = 50; // 페이지 당 버전 수
 
 // 동적 API 주소 설정 (useAuth.js와 동일하게 설정)
 const hostname = window.location.hostname;
@@ -70,16 +74,29 @@ export function useShotGridData() {
      */
     const loadVersions = async (taskName) => {
         isLoading.value = true;
-        versions.value = [];
+        allVersions.value = [];
+        displayVersions.value = [];
         try {
             const response = await apiClient.get(`/api/projects/${selectedProject.value.id}/tasks/${taskName}/versions`);
-            versions.value = response.data;
-            console.log(`Versions for Task ${taskName} loaded:`, versions.value);
+            allVersions.value = response.data;
+            totalPages.value = Math.ceil(allVersions.value.length / versionsPerPage);
+            currentPage.value = 1;
+            changePage(1); // 첫 페이지 로드
+            console.log(`Total ${allVersions.value.length} versions for Task ${taskName} loaded.`);
         } catch (error) {
             console.error(`Failed to load versions for Task ${taskName}:`, error);
         } finally {
             isLoading.value = false; // 작업이 끝나면 항상 로딩 상태를 해제합니다.
         }
+    };
+
+
+    const changePage = (page) => {
+        if (page < 1 || page > totalPages.value) return;
+        currentPage.value = page;
+        const startIndex = (page - 1) * versionsPerPage;
+        const endIndex = startIndex + versionsPerPage;
+        displayVersions.value = allVersions.value.slice(startIndex, endIndex);
     };
 
 
@@ -116,13 +133,16 @@ export function useShotGridData() {
     return {
         projects: readonly(projects),
         tasks: readonly(tasks),
-        versions: readonly(versions),
+        displayVersions: readonly(displayVersions),
         selectedProject: readonly(selectedProject),
         selectedTask: readonly(selectedTask),
-        isLoading: readonly(isLoading), // 외부에서 읽을 수 있도록 노출
+        isLoading: readonly(isLoading),
+        currentPage: readonly(currentPage),
+        totalPages: readonly(totalPages),
         loadProjects,
         loadTasks,
         loadVersions,
+        changePage,
         selectProject,
         selectTask,
     };
