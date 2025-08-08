@@ -86,7 +86,7 @@ import AppSidebar from './components/layout/AppSidebar.vue';
 import FloatingMenu from './components/layout/FloatingMenu.vue';
 import NotesPanel from './components/panels/NotesPanel.vue';
 import ShotDetailPanel from './components/panels/ShotDetailPanel.vue';
-import VersionList from './components/versions/VersionList.vue';
+import VersionList from './components/layout/VersionList.vue';
 
 // --- 인증 관련 상태 및 함수 ---
 const { isAuthenticated, user, loginError, login, logout, checkAuthStatus } = useAuth();

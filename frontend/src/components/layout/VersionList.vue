@@ -19,12 +19,34 @@
       ></v-btn>
     </div>
     <div class="version-list">
-      <!-- v-for에서도 props.versions를 직접 사용합니다. -->
-      <VersionCard
+      <v-card
         v-for="versionItem in props.versions"
         :key="versionItem.id"
-        :version="versionItem"
-      />
+        class="mb-6" variant="outlined"
+      >
+        <v-card-title class="bg-grey-darken-3">
+          <span class="text-h6">{{ versionItem.code }}</span>
+        </v-card-title>
+
+        <v-card-text>
+          <v-row>
+            <!-- 1단: VersionFieldsData (정보 영역) -->
+            <v-col cols="12" md="3">
+              <VersionFieldsData :version="versionItem" />
+            </v-col>
+
+            <!-- 2단: DraftNotesData (Draft Notes 영역) -->
+            <v-col cols="12" md="5">
+              <DraftNotesData :version="versionItem" />
+            </v-col>
+
+            <!-- 3단: VersionNotesData (Version Notes 영역) -->
+            <v-col cols="12" md="4">
+              <VersionNotesData :version="versionItem" />
+            </v-col>
+          </v-row>
+        </v-card-text>
+      </v-card>
     </div>
   </div>
 
@@ -37,7 +59,9 @@
 </template>
 
 <script setup>
-import VersionCard from './VersionCard.vue';
+import VersionFieldsData from '../version/VersionFieldsData.vue';
+import DraftNotesData from '../version/DraftNotesData.vue';
+import VersionNotesData from '../version/VersionNotesData.vue';
 
 // import { versions, isLoading, selectedTask, selectTask } from '../../composables/useShotGridData';
 
