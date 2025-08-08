@@ -7,6 +7,7 @@ const tasks = ref([]);
 const versions = ref([]);
 const selectedProject = ref(null);
 const selectedTask = ref(null);
+const isLoading = ref(false); // 로딩 상태 변수 추가
 
 // 동적 API 주소 설정 (useAuth.js와 동일하게 설정)
 const hostname = window.location.hostname;
@@ -68,13 +69,16 @@ export function useShotGridData() {
      * @param {number} taskName - 버전을 불러올 테스크의 이름
      */
     const loadVersions = async (taskName) => {
+        isLoading.value = true;
+        versions.value = [];
         try {
             const response = await apiClient.get(`/api/projects/${selectedProject.value.id}/tasks/${taskName}/versions`);
             versions.value = response.data;
             console.log(`Versions for Task ${taskName} loaded:`, versions.value);
         } catch (error) {
             console.error(`Failed to load versions for Task ${taskName}:`, error);
-            // TODO: 사용자에게 에러 메시지를 표시하는 로직 추가
+        } finally {
+            isLoading.value = false; // 작업이 끝나면 항상 로딩 상태를 해제합니다.
         }
     };
 
@@ -115,6 +119,7 @@ export function useShotGridData() {
         versions: readonly(versions),
         selectedProject: readonly(selectedProject),
         selectedTask: readonly(selectedTask),
+        isLoading: readonly(isLoading), // 외부에서 읽을 수 있도록 노출
         loadProjects,
         loadTasks,
         loadVersions,
