@@ -8,7 +8,14 @@
     <div class="note-section">
       <div class="my-note">
         <h3>My Draft Note ({{ version.code }})</h3>
-        <v-textarea
+        <!-- 노트 구현 이후 삭제 -->
+        <v-textarea>
+          label="노트 기능 비활성화"
+          rows="3"
+          variant="outlined"
+          disabled
+        </v-textarea>
+        <!-- <v-textarea
           label="여기에 노트를 작성하세요"
           rows="3"
           v-model="localNotesContent[version.id]"
@@ -24,9 +31,9 @@
           @blur="emit('save-note', version.id, localNotesContent[version.id])"
           variant="outlined"
           :class="{ 'saving-note': !!isSaving[version.id] }"
-        ></v-textarea>
+        ></v-textarea> -->
       </div>
-      <div class="other-notes mt-4">
+      <!-- <div class="other-notes mt-4">
         <div class="d-flex align-center mb-2">
         <h3>Others Draft Notes</h3>
         <v-btn
@@ -52,7 +59,7 @@
             다른 사용자의 노트가 없습니다.
           </v-card-text>
         </v-card>
-      </div>
+      </div> -->
     </div>
   </v-card>
 </template>
@@ -62,21 +69,21 @@ import { ref, watch } from 'vue';
 
 const props = defineProps({
   version: Object, // 단일 버전 객체
-  notes: Object, // notesContent 객체 (초기값 및 외부 업데이트용)
-  notesComposable: Object, // notes composable 전체를 받음
-  isSaving: Object, // isSaving prop 타입을 Object로 변경
-  sendMessage: Function, // 웹소켓 메시지 전송 함수
+  // notes: Object, // notesContent 객체 (초기값 및 외부 업데이트용)
+  // notesComposable: Object, // notes composable 전체를 받음
+  // isSaving: Object, // isSaving prop 타입을 Object로 변경
+  // sendMessage: Function, // 웹소켓 메시지 전송 함수
 });
 
-const emit = defineEmits(['save-note', 'input-note', 'reload-other-notes']);
+// const emit = defineEmits(['save-note', 'input-note', 'reload-other-notes']);
 
-// 로컬 노트 내용을 저장할 반응형 객체
-const localNotesContent = ref({});
+// // 로컬 노트 내용을 저장할 반응형 객체
+// const localNotesContent = ref({});
 
-// props.notes가 변경될 때 localNotesContent를 초기화
-watch(() => props.notes, (newNotes) => {
-  localNotesContent.value = { ...newNotes };
-}, { immediate: true, deep: true });
+// // props.notes가 변경될 때 localNotesContent를 초기화
+// watch(() => props.notes, (newNotes) => {
+//   localNotesContent.value = { ...newNotes };
+// }, { immediate: true, deep: true });
 
 // 날짜 포맷팅 함수
 const formatDateTime = (isoString) => {

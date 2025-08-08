@@ -29,6 +29,5 @@ async def get_versions_for_task(task_name, sg = Depends(get_shotgrid_instance)):
     """
     특정 Task에 연결된 Version 목록을 조회합니다.
     """
-    print("호출됨")
     return shotgrid_api.get_versions_for_task(sg, str(task_name))
 
