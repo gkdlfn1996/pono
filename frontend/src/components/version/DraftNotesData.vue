@@ -1,20 +1,21 @@
 <template>
   <!-- 2단: Draft Notes 영역 -->
-  <div>
+  <div class="d-flex flex-column h-100">
     <!-- My Draft Note -->
-    <div class="mb-4">
+    <div class="d-flex flex-column" style="flex-basis: 50%; padding-bottom: 8px;">
       <h4 class="text-subtitle-1 font-weight-bold mb-2">My Draft Note</h4>
       <!-- 노트 기능 비활성화된 v-textarea -->
       <v-textarea
         label="노트 기능 비활성화"
-        rows="4"
         variant="outlined"
         disabled
+        class="flex-grow-1"
+        no-resize
+        rows="1"
       ></v-textarea>
       <!-- 주석 해제된 v-textarea (원래 VersionCard.vue에 있던 코드) -->
       <!-- <v-textarea
         label="여기에 노트를 작성하세요"
-        rows="4"
         v-model="localNotesContent[version.id]"
         @input="emit('input-note', version.id, localNotesContent[version.id])"
         @blur="emit('save-note', version.id, localNotesContent[version.id])"
@@ -24,7 +25,7 @@
     </div>
 
     <!-- Other's Draft Notes -->
-    <div>
+    <div class="d-flex flex-column" style="flex-basis: 50%; padding-top: 8px;">
       <div class="d-flex align-center mb-2">
         <h4 class="text-subtitle-1 font-weight-bold">Others Draft Notes</h4>
         <!-- 주석 해제된 v-btn (원래 VersionCard.vue에 있던 코드) -->
@@ -34,7 +35,7 @@
           variant="text"
           :color="notesComposable.hasNewOtherNotes.value[version.id] ? 'red' : ''" @click="emit('reload-other-notes', version.id)"></v-btn> -->
       </div>
-      <v-card variant="outlined" class="notes-container" style="min-height: 150px;">
+      <v-card variant="outlined" class="notes-container flex-grow-1 d-flex flex-column">
         <!-- 주석 해제된 otherNotes 템플릿 (원래 VersionCard.vue에 있던 코드) -->
         <!-- <template v-if="notesComposable.otherNotes.value[version.id] && notesComposable.otherNotes.value[version.id].length">
           <div v-for="(note, index) in notesComposable.otherNotes.value[version.id]" :key="note.id">

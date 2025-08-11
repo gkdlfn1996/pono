@@ -1,8 +1,9 @@
 <template>
   <!-- 1단: 정보 영역 -->
-  <div>
+  <div class="d-flex flex-column h-100">
+    <h4 class="text-subtitle-1 font-weight-bold mb-2">{{ title }}</h4>
     <!-- Thumbnail: Responsive container to enforce 16:9 aspect ratio -->
-    <v-responsive :aspect-ratio="16/9" class="mb-4 rounded">
+    <v-responsive :aspect-ratio="16/9" class="mb-2 rounded">
       <v-img
         v-if="version.image"
         :src="version.image"
@@ -29,20 +30,26 @@
       </div>
     </v-responsive>
 
-    <div class="text-body-2">
-      <p><strong class="mr-2">Final Due:</strong> {{ version.entity && version.entity.Shot && version.entity.Shot.sg_end_date ? version.entity.Shot.sg_end_date : 'N/A' }}</p>
-      <p><strong class="mr-2">2D 마감:</strong> {{ version.sg_task && version.sg_task.Task && version.sg_task.Task.due_date ? version.sg_task.Task.due_date : 'N/A' }}</p>
-      <p><strong class="mr-2">Artists:</strong> {{ version.user ? version.user.name : 'N/A' }}</p>
-    </div>
-    <div class="mt-2">
-      <template v-for="status in statuses" :key="status.label">
-        <v-tooltip :text="status.label + ' Status'" location="top">
-          <template v-slot:activator="{ props: tooltipProps }">
-            <v-chip v-bind="tooltipProps" size="small" class="mr-1" :color="status.color">{{ status.value || 'N/A' }}</v-chip>
+    <v-row no-gutters class="flex-grow-1">
+      <v-col>
+        <div class="text-body-2">
+          <p><strong class="mr-2">Final Due:</strong> {{ version.entity && version.entity.Shot && version.entity.Shot.sg_end_date ? version.entity.Shot.sg_end_date : 'N/A' }}</p>
+          <p><strong class="mr-2">2D 마감:</strong> {{ version.sg_task && version.sg_task.Task && version.sg_task.Task.due_date ? version.sg_task.Task.due_date : 'N/A' }}</p>
+          <p><strong class="mr-2">Artists:</strong> {{ version.user ? version.user.name : 'N/A' }}</p>
+        </div>
+      </v-col>
+      <v-col cols="auto">
+        <div class="d-flex flex-column align-end">
+          <template v-for="status in statuses" :key="status.label">
+            <v-tooltip :text="status.label + ' Status'" location="top">
+              <template v-slot:activator="{ props: tooltipProps }">
+                <v-chip v-bind="tooltipProps" size="small" class="mb-1" :color="status.color">{{ status.value || 'N/A' }}</v-chip>
+              </template>
+            </v-tooltip>
           </template>
-        </v-tooltip>
-      </template>
-    </div>
+        </div>
+      </v-col>
+    </v-row>
   </div>
 </template>
 
@@ -54,6 +61,10 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+  title: {
+    type: String,
+    required: true,
+  }
 });
 
 const statuses = computed(() => {

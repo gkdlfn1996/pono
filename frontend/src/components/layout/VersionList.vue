@@ -24,15 +24,11 @@
         :key="versionItem.id"
         class="mb-6" variant="outlined"
       >
-        <v-card-title class="bg-grey-darken-3">
-          <span class="text-h6">{{ versionItem.code }}</span>
-        </v-card-title>
-
         <v-card-text>
           <v-row>
             <!-- 1단: VersionFieldsData (정보 영역) -->
             <v-col cols="12" md="3">
-              <VersionFieldsData :version="versionItem" />
+              <VersionFieldsData :version="versionItem" :title="versionItem.code" />
             </v-col>
 
             <!-- 2단: DraftNotesData (Draft Notes 영역) -->

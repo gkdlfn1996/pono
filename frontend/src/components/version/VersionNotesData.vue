@@ -1,8 +1,8 @@
 <template>
   <!-- 3단: Version Notes 영역 -->
-  <div>
+  <div class="d-flex flex-column h-100">
     <h4 class="text-subtitle-1 font-weight-bold mb-2">Version Notes</h4>
-    <v-card variant="outlined" class="notes-container" style="min-height: 300px;">
+    <v-card variant="outlined" class="notes-container d-flex flex-column flex-grow-1">
       <p class="text-grey pa-4 text-center">버전 노트가 없습니다.</p>
     </v-card>
   </div>
