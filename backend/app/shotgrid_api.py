@@ -49,15 +49,62 @@ def get_versions_for_task(sg, project_id, task_name):
         "entity.Shot.sg_status_list",
         "entity.Shot.sg_end_date",  # Asset이면 None
         "entity.Asset.sg_status_list",  # Asset일 경우의 상태
+        "open_notes"
     ]
     versions = sg.find("Version", filters, fields)
-    print(f"Successfully fetched {len(versions)} versions.")
 
+    if not versions:
+        return []
+
+    # 버전 ID 목록을 추출하여 연결된 노트를 한 번에 조회
+    # version_ids = [version["id"] for version in versions]
+    note_map = _get_notes_for_versions(sg, versions)
+
+    # 각 버전에 해당하는 노트를 추가
+    for version in versions:
+        version['notes'] = note_map.get(version['id'], [])
+    
+    print(f"Successfully fetched {len(versions)} versions.")
     return versions
+
+
+def _get_notes_for_versions(sg, versions):
+    """
+    주어진 버전 ID 목록에 연결된 모든 노트를 조회하고,
+    버전 ID를 키로 하는 딕셔너리로 정리하여 반환합니다.
+    """
+    if not versions:
+        return {}
+    
+    note_filters = [['note_links', 'in', versions]]
+    note_fields = ['content', 'user', 'created_at', 'note_links']
+    notes = sg.find("Note", note_filters, note_fields)
+
+    print("######")
+    print(notes)
+    # note를 Version ID 기준으로 매핑
+    note_map = {}
+    for note in notes:
+        for linked_ver in note.get("note_links", []):
+            version_id = linked_ver['id']
+            if version_id not in note_map:
+                note_map[version_id] = []
+
+            note_map[version_id].append({
+                "content" : note["content"],
+                "user" : note["user"],
+                "created_at" : note["created_at"]
+            })
+    
+    # 각 노트 목록을 생성 시간(created_at)기준으로 정렬
+    for version_id in note_map:
+        note_map[version_id].sort(key=lambda x: x.get('created_at'), reverse=True)
+
+    return note_map
 
 def get_projects(sg):
     """
-    모든 프로젝트의 이름 목록을 조회합니다。
+    모든 프로젝트의 이름 목록을 조회합니다.
     """
     print("Attempting to fetch projects...")
     result = sg.find(
@@ -69,3 +116,20 @@ def get_projects(sg):
     )
     print(f"Successfully fetched {len(result)} projects.")
     return result
+
+
+if __name__ == "__main__":
+    import sys
+    sys.path.append("/netapp/INHouse/sg")
+    from SG_Authenticator import UserSG, SessionTokenSG
+    from pprint import pprint
+    
+    session_token = '9b9e8b4c02c63ff19d00d7a5de652f16'
+    project_id = 1046
+    task_name = 'light'
+    
+    token_sg = SessionTokenSG(session_token).sg
+
+    versions = get_versions_for_task(token_sg, project_id, task_name)
+    # pprint(versions)
+    

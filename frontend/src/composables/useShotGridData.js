@@ -78,6 +78,7 @@ export function useShotGridData() {
         displayVersions.value = [];
         try {
             const response = await apiClient.get(`/api/projects/${selectedProject.value.id}/tasks/${taskName}/versions`);
+            console.log("### Raw Version Data from Backend:", response.data);
             allVersions.value = response.data;
             totalPages.value = Math.ceil(allVersions.value.length / versionsPerPage);
             currentPage.value = 1;

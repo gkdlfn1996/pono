@@ -1,4 +1,3 @@
-<!-- frontend/src/components/versions/VersionList.vue -->
 <template>
   <!-- 로딩 상태 표시는 props.isLoading을 직접 사용합니다. -->
   <div v-if="props.isLoading" class="text-center py-10">
@@ -17,7 +16,13 @@
         @click="refreshVersions"
         :disabled="props.isLoading"
       ></v-btn>
+      <div v-if="selectedProject && selectedTask" class="ml-4 text-subtitle-1 text-grey">
+        <span>{{ selectedProject.name }}</span>
+        <v-icon size="small" class="mx-1">mdi-chevron-right</v-icon>
+        <span>{{ selectedTask.name }}</span>
+      </div>
     </div>
+    <v-divider class="mb-4"></v-divider>
     <div class="version-list">
       <v-card
         v-for="versionItem in props.versions"
@@ -58,6 +63,7 @@
 import VersionFieldsData from '../version/VersionFieldsData.vue';
 import DraftNotesData from '../version/DraftNotesData.vue';
 import VersionNotesData from '../version/VersionNotesData.vue';
+import { useShotGridData } from '../../composables/useShotGridData';
 
 // import { versions, isLoading, selectedTask, selectTask } from '../../composables/useShotGridData';
 
@@ -90,6 +96,9 @@ const props = defineProps({
     default: false,
   }
 });
+
+// 현재 선택된 프로젝트와 태스크 정보를 가져옵니다.
+const { selectedProject, selectedTask } = useShotGridData();
 
 // 'refresh-versions' 이벤트를 부모에게 전달하기 위해 emit을 정의합니다.
 const emit = defineEmits(['refresh-versions']);

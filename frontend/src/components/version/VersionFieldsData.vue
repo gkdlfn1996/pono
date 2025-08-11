@@ -33,8 +33,8 @@
     <v-row no-gutters class="flex-grow-1">
       <v-col>
         <div class="text-body-2">
-          <p><strong class="mr-2">Final Due:</strong> {{ version.entity && version.entity.Shot && version.entity.Shot.sg_end_date ? version.entity.Shot.sg_end_date : 'N/A' }}</p>
-          <p><strong class="mr-2">2D 마감:</strong> {{ version.sg_task && version.sg_task.Task && version.sg_task.Task.due_date ? version.sg_task.Task.due_date : 'N/A' }}</p>
+          <p><strong class="mr-2">Final Due:</strong> {{ version['entity.Shot.sg_end_date'] || 'N/A' }}</p>
+          <p><strong class="mr-2">2D 마감:</strong> {{ version['sg_task.Task.due_date'] || 'N/A' }}</p>
           <p><strong class="mr-2">Artists:</strong> {{ version.user ? version.user.name : 'N/A' }}</p>
         </div>
       </v-col>
