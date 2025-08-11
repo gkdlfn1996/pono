@@ -76,17 +76,36 @@
     <v-col cols="3" class="d-flex align-center pr-4 justify-end">
       <v-icon color="grey-lighten-1" class="mr-2">mdi-account-circle</v-icon>
       <span class="text-subtitle-1 mr-4" style="color: #BDBDBD;">{{ username }}</span>
-      <v-btn icon>
-        <v-icon>mdi-dots-vertical</v-icon>
-      </v-btn>
+      <v-menu>
+        <template v-slot:activator="{ props: menuProps }">
+          <v-btn icon v-bind="menuProps">
+            <v-icon>mdi-dots-vertical</v-icon>
+          </v-btn>
+        </template>
+        <v-list>
+          <v-list-item>
+            <v-list-item-title>
+              <v-switch
+                v-model="isDarkTheme"
+                hide-details
+                inset
+                prepend-icon="mdi-white-balance-sunny"
+                append-icon="mdi-weather-night"
+                @update:modelValue="toggleTheme"
+              ></v-switch>
+            </v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
     </v-col>
     </v-row>
   </v-app-bar>
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue';
+import { ref, onMounted, nextTick, computed } from 'vue';
 import { useShotGridData } from '../../composables/useShotGridData';
+import { useTheme } from 'vuetify';
 
 const {
   projects,
@@ -131,6 +150,13 @@ const addSearchLabel = (type) => {
 const removeSearchLabel = (index) => {
   searchLabels.value.splice(index, 1);
 };
+
+const theme = useTheme();
+const isDarkTheme = computed(() => theme.global.current.value.dark);
+
+function toggleTheme() {
+  theme.global.name.value = isDarkTheme.value ? 'light' : 'dark';
+}
 
 // 검색 입력란에서 엔터 키 입력 시 라벨 추가
 const handleSearchInputEnter = () => {
