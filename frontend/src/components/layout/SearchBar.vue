@@ -9,6 +9,7 @@
           class="fake-text-field"
           v-bind="menuProps"
           @click="onSearchbarClick"
+          tabindex="0"
         >
           <v-icon class="ml-n1" color="grey-darken-1">mdi-magnify</v-icon>
 
@@ -34,7 +35,7 @@
 
           <!-- 편집 중 UI: 임시 칩 -->
           <div v-if="editingChip" class="d-flex align-center" @click.stop style="flex-shrink: 0;">
-            <v-chip class="mr-1" size="small" ref="editingChipRef">
+            <v-chip class="mr-1" size="small">
               {{ editingChip.type }}:
             </v-chip>
             <v-autocomplete
@@ -103,11 +104,9 @@ const editingChip = ref(null); // {type, value} 형태의 편집중인 칩 정�
 const searchQuery = ref(''); // 자동완성 입력값
 
 const showFilterTypeMenu = ref(false); // 필터 종류 메뉴 제어
-const showAutocompleteMenu = ref(false); // 이 부분은 이제 사용되지 않음
 
 // DOM 요소 참조
 const searchContainerRef = ref(null);
-const editingChipRef = ref(null);
 const autocompleteRef = ref(null);
 
 const activatorWidth = ref(0);
@@ -116,10 +115,10 @@ const shotSuggestions = ref(['SHOT_010', 'SHOT_020', 'SHOT_030']); // 임시 자
 // 모든 필터 타입 정의 (비활성화된 항목 포함)
 const allFilterTypes = [
   { name: 'Shot', key: 'Shot' },
-  { name: 'Playlist', key: 'Playlist', disabled: true },
-  { name: 'Version', key: 'Version', disabled: true },
-  { name: 'Subject', key: 'Subject', disabled: true },
-  { name: 'Tag', key: 'Tag', disabled: true },
+  { name: 'Playlist', key: 'Playlist' },
+  { name: 'Version', key: 'Version' },
+  { name: 'Subject', key: 'Subject' },
+  { name: 'Tag', key: 'Tag' },
 ];
 
 // 현재 활성화 가능한 필터 타입 (computed 속성)
@@ -132,6 +131,26 @@ const availableFilterTypes = computed(() => {
     ...type,
     disabled: type.disabled, // 원래 비활성화된 상태는 유지
   }));
+});
+
+// 현재 편집 중인 칩 타입에 따른 자동완성 목록 (computed 속성)
+const autocompleteItems = computed(() => {
+  if (!editingChip.value) return [];
+
+  switch (editingChip.value.type) {
+    case 'Shot':
+      return shotSuggestions.value;
+    case 'Playlist':
+      return playlistSuggestions.value;
+    case 'Version':
+      return versionSuggestions.value;
+    case 'Subject':
+      return subjectSuggestions.value;
+    case 'Tag':
+      return tagSuggestions.value;
+    default:
+      return [];
+  }
 });
 
 // --- 함수 ---
@@ -163,6 +182,9 @@ const finalizeChip = () => {
       value: searchQuery.value,
     });
     cancelChipCreation();
+    nextTick(() => {
+      searchContainerRef.value?.focus(); // 다음 입력을 위해 검색창에 포커스
+    });
   }
 };
 
