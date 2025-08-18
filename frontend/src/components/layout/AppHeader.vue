@@ -38,39 +38,8 @@
       
       <!-- 2. 중앙 요소 : 검색창 -->
       <v-col cols="6" class="d-flex align-center pa-0 justify-center">
-        <v-menu :close-on-content-click="false" v-model="showSearchOptions">
-            <template v-slot:activator="{ props: menuProps }">
-                <div class="flex-grow-1 px-15">
-                    <v-text-field
-                        label="Search or Filter"
-                        v-model="searchQuery"
-                        variant="outlined"
-                        density="compact"
-                        hide-details
-                        prepend-inner-icon="mdi-magnify"
-                        v-bind="menuProps"
-                        @keydown.enter="handleSearchInputEnter"
-                    ></v-text-field>
-                </div>
-            </template>
-            <v-list>
-                <v-list-item @click="addSearchLabel('Shot')">
-                    <v-list-item-title>Shot</v-list-item-title>
-                </v-list-item>
-                <v-list-item disabled><v-list-item-title>Playlist</v-list-item-title></v-list-item>
-                <v-list-item disabled><v-list-item-title>Subject</v-list-item-title></v-list-item>
-                <v-list-item disabled><v-list-item-title>Version</v-list-item-title></v-list-item>
-                <v-list-item disabled><v-list-item-title>Tag</v-list-item-title></v-list-item>
-            </v-list>
-        </v-menu>
-        <div class="d-flex align-center ml-2 flex-wrap">
-            <v-chip v-for="(label, index) in searchLabels" :key="index" closable @click:close="removeSearchLabel(index)" class="mr-1">
-                {{ label.type }}: {{ label.value }}
-            </v-chip>
-        </div>
-    </v-col>
-
-
+        <SearchBar />
+      </v-col>
 
     <!-- 6. 우측 그룹 -->
     <v-col cols="3" class="d-flex align-center pr-4 justify-end">
@@ -103,9 +72,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, computed } from 'vue';
+import { onMounted, computed } from 'vue';
 import { useShotGridData } from '../../composables/useShotGridData';
 import { useTheme } from 'vuetify';
+import SearchBar from './SearchBar.vue';
 
 const {
   projects,
@@ -127,30 +97,6 @@ onMounted(async () => {
   await loadProjects();
 });
 
-const searchQuery = ref('');
-const showSearchOptions = ref(false);
-const searchLabels = ref([]);
-
-const addSearchLabel = (type) => {
-  if (type === 'Shot') {
-    searchLabels.value.push({ type: 'Shot', value: '' });
-    searchQuery.value = 'Shot: ';
-    // 커서 위치를 'Shot: ' 뒤로 이동
-    nextTick(() => {
-      const inputElement = document.querySelector('.v-text-field input');
-      if (inputElement) {
-        inputElement.focus();
-        inputElement.setSelectionRange(searchQuery.value.length, searchQuery.value.length);
-      }
-    });
-  }
-  showSearchOptions.value = false;
-};
-
-const removeSearchLabel = (index) => {
-  searchLabels.value.splice(index, 1);
-};
-
 const theme = useTheme();
 const isDarkTheme = computed(() => theme.global.current.value.dark);
 
@@ -158,16 +104,6 @@ function toggleTheme() {
   theme.global.name.value = isDarkTheme.value ? 'light' : 'dark';
 }
 
-// 검색 입력란에서 엔터 키 입력 시 라벨 추가
-const handleSearchInputEnter = () => {
-  if (searchQuery.value.startsWith('Shot: ')) {
-    const shotName = searchQuery.value.replace('Shot: ', '').trim();
-    if (shotName) {
-      searchLabels.value.push({ type: 'Shot', value: shotName });
-      searchQuery.value = '';
-    }
-  }
-};
 </script>
 
 <style scoped>
