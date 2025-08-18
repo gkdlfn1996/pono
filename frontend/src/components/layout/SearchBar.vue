@@ -41,7 +41,7 @@
             <v-autocomplete
               ref="autocompleteRef"
               v-model:search="searchQuery"
-              :items="shotSuggestions"
+              :items="autocompleteItems"
               :free-solo="true"
               :open-on-focus="true"
               autofocus
@@ -81,7 +81,7 @@
       <v-autocomplete
         ref="autocompleteRef"
         v-model="searchQuery"
-        :items="shotSuggestions"
+        :items="autocompleteItems"
         autofocus
         density="compact"
         variant="solo"
@@ -111,6 +111,11 @@ const autocompleteRef = ref(null);
 
 const activatorWidth = ref(0);
 const shotSuggestions = ref(['SHOT_010', 'SHOT_020', 'SHOT_030']); // 임시 자동완성 데이터
+const playlistSuggestions = ref(['Play_01', 'Play_02', 'Play_03']);
+const versionSuggestions = ref(['version001', 'version002', 'version003']);
+const subjectSuggestions = ref(['subject_01', 'subject_02', 'subject_03']);
+const tagSuggestions = ref(['tag01', 'tag02', 'tag03']);
+
 
 // 모든 필터 타입 정의 (비활성화된 항목 포함)
 const allFilterTypes = [
@@ -195,16 +200,6 @@ const cancelChipCreation = () => {
 
 const removeSearchLabel = (index) => {
   searchLabels.value.splice(index, 1);
-};
-
-const handleAutocompleteBlur = () => {
-  // 약간의 딜레이 후, 입력값이 없으면 칩 생성 취소
-  // (v-autocomplete의 항목 클릭 이벤트를 위해 딜레이 필요)
-  setTimeout(() => {
-    if (editingChip.value && !searchQuery.value) {
-      cancelChipCreation();
-    }
-  }, 200);
 };
 </script>
 
