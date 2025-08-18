@@ -1,4 +1,3 @@
-
 """
 PONO Backend Main Application File.
 이 파일은 FastAPI 애플리케이션을 생성하고, 미들웨어와 API 라우터들을 연결합니다.
@@ -8,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 # routers 폴더에서 각 기능별 라우터를 가져옵니다.
-from .routers import auth_router, notes_router, shotgrid_data_router
+from .routers import auth_router, notes_router, shotgrid_data_router, version_view_router
 
 # FastAPI 애플리케이션 인스턴스 생성
 app = FastAPI(
@@ -34,6 +33,7 @@ app.add_middleware(
 app.include_router(auth_router.router)
 app.include_router(notes_router.router)
 app.include_router(shotgrid_data_router.router)
+app.include_router(version_view_router.router)
 
 @app.get("/", tags=["Root"])
 async def read_root():

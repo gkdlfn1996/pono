@@ -10,6 +10,9 @@
               <span class="text-subtitle-2 font-weight-bold">{{ note.user.name }}</span>
               <span class="text-caption text-grey">{{ formatDateTime(note.created_at) }}</span>
             </div>
+            <div v-if="note.subject" class="text-subtitle-2 font-weight-bold px-3 pb-1 text-grey">
+              {{ note.subject }}
+            </div>
             <div class="text-body-2 pt-0 pb-2 px-3" style="white-space: pre-wrap; word-wrap: break-word;">{{ note.content }}</div>
             <v-divider v-if="index < version.notes.length - 1"></v-divider>
           </div>

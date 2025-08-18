@@ -21,14 +21,13 @@
 
       <!-- 로그인 성공 시 표시되는 메인 UI -->
       <v-container fluid v-else class="main-content-container">
-        <!-- 버전 리스트 컴포넌트 (프로젝트와 태스크가 모두 선택되었을 때만 표시) -->
         <v-row v-if="selectedProject && selectedTask">
           <v-col cols="12">
-            <!-- <VersionList
+            <!-- <VersionList_org
               :isLoading="isLoading"
               :versions="versions"
               @refresh-versions="loadVersions(selectedTask.name)"
-              
+
               :notes="notesContent"
               :notesComposable="notes"
               :isSaving="isSaving"
@@ -40,7 +39,11 @@
             <VersionList
               :isLoading="isLoading"
               :versions="displayVersions"
-              @refresh-versions="loadVersions(selectedTask.name)"
+              :sortBy="sortBy"
+              :sortOrder="sortOrder"
+              :presentEntityTypes="presentEntityTypes"
+              :setSort="setSort"
+              @refresh-versions="loadVersions"
             />
             <div class="text-center mt-4" v-if="!isLoading && totalPages > 1">
               <v-pagination
@@ -100,8 +103,12 @@ const {
   totalPages,
   selectedProject,
   selectedTask,
+  sortBy,
+  sortOrder,
+  presentEntityTypes,
   loadVersions,
   changePage,
+  setSort,
 } = useShotGridData();
 
 // App 컴포넌트가 마운트될 때 인증 상태를 확인합니다.

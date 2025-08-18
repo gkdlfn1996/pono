@@ -129,6 +129,17 @@ const statuses = computed(() => {
     });
   }
 
+  // Asset Status
+  // 데이터 구조에 맞게 직접 접근
+  const assetStatus = props.version['entity.Asset.sg_status_list'];
+  if (assetStatus) {
+    result.push({
+      label: 'Asset',
+      value: assetStatus,
+      color: statusMap[assetStatus.toLowerCase()] || 'grey-lighten-1'
+    })
+  }
+
   // Task Status
   // 데이터 구조에 맞게 직접 접근
   const taskStatus = props.version['sg_task.Task.sg_status_list'];

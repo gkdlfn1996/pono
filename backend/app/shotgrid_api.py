@@ -1,7 +1,22 @@
+from functools import wraps
+import time
+
+def timing(f):
+    @wraps(f)
+    def count_time(*args, **kwargs):
+        start_time = time.time()      # 시작 시간 기록
+        ret = f(*args, **kwargs) # 원래 메서드 실행
+        end_time = time.time()      # 끝나는 시간 기록
+        duration = end_time - start_time # 실행 시간 계산
+        print(f"functions took {f.__name__}: {duration:.6f} seconds")
+        return ret
+    return count_time
+
+# --------------------------------------------------------------------------
+
 """
 샷그리드 데이터 관련 api 모음
 """
-
 
 def get_tasks_for_project(sg, project_id):
     """
@@ -28,26 +43,31 @@ def get_tasks_for_project(sg, project_id):
     # 태스크 이름을 알파벳 순으로 정렬
     processed_tasks.sort(key=lambda x: x.get('name', '').lower())
     
-    print(f"ShotGrid tasks for project_id {project_id}: {processed_tasks}")
+    print(f"ShotGrid tasks for project_id {project_id}: {[item['name'] for item in processed_tasks]}")
     return processed_tasks
 
+
+@timing
 def get_versions_for_task(sg, project_id, task_name):
     """
     특정 프로젝트와 태스크 이름에 연결된 Version 목록을 조회합니다.
     """
     print(f"Attempting to fetch versions for task '{task_name}' in project {project_id}")
+
     filters = [
-        ['project.Project.id', 'is', project_id],
+        ['project', 'is', {'type': 'Project', 'id': project_id}],
         ['sg_task.Task.content', 'is', task_name],
     ]
 
     fields = [
-        "id", "code", "description", "created_at",
-        "sg_status_list", "image", "user", "sg_task", "entity",
+        "id", "code",  "created_at", "image",
+        "description",
+        "sg_status_list",  "user", "sg_task", "entity",
         "sg_task.Task.due_date",
         "sg_task.Task.sg_status_list",
         "entity.Shot.sg_status_list",
         "entity.Shot.sg_end_date",  # Asset이면 None
+        "entity.Shot.sg_rnum",
         "entity.Asset.sg_status_list",  # Asset일 경우의 상태
         "open_notes"
     ]
@@ -57,7 +77,6 @@ def get_versions_for_task(sg, project_id, task_name):
         return []
 
     # 버전 ID 목록을 추출하여 연결된 노트를 한 번에 조회
-    # version_ids = [version["id"] for version in versions]
     note_map = _get_notes_for_versions(sg, versions)
 
     # 각 버전에 해당하는 노트를 추가
@@ -66,6 +85,7 @@ def get_versions_for_task(sg, project_id, task_name):
     
     print(f"Successfully fetched {len(versions)} versions.")
     return versions
+
 
 
 def _get_notes_for_versions(sg, versions):
@@ -77,11 +97,9 @@ def _get_notes_for_versions(sg, versions):
         return {}
     
     note_filters = [['note_links', 'in', versions]]
-    note_fields = ['content', 'user', 'created_at', 'note_links']
+    note_fields = ['content', 'user', 'created_at', 'subject', 'note_links']
     notes = sg.find("Note", note_filters, note_fields)
 
-    print("######")
-    print(notes)
     # note를 Version ID 기준으로 매핑
     note_map = {}
     for note in notes:
@@ -93,6 +111,7 @@ def _get_notes_for_versions(sg, versions):
             note_map[version_id].append({
                 "content" : note["content"],
                 "user" : note["user"],
+                "subject" : note["subject"],
                 "created_at" : note["created_at"]
             })
     
@@ -131,5 +150,5 @@ if __name__ == "__main__":
     token_sg = SessionTokenSG(session_token).sg
 
     versions = get_versions_for_task(token_sg, project_id, task_name)
-    # pprint(versions)
+    pprint(versions)
     

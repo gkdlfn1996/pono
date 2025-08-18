@@ -4,13 +4,15 @@ import axios from 'axios';
 // 반응형 상태 변수들
 const projects = ref([]);
 const tasks = ref([]);
-const allVersions = ref([]); // 전체 버전을 저장할 변수
 const displayVersions = ref([]); // 화면에 보여줄 버전만 저장할 변수
 const selectedProject = ref(null);
+const presentEntityTypes = ref([]); // 목록에 존재하는 모든 엔티티 타입
 const selectedTask = ref(null);
 const isLoading = ref(false);
 const currentPage = ref(1);
 const totalPages = ref(1);
+const sortBy = ref('created_at'); // 정렬 기준
+const sortOrder = ref('desc'); // 정렬 순서 (asc, desc)
 const versionsPerPage = 50; // 페이지 당 버전 수
 
 // 동적 API 주소 설정 (useAuth.js와 동일하게 설정)
@@ -69,39 +71,40 @@ export function useShotGridData() {
 
 
     /**
-     * 특정 프로젝트에 속한 태스크 목록을 불러옵니다.
-     * @param {number} taskName - 버전을 불러올 테스크의 이름
+     * 백엔드에서 정렬/페이지네이션 처리된 버전 목록을 불러옵니다.
      */
-    const loadVersions = async (taskName) => {
+    const loadVersions = async (useCache = false) => {
+        if (!selectedProject.value || !selectedTask.value) return;
         isLoading.value = true;
-        allVersions.value = [];
-        displayVersions.value = [];
         try {
-            const response = await apiClient.get(`/api/projects/${selectedProject.value.id}/tasks/${taskName}/versions`);
-            console.log("### Raw Version Data from Backend:", response.data);
-            allVersions.value = response.data;
-            totalPages.value = Math.ceil(allVersions.value.length / versionsPerPage);
-            currentPage.value = 1;
-            changePage(1); // 첫 페이지 로드
-            console.log(`Total ${allVersions.value.length} versions for Task ${taskName} loaded.`);
+            const response = await apiClient.get('/api/view/versions/', {
+                params: {
+                    project_id: selectedProject.value.id,
+                    task_name: selectedTask.value.name,
+                    page: currentPage.value,
+                    page_size: versionsPerPage,
+                    sort_by: sortBy.value,
+                    sort_order: sortOrder.value,
+                    use_cache: useCache,
+                }
+            });
+            const data = response.data;
+            console.log("### Processed Data from Backend:", data); // 상세 로그 추가
+            displayVersions.value = data.versions;
+            totalPages.value = data.total_pages;
+            presentEntityTypes.value = data.presentEntityTypes;
         } catch (error) {
-            console.error(`Failed to load versions for Task ${taskName}:`, error);
+            console.error(`Failed to load versions:`, error);
         } finally {
-            isLoading.value = false; // 작업이 끝나면 항상 로딩 상태를 해제합니다.
+            isLoading.value = false;
         }
     };
 
 
     const changePage = (page) => {
-        if (page < 1 || page > totalPages.value) return;
         currentPage.value = page;
-        const startIndex = (page - 1) * versionsPerPage;
-        const endIndex = startIndex + versionsPerPage;
-        displayVersions.value = allVersions.value.slice(startIndex, endIndex);
+        loadVersions(true); // 페이지 이동 시에는 캐시 사용
     };
-
-
-
 
 
 
@@ -126,9 +129,25 @@ export function useShotGridData() {
         const task = tasks.value.find(t => t.name === taskName);
         if (task) {
             selectedTask.value = task;
-            // console.log('[useShotGridData] selectTask executed. Central selectedTask is now:', selectedTask.value);
-            await loadVersions(taskName)
+            // 태스크가 바뀌면 정렬 상태를 기본값으로 초기화하고 1페이지부터 로드
+            currentPage.value = 1;
+            sortBy.value = 'created_at';
+            sortOrder.value = 'desc';
+            await loadVersions(false); // 태스크 선택 시에는 새로고침 (캐시 미사용)
         }
+    };
+
+    const setSort = (newSortBy) => {
+        if (sortBy.value === newSortBy) {
+            // 같은 버튼을 누르면 정렬 순서만 변경
+            sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
+        } else {
+            // 새로운 버튼을 누르면 해당 기준으로 오름차순 정렬
+            sortBy.value = newSortBy;
+            sortOrder.value = 'asc';
+        }
+        currentPage.value = 1; // 정렬 기준이 바뀌면 항상 1페이지로 이동
+        loadVersions(true); // 정렬 시에는 캐시 사용
     };
 
     return {
@@ -136,15 +155,19 @@ export function useShotGridData() {
         tasks: readonly(tasks),
         displayVersions: readonly(displayVersions),
         selectedProject: readonly(selectedProject),
+        presentEntityTypes: readonly(presentEntityTypes),
         selectedTask: readonly(selectedTask),
         isLoading: readonly(isLoading),
         currentPage: readonly(currentPage),
         totalPages: readonly(totalPages),
+        sortBy: readonly(sortBy),
+        sortOrder: readonly(sortOrder),
         loadProjects,
         loadTasks,
         loadVersions,
         changePage,
         selectProject,
         selectTask,
+        setSort,
     };
 }

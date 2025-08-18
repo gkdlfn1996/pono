@@ -1,5 +1,6 @@
 <template>
   <!-- 로딩 상태 표시는 props.isLoading을 직접 사용합니다. -->
+  <!-- v-if와 v-else-if를 사용하여 로딩, 데이터 있음, 데이터 없음 세 가지 상태를 명확히 분리합니다. -->
   <div v-if="props.isLoading" class="text-center py-10">
     <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
     <p class="mt-4 text-grey-lighten-1">버전 목록을 불러오는 중입니다...</p>
@@ -7,7 +8,7 @@
 
   <!-- 데이터가 있을 때는 props.versions를 직접 사용합니다. -->
   <div v-else-if="props.versions && props.versions.length > 0" class="versions-section">
-    <div class="d-flex align-center mb-2">
+    <div class="d-flex align-center mb-2 flex-wrap">
       <h2 class="mr-2">Version</h2>
       <v-btn
         icon="mdi-refresh"
@@ -20,6 +21,34 @@
         <span>{{ selectedProject.name }}</span>
         <v-icon size="small" class="mx-1">mdi-chevron-right</v-icon>
         <span>{{ selectedTask.name }}</span>
+      </div>
+      <v-spacer></v-spacer>
+      <!-- 정렬 컨트롤 UI -->
+      <div class="d-flex align-center">
+        <v-menu offset-y>
+          <template v-slot:activator="{ props: menuProps }">
+            <v-btn v-bind="menuProps" variant="text" class="mr-2">
+              Sort By: {{ currentSortName }}
+            </v-btn>
+          </template>
+          <v-list dense>
+            <v-list-item
+              v-for="option in sortOptions"
+              :key="option.key"
+              @click="() => props.setSort(option.key)"
+              :disabled="option.disabled.value"
+            >
+              <v-list-item-title>{{ option.name }}</v-list-item-title>
+            </v-list-item>
+          </v-list>
+        </v-menu>
+        <v-btn
+          icon
+          variant="text"
+          @click="() => props.setSort(props.sortBy)"
+        >
+          <v-icon>{{ props.sortOrder === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}</v-icon>
+        </v-btn>
       </div>
     </div>
     <v-divider class="mb-4"></v-divider>
@@ -63,6 +92,7 @@
 import VersionFieldsData from '../version/VersionFieldsData.vue';
 import DraftNotesData from '../version/DraftNotesData.vue';
 import VersionNotesData from '../version/VersionNotesData.vue';
+import { computed } from 'vue';
 import { useShotGridData } from '../../composables/useShotGridData';
 
 // import { versions, isLoading, selectedTask, selectTask } from '../../composables/useShotGridData';
@@ -94,7 +124,27 @@ const props = defineProps({
   isLoading: {
     type: Boolean,
     default: false,
-  }
+  },
+  // 정렬 관련 props 추가
+  sortBy: String,
+  sortOrder: String,
+  presentEntityTypes: Array,
+  setSort: Function,
+});
+
+// 정렬 옵션
+const sortOptions = [
+  { name: 'Version - Name', key: 'version_name', disabled: computed(() => false) },
+  { name: 'Shot - Rnum', key: 'shot_rnum', disabled: computed(() => !props.presentEntityTypes.includes('Shot')) },
+  { name: 'Shot - Name', key: 'shot_name', disabled: computed(() => !props.presentEntityTypes.includes('Shot')) },
+  { name: 'Asset - Name', key: 'asset_name', disabled: computed(() => !props.presentEntityTypes.includes('Asset')) },
+  { name: 'Date Created', key: 'created_at', disabled: computed(() => false) },
+];
+
+// 현재 정렬 기준 표시 이름
+const currentSortName = computed(() => {
+  const found = sortOptions.find(option => option.key === props.sortBy);
+  return found ? found.name : '';
 });
 
 // 현재 선택된 프로젝트와 태스크 정보를 가져옵니다.
