@@ -27,7 +27,7 @@
       <div class="d-flex align-center">
         <v-menu offset-y>
           <template v-slot:activator="{ props: menuProps }">
-            <v-btn v-bind="menuProps" variant="text" class="mr-2">
+            <v-btn v-bind="menuProps" variant="text" class="mr-1 text-none font-weight-regular normal-spacing">
               Sort By: {{ currentSortName }}
             </v-btn>
           </template>
@@ -45,6 +45,7 @@
         <v-btn
           icon
           variant="text"
+          size="small"
           @click="() => props.setSort(props.sortBy)"
         >
           <v-icon>{{ props.sortOrder === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down' }}</v-icon>
@@ -165,5 +166,8 @@ function refreshVersions() {
 <style scoped>
 .version-list {
   /* 필요에 따라 스타일 추가 */
+}
+.normal-spacing {
+  letter-spacing: normal;
 }
 </style>
