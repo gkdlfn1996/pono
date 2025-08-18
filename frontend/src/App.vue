@@ -74,6 +74,16 @@
     <FloatingMenu v-if="isAuthenticated" />
     <NotesPanel v-if="isAuthenticated" v-model="showNotesPanel" />
     <ShotDetailPanel v-if="isAuthenticated" v-model="showShotDetailPanel" />
+
+    <!-- 최상단으로 스크롤하는 플로팅 버튼 -->
+    <div class="scroll-to-top">
+      <v-btn
+        icon="mdi-arrow-up"
+        variant="tonal"
+        size="small"
+        @click="scrollToTop"
+      ></v-btn>
+    </div>
   </v-app>
 </template>
 
@@ -138,4 +148,18 @@ const handleLogout = () => logout();
 // const handleInputNote = () => console.log('handleInputNote called');
 // const sendMessage = () => console.log('sendMessage called');
 // const notes = { reloadOtherNotesForVersion: () => console.log('reloadOtherNotesForVersion called') };
+
+const scrollToTop = () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
 </script>
+
+<style scoped>
+.scroll-to-top {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 99;
+}
+</style>
