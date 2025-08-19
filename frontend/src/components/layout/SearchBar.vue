@@ -1,12 +1,15 @@
 <template>
-  <div
+  <v-field
+    :disabled="props.disabled"
     class="search-bar-container"
-    :class="{ 'is-disabled': props.disabled }"
     @click="focusInput"
+    variant="outlined"
+    color="primary"
   >
+    <template #prepend-inner>
+      <v-icon class="mr-2">mdi-magnify</v-icon>
+    </template>
 
-
-    <v-icon class="mr-2" color="grey-darken-1">mdi-magnify</v-icon>
     <div class="chips-area">
       <v-chip
         v-for="(label, index) in searchLabels"
@@ -48,7 +51,6 @@
       v-if="!activeType"
       ref="typeInputRef"
       v-model:search="typeSearchQuery"
-      :disabled="props.disabled"
       :items="typeSuggestions"
       :placeholder="placeholder"
       @keydown.enter.prevent="onTypeEnter"
@@ -64,7 +66,7 @@
       class="type-input"
     >
     </v-autocomplete>
-  </div>
+  </v-field>
 </template>
 
 <script setup>
@@ -290,34 +292,18 @@ watch(typeSearchQuery, (newValue) => {
 
 <style scoped>
 .search-bar-container {
-  display: flex;
-  align-items: center;
   width: 100%;
   max-width: 1000px;
-  min-height: 40px;
-  padding: 0 12px;
-  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
-  border-radius: 4px;
+  /* v-field가 자동으로 스타일을 관리하므로 수동 스타일을 최소화합니다. */
+}
+
+:deep(.v-field__field) {
+  /* v-field 내부의 flex 컨테이너 스타일 조정 */
+  display: flex;
+  align-items: center;
   gap: 6px;
-  cursor: text;
-
-}
-
-.search-bar-container.is-disabled {
-  background-color: rgba(239, 239, 239, 0.3); /* Vuetify disabled color */
-  user-select: none; /* Disable text selection */
-}
-
-.search-bar-container.is-disabled .v-icon {
-  color: rgba(0, 0, 0, 0.26) !important; /* Vuetify disabled icon color */
-}
-
-.search-bar-container.is-disabled:hover {
-  border-color: rgba(var(--v-border-color), var(--v-border-opacity)); /* Override hover effect */
-}
-
-.search-bar-container:hover {
-    border-color: rgba(var(--v-border-color), 1);
+  height: auto;
+  min-height: 40px;
 }
 
 .chips-area {
@@ -342,6 +328,7 @@ watch(typeSearchQuery, (newValue) => {
 
 :deep(.v-field__input) {
   padding-top: 0;
+  padding-bottom: 0;
   align-items: center;
 }
 </style>
