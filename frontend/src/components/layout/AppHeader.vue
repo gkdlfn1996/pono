@@ -38,7 +38,7 @@
       
       <!-- 2. 중앙 요소 : 검색창 -->
       <v-col cols="6" class="d-flex align-center pa-0 justify-center">
-        <SearchBar />
+        <SearchBar :disabled="isSearchBarDisabled" />
       </v-col>
 
     <!-- 6. 우측 그룹 -->
@@ -103,6 +103,11 @@ const isDarkTheme = computed(() => theme.global.current.value.dark);
 function toggleTheme() {
   theme.global.name.value = isDarkTheme.value ? 'light' : 'dark';
 }
+
+// 검색창 활성화/비활성화 여부를 결정하는 computed 속성
+const isSearchBarDisabled = computed(() => {
+  return !selectedProject.value || !selectedTask.value;
+});
 
 </script>
 

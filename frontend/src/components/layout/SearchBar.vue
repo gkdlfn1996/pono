@@ -1,5 +1,12 @@
 <template>
-  <div class="search-bar-container" @click="focusInput">
+  <div
+    class="search-bar-container"
+    :class="{ 'is-disabled': props.disabled }"
+    @click="focusInput"
+  >
+
+
+    <v-icon class="mr-2" color="grey-darken-1">mdi-magnify</v-icon>
     <div class="chips-area">
       <v-chip
         v-for="(label, index) in searchLabels"
@@ -29,6 +36,7 @@
           @update:menu="isValueMenuOpen = $event"
           variant="plain"
           density="compact"
+          menu-icon=""
           hide-details
           autofocus
           class="value-input"
@@ -40,13 +48,15 @@
       v-if="!activeType"
       ref="typeInputRef"
       v-model:search="typeSearchQuery"
+      :disabled="props.disabled"
       :items="typeSuggestions"
       :placeholder="placeholder"
-      :disabled="isTypeInputDisabled"
       @keydown.enter.prevent="onTypeEnter"
+      @keydown="onTypeInputKeydown"
       @keydown.backspace="onTypeInputBackspaceMain"
       @update:menu="isTypeMenuOpen = $event"
       @update:model-value="selectType"
+      menu-icon=""
       variant="plain"
       density="compact"
       hide-details
@@ -58,8 +68,14 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue';
+import { ref, computed, nextTick, watch} from 'vue';
 
+// props 정의
+const props = defineProps({
+  disabled: Boolean,
+});
+
+const emit = defineEmits(['filters-complete']);
 // --- 상태 (State) ---
 // 최종 확정된 필터 칩 목록 { type, value }
 const searchLabels = ref([]); 
@@ -67,6 +83,7 @@ const searchLabels = ref([]);
 const activeType = ref(null); 
 // 타입 입력창의 텍스트 모델
 const typeSearchQuery = ref('');
+
 // 값 입력창의 텍스트 모델
 const valueSearchQuery = ref('');
 // 값 선택 메뉴의 열림/닫힘 상태
@@ -119,11 +136,6 @@ const valueSuggestions = computed(() => {
 const placeholder = computed(() => {
   if (activeType.value || searchLabels.value.length > 0) return '';
   return 'Search or Filter';
-});
-
-// 타입 제안 목록이 비어있고, 검색어 입력도 없을 때 입력창을 비활성화
-const isTypeInputDisabled = computed(() => {
-    return typeSuggestions.value.length === 0 && typeSearchQuery.value === '';
 });
 
 // --- 데이터 (Data) ---
@@ -184,8 +196,21 @@ const selectType = (selectedType) => {
 
 // 타입 입력창에서 'Enter' 키를 눌렀을 때
 const onTypeEnter = () => {
+  // 모든 필터가 선택된 상태에서 Enter를 누르면 완료 이벤트를 발생시킴
+  if (allFilterTypes.length === searchLabels.value.length) { // 모든 필터가 선택된 경우
+    emit('filters-complete', searchLabels.value);
+    return;
+  }
   if (typeSuggestions.value.length > 0) {
     selectType(typeSuggestions.value[0]);
+  }
+};
+
+// 타입 입력창에서 키보드 입력을 제어하는 핸들러
+const onTypeInputKeydown = (event) => {
+  // 모든 필터가 선택되었고, IME 입력 중이 아니며, 제어키가 아닌 일반 문자 입력일 경우에만 preventDefault
+  if (allFilterTypes.length === searchLabels.value.length && !event.isComposing && event.key.length === 1 && !event.ctrlKey && !event.metaKey) {
+    event.preventDefault();
   }
 };
 
@@ -253,6 +278,14 @@ const onValueInputBlur = () => {
   }, 200);
 };
 
+// typeSearchQuery의 변화를 감지하여 모든 필터가 선택된 경우 초기화
+watch(typeSearchQuery, (newValue) => {
+  if (allFilterTypes.length === searchLabels.value.length && newValue !== '') {
+    // 모든 필터가 선택된 상태에서 새로운 값이 들어오면 무시하고 초기화
+    typeSearchQuery.value = '';
+  }
+});
+
 </script>
 
 <style scoped>
@@ -260,13 +293,29 @@ const onValueInputBlur = () => {
   display: flex;
   align-items: center;
   width: 100%;
+  max-width: 1000px;
   min-height: 40px;
   padding: 0 12px;
   border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
   border-radius: 4px;
   gap: 6px;
   cursor: text;
+
 }
+
+.search-bar-container.is-disabled {
+  background-color: rgba(239, 239, 239, 0.3); /* Vuetify disabled color */
+  user-select: none; /* Disable text selection */
+}
+
+.search-bar-container.is-disabled .v-icon {
+  color: rgba(0, 0, 0, 0.26) !important; /* Vuetify disabled icon color */
+}
+
+.search-bar-container.is-disabled:hover {
+  border-color: rgba(var(--v-border-color), var(--v-border-opacity)); /* Override hover effect */
+}
+
 .search-bar-container:hover {
     border-color: rgba(var(--v-border-color), 1);
 }
@@ -289,6 +338,11 @@ const onValueInputBlur = () => {
 
 :deep(.v-field__overlay) {
     background: transparent;
+}
+
+:deep(.v-field__input) {
+  padding-top: 0;
+  align-items: center;
 }
 </style>
 
