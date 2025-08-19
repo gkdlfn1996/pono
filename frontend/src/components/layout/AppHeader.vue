@@ -32,8 +32,14 @@
           variant="outlined"
           density="compact"
           hide-details
-          style="max-width: 200px;"
-        ></v-autocomplete>
+          style="max-width: 200px;">
+          <template v-slot:item="{ props, item }">
+            <div>
+              <v-list-item v-bind="props" :title="item.raw.name"></v-list-item>
+              <v-divider v-if="item.raw.name === 'All'"></v-divider>
+            </div>
+          </template>
+        </v-autocomplete>
       </v-col>
       
       <!-- 2. 중앙 요소 : 검색창 -->

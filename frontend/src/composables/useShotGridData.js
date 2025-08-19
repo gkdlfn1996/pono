@@ -61,7 +61,8 @@ export function useShotGridData() {
     const loadTasks = async (projectId) => {
         try {
             const response = await apiClient.get(`/api/projects/${projectId}/tasks`);
-            tasks.value = response.data;
+            // 백엔드에서 받은 태스크 목록 앞에 'All' 옵션을 추가합니다.
+            tasks.value = [{ name: 'All' }, ...response.data];
             console.log(`Tasks for project ${projectId} loaded:`, tasks.value);
         } catch (error) {
             console.error(`Failed to load tasks for project ${projectId}:`, error);
@@ -126,7 +127,11 @@ export function useShotGridData() {
      * @param {number} taskName - 선택할 태스크의 이름
      */
     const selectTask = async (taskName) => {
-        const task = tasks.value.find(t => t.name === taskName);
+        // 'All'을 선택했거나 실제 태스크를 선택한 경우 모두 처리합니다.
+        const task = (taskName === 'All')
+            ? { name: 'All' }
+            : tasks.value.find(t => t.name === taskName);
+
         if (task) {
             selectedTask.value = task;
             // 태스크가 바뀌면 정렬 상태를 기본값으로 초기화하고 1페이지부터 로드

@@ -59,6 +59,13 @@ def get_versions_for_task(sg, project_id, task_name):
         ['sg_task.Task.content', 'is', task_name],
     ]
 
+    # 기본적으로 프로젝트 필터만 설정합니다.
+    filters = [['project', 'is', {'type': 'Project', 'id': project_id}]]
+
+    # task_name이 'All'이 아닐 경우에만 테스크 이름 필터를 추가합니다.
+    if task_name != 'All':
+        filters.append(['sg_task.Task.content', 'is', task_name])
+
     fields = [
         "id", "code",  "created_at", "image",
         "description",

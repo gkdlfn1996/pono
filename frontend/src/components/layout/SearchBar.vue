@@ -144,6 +144,7 @@ const placeholder = computed(() => {
 // 지원하는 모든 필터 타입 정의
 const allFilterTypes = [
   { name: 'Shot', key: 'Shot' },
+  { name: 'Asset', key: 'Asset' },
   { name: 'Playlist', key: 'Playlist' },
   { name: 'Version', key: 'Version' },
   { name: 'Subject', key: 'Subject' },
@@ -151,6 +152,8 @@ const allFilterTypes = [
 ];
 // 'Shot' 타입에 대한 임시 제안 데이터
 const shotSuggestions = ref(['SHOT_010', 'SHOT_020', 'SHOT_030']);
+// 'Asset' 타입에 대한 임시 제안 데이터
+const AssetSuggestions = ref(['ASSET_010', 'ASSET_020', 'ASSET_030']);
 // 'Playlist' 타입에 대한 임시 제안 데이터
 const playlistSuggestions = ref(['Play_01', 'Play_02', 'Play_03']);
 // 'Version' 타입에 대한 임시 제안 데이터
@@ -166,6 +169,7 @@ const tagSuggestions = ref(['Apple', 'Banana', 'Grape']);
 const getSuggestionsForType = (type) => {
   const typeMap = {
     Shot: shotSuggestions.value,
+    Asset: AssetSuggestions.value,
     Playlist: playlistSuggestions.value,
     Version: versionSuggestions.value,
     Subject: subjectSuggestions.value,
