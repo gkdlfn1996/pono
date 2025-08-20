@@ -186,9 +186,8 @@ const selectType = (selectedType) => {
 
 // 타입 입력창에서 'Enter' 키를 눌렀을 때
 const onTypeEnter = () => {
-  // 조건: 입력창이 비어있고, 확정된 칩이 하나 이상 있을 때
-  if (typeSearchQuery.value === '' && searchLabels.value.length > 0) {
-    // 필터 완료 신호를 보냅니다.
+  // 조건: 입력창이 비어있거나, 확정된 칩이 하나 이상 있을 때
+  if (typeSearchQuery.value === '') {
     emit('filters-complete', searchLabels.value);
     // 콘솔에 필터 완료 신호를 보냈다는 로그를 남깁니다.
     console.log('\'Enter\' 키 입력 감지. filters-complete 신호를 보냅니다:', searchLabels.value);
