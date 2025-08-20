@@ -13,6 +13,8 @@ const currentPage = ref(1);
 const totalPages = ref(1);
 const sortBy = ref('created_at'); // 정렬 기준
 const sortOrder = ref('desc'); // 정렬 순서 (asc, desc)
+const activeFilters = ref([]); // SearchBar로부터 받은 필터 조건
+const suggestionSources = ref({}); // SearchBar 제안 목록 데이터
 const versionsPerPage = 50; // 페이지 당 버전 수
 
 // 동적 API 주소 설정 (useAuth.js와 동일하게 설정)
@@ -86,6 +88,7 @@ export function useShotGridData() {
                     page_size: versionsPerPage,
                     sort_by: sortBy.value,
                     sort_order: sortOrder.value,
+                    filters: JSON.stringify(activeFilters.value),
                     use_cache: useCache,
                 }
             });
@@ -94,6 +97,7 @@ export function useShotGridData() {
             displayVersions.value = data.versions;
             totalPages.value = data.total_pages;
             presentEntityTypes.value = data.presentEntityTypes;
+            suggestionSources.value = data.suggestions || {}; // 제안 목록 데이터 저장
         } catch (error) {
             console.error(`Failed to load versions:`, error);
         } finally {
@@ -142,6 +146,16 @@ export function useShotGridData() {
         }
     };
 
+    /**
+     * SearchBar로부터 받은 필터를 적용하고 버전 목록을 새로고침합니다.
+     * @param {Array} newFilters - SearchBar에서 전달된 필터 객체 배열
+     */
+    const applyFilters = (newFilters) => {
+        activeFilters.value = newFilters;
+        currentPage.value = 1; // 필터가 변경되면 1페이지부터 다시 시작
+        loadVersions(true); // 새 필터 적용 시에도 캐시 사용
+    };
+
     const setSort = (newSortBy) => {
         if (sortBy.value === newSortBy) {
             // 같은 버튼을 누르면 정렬 순서만 변경
@@ -162,6 +176,7 @@ export function useShotGridData() {
         selectedProject: readonly(selectedProject),
         presentEntityTypes: readonly(presentEntityTypes),
         selectedTask: readonly(selectedTask),
+        suggestionSources: readonly(suggestionSources),
         isLoading: readonly(isLoading),
         currentPage: readonly(currentPage),
         totalPages: readonly(totalPages),
@@ -174,5 +189,6 @@ export function useShotGridData() {
         selectProject,
         selectTask,
         setSort,
+        applyFilters,
     };
 }

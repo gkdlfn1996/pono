@@ -71,6 +71,7 @@
 
 <script setup>
 import { ref, computed, nextTick, watch} from 'vue';
+import { useShotGridData } from '../../composables/useShotGridData';
 
 // props 정의
 const props = defineProps({
@@ -98,6 +99,9 @@ const isTypeMenuOpen = ref(false);
 const typeInputRef = ref(null);
 // 값 입력용 v-autocomplete 컴포넌트 참조
 const valueInputRef = ref(null);
+
+// --- 중앙 데이터 저장소 ---
+const { suggestionSources } = useShotGridData();
 
 // --- Computed ---
 
@@ -150,32 +154,12 @@ const allFilterTypes = [
   { name: 'Subject', key: 'Subject' },
   { name: 'Tag', key: 'Tag' },
 ];
-// 'Shot' 타입에 대한 임시 제안 데이터
-const shotSuggestions = ref(['SHOT_010', 'SHOT_020', 'SHOT_030']);
-// 'Asset' 타입에 대한 임시 제안 데이터
-const AssetSuggestions = ref(['ASSET_010', 'ASSET_020', 'ASSET_030']);
-// 'Playlist' 타입에 대한 임시 제안 데이터
-const playlistSuggestions = ref(['Play_01', 'Play_02', 'Play_03']);
-// 'Version' 타입에 대한 임시 제안 데이터
-const versionSuggestions = ref(['Version_001', 'Version_002', 'Version_003']);
-// 'Subject' 타입에 대한 임시 제안 데이터
-const subjectSuggestions = ref(['Subject_01', 'Subject_02', 'Subject_03']);
-// 'Tag' 타입에 대한 임시 제안 데이터
-const tagSuggestions = ref(['Apple', 'Banana', 'Grape']);
 
 // --- 메소드 (Methods) ---
 
 // 타입에 따른 제안 목록을 반환하는 헬퍼 함수
 const getSuggestionsForType = (type) => {
-  const typeMap = {
-    Shot: shotSuggestions.value,
-    Asset: AssetSuggestions.value,
-    Playlist: playlistSuggestions.value,
-    Version: versionSuggestions.value,
-    Subject: subjectSuggestions.value,
-    Tag: tagSuggestions.value,
-  };
-  return typeMap[type] || [];
+  return suggestionSources.value[type] || [];
 };
 
 // 상황에 맞는 입력창에 포커스를 주는 함수
@@ -202,12 +186,17 @@ const selectType = (selectedType) => {
 
 // 타입 입력창에서 'Enter' 키를 눌렀을 때
 const onTypeEnter = () => {
-  // 모든 필터가 선택된 상태에서 Enter를 누르면 완료 이벤트를 발생시킴
-  if (allFilterTypes.length === searchLabels.value.length) { // 모든 필터가 선택된 경우
+  // 조건: 입력창이 비어있고, 확정된 칩이 하나 이상 있을 때
+  if (typeSearchQuery.value === '' && searchLabels.value.length > 0) {
+    // 필터 완료 신호를 보냅니다.
     emit('filters-complete', searchLabels.value);
+    // 콘솔에 필터 완료 신호를 보냈다는 로그를 남깁니다.
+    console.log('\'Enter\' 키 입력 감지. filters-complete 신호를 보냅니다:', searchLabels.value);
     return;
   }
-  if (typeSuggestions.value.length > 0) {
+
+  // 위의 조건이 아닐 때 (즉, 새 칩을 만드는 과정일 때)만 아래 로직을 실행합니다.
+  if (typeSuggestions.value.length > 0 && typeSearchQuery.value) {
     selectType(typeSuggestions.value[0]);
   }
 };

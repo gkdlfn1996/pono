@@ -75,6 +75,92 @@ def _apply_sorting(data: List[Dict], sort_by: str, sort_order: str) -> List[Dict
 
     return final_sorted
 
+def _apply_search_filters(data: List[Dict], filters: List[Dict]) -> List[Dict]:
+    """
+    주어진 데이터 목록에 SearchBar 필터를 적용합니다.
+    """
+    if not filters:
+        return data
+
+    filtered_data = []
+    for item in data:
+        match_all = True
+        for f in filters:
+            filter_type = f.get('type')
+            filter_value = f.get('value', '').lower()
+            
+            if filter_type == 'Version':
+                if not (item.get('code') and filter_value in item['code'].lower()):
+                    match_all = False
+                    break
+            elif filter_type == 'Tag':
+                tags = item.get('tags', [])
+                if not any(filter_value in tag.get('name', '').lower() for tag in tags):
+                    match_all = False
+                    break
+            elif filter_type == 'Playlist':
+                playlists = item.get('playlists', [])
+                if not any(filter_value in pl.get('name', '').lower() for pl in playlists):
+                    match_all = False
+                    break
+            elif filter_type == 'Subject':
+                notes = item.get('notes', [])
+                if not any(filter_value in note.get('subject', '').lower() for note in notes if note.get('subject')):
+                    match_all = False
+                    break
+            elif filter_type == 'Shot' or filter_type == 'Asset':
+                entity = item.get('entity')
+                if not (entity and entity.get('type') == filter_type and filter_value in entity.get('name', '').lower()):
+                    match_all = False
+                    break
+            # 다른 필터 타입에 대한 로직 추가 가능
+
+        if match_all:
+            filtered_data.append(item)
+            
+    return filtered_data
+
+def _extract_suggestions(data: List[Dict]) -> Dict[str, List[str]]:
+    """
+    전체 버전 데이터에서 각 필터 타입에 대한 제안 목록을 추출합니다.
+    """
+    suggestions = {
+        'Shot': set(),
+        'Asset': set(),
+        'Tag': set(),
+        'Playlist': set(),
+        'Subject': set(),
+        'Version': set(),
+    }
+
+    for item in data:
+        # Version 이름 추가
+        if item.get('code'):
+            suggestions['Version'].add(item['code'])
+
+        # Tag 이름 추가
+        for tag in item.get('tags', []):
+            if tag.get('name'):
+                suggestions['Tag'].add(tag['name'])
+        
+        # Playlist 이름 추가
+        for pl in item.get('playlists', []):
+            if pl.get('name'):
+                suggestions['Playlist'].add(pl['name'])
+
+        # Shot 또는 Asset 이름 추가
+        entity = item.get('entity')
+        if entity and entity.get('type') in ['Shot', 'Asset'] and entity.get('name'):
+            suggestions[entity['type']].add(entity['name'])
+            
+        # Subject 이름 추가
+        for note in item.get('notes', []):
+            if note.get('subject'):
+                suggestions['Subject'].add(note['subject'])
+
+    # 각 set을 정렬된 리스트로 변환
+    return {key: sorted(list(value)) for key, value in suggestions.items()}
+
 
 # --- 데이터 처리 기능이 통합된 엔드포인트 --- 
 
@@ -86,10 +172,12 @@ async def get_processed_versions(
     page_size: int = 50,
     sort_by: str = 'created_at',
     sort_order: str = 'desc',
+    filters: str = None,
     use_cache: bool = False, # 캐시 사용 여부 파라미터 (기본값: False)
     sg = Depends(get_shotgrid_instance)
 ):
     # 1. 캐시 키 생성 및 확인
+    # 캐시는 필터링되지 않은 전체 데이터에 대해서만 사용합니다.
     cache_key = f"{project_id}_{task_name}"
     current_time = time.time()
     
@@ -97,12 +185,21 @@ async def get_processed_versions(
     if use_cache and cache_key in API_CACHE and (current_time - API_CACHE[cache_key]["timestamp"]) < CACHE_TTL_SECONDS:
         all_versions = API_CACHE[cache_key]["data"]
     else:
-        # 2. 캐시 없으면 ShotGrid에서 모든 데이터를 가져옴
+        # 캐시 없으면 ShotGrid에서 모든 데이터를 가져옴
         all_versions = shotgrid_api.get_versions_for_task(sg, project_id, task_name)
         API_CACHE[cache_key] = {"timestamp": current_time, "data": all_versions}
 
-    # 3. 정렬 적용
-    sorted_versions = _apply_sorting(all_versions, sort_by, sort_order)
+    # 2. SearchBar 필터 적용
+    parsed_filters = []
+    if filters:
+        try:
+            parsed_filters = json.loads(filters)
+        except json.JSONDecodeError:
+            parsed_filters = []
+    filtered_versions = _apply_search_filters(all_versions, parsed_filters)
+
+    # 3. 정렬 적용 (필터링된 결과에 대해)
+    sorted_versions = _apply_sorting(filtered_versions, sort_by, sort_order)
 
     # 4. 페이지네이션 적용
     total_items = len(sorted_versions)
@@ -121,10 +218,14 @@ async def get_processed_versions(
         if entity_type:
             present_types.add(entity_type)
 
-    # 6. 최종 데이터 반환
+    # 6. 제안 목록 추출
+    suggestions = _extract_suggestions(all_versions)
+
+    # 7. 최종 데이터 반환
     return {
         "versions": paginated_versions,
         "presentEntityTypes": list(present_types),
+        "suggestions": suggestions,
         "total_pages": total_pages,
         "current_page": page,
         "total_versions": total_items

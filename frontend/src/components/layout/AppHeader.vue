@@ -44,7 +44,10 @@
       
       <!-- 2. 중앙 요소 : 검색창 -->
       <v-col cols="6" class="d-flex align-center pa-0 justify-center">
-        <SearchBar :disabled="isSearchBarDisabled" />
+        <SearchBar 
+          :disabled="isSearchBarDisabled"
+          @filters-complete="handleFiltersComplete" 
+        />
       </v-col>
 
     <!-- 6. 우측 그룹 -->
@@ -91,6 +94,7 @@ const {
   loadProjects,
   selectProject,
   selectTask,
+  applyFilters,
 } = useShotGridData();
 
 const props = defineProps({
@@ -114,6 +118,12 @@ function toggleTheme() {
 const isSearchBarDisabled = computed(() => {
   return !selectedProject.value || !selectedTask.value;
 });
+
+// SearchBar로부터 필터 완료 이벤트를 받았을 때 실행되는 핸들러
+function handleFiltersComplete(filters) {
+  console.log('SearchBar로부터 필터 신호를 받았습니다. 적용될 필터:', filters);
+  applyFilters(filters);
+}
 
 </script>
 

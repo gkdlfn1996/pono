@@ -67,8 +67,8 @@ def get_versions_for_task(sg, project_id, task_name):
         filters.append(['sg_task.Task.content', 'is', task_name])
 
     fields = [
-        "id", "code",  "created_at", "image",
-        "description",
+        "id", "code",  "created_at", "tags", "playlists",
+        "image",
         "sg_status_list",  "user", "sg_task", "entity",
         "sg_task.Task.due_date",
         "sg_task.Task.sg_status_list",
@@ -94,7 +94,7 @@ def get_versions_for_task(sg, project_id, task_name):
     return versions
 
 
-
+@timing
 def _get_notes_for_versions(sg, versions):
     """
     주어진 버전 ID 목록에 연결된 모든 노트를 조회하고,
@@ -150,9 +150,9 @@ if __name__ == "__main__":
     from SG_Authenticator import UserSG, SessionTokenSG
     from pprint import pprint
     
-    session_token = '9b9e8b4c02c63ff19d00d7a5de652f16'
-    project_id = 1046
-    task_name = 'light'
+    session_token = '9099084729abe8b3995027b444ddf756'
+    project_id = 815
+    task_name = 'ani'
     
     token_sg = SessionTokenSG(session_token).sg
 
