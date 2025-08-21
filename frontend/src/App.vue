@@ -78,7 +78,7 @@
     <!-- 최상단으로 스크롤하는 플로팅 버튼 -->
     <div class="scroll-to-top">
       <v-btn
-        icon="mdi-arrow-up"
+        icon="mdi-arrow-collapse-up"
         variant="tonal"
         size="small"
         @click="scrollToTop"
