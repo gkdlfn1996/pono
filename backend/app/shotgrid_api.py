@@ -1,5 +1,7 @@
 from functools import wraps
+from pprint import pprint
 import time
+
 
 def timing(f):
     @wraps(f)
@@ -46,6 +48,28 @@ def get_tasks_for_project(sg, project_id):
     print(f"ShotGrid tasks for project_id {project_id}: {[item['name'] for item in processed_tasks]}")
     return processed_tasks
 
+def get_pipeline_steps_for_project(sg, project_id):
+    """
+    특정 프로젝트에 연결된 Pipeline Step 목록을 조회합니다.
+    """
+    # 1. 프로젝트에 속한 모든 Task를 찾고, 각 Task에 연결된 Step 정보를 요청합니다.
+    tasks = sg.find(
+        "Task",
+        [["project", "is", {"type": "Project", "id": project_id}]],
+        ["step"]  # 'step' 필드는 Step 엔티티와의 연결 정보를 담고 있습니다.
+    )
+
+    if not tasks:
+        return []
+
+    # 2. 가져온 Task들에서 Step 이름만 추출하여 중복을 제거합니다.
+    seen_steps = set()
+    for task in tasks:
+        if task.get('step') and task['step'].get('name'):
+            seen_steps.add(task['step']['name'])
+
+    # 3. 정렬된 딕셔너리 리스트 형태로 가공하여 반환합니다.
+    return sorted([{'name': name} for name in seen_steps], key=lambda x: x['name'].lower())
 
 @timing
 def get_versions_for_task(sg, project_id, task_name):
@@ -93,6 +117,42 @@ def get_versions_for_task(sg, project_id, task_name):
     print(f"Successfully fetched {len(versions)} versions.")
     return versions
 
+@timing
+def get_versions_for_pipeline_step(sg, project_id, pipeline_step_name):
+    """
+    특정 프로젝트와 파이프라인 스텝 이름에 연결된 Version 목록을 조회합니다.
+    """
+    print(f"Attempting to fetch versions for pipeline_step '{pipeline_step_name}' in project {project_id}")
+
+    # 기본적으로 프로젝트 필터만 설정합니다.
+    filters = [['project', 'is', {'type': 'Project', 'id': project_id}]]
+
+    # pipeline_step_name이 'All'이 아닐 경우에만 스텝 이름 필터를 추가합니다.
+    if pipeline_step_name != 'All':
+        filters.append(['sg_task.Task.step.Step.code', 'is', pipeline_step_name])
+
+    fields = [
+        "id", "code",  "created_at", "tags", "playlists",
+        "image",
+        "sg_status_list",  "user", "sg_task", "entity", "step",
+        "sg_task.Task.due_date",
+        "sg_task.Task.sg_status_list",
+        "entity.Shot.sg_status_list",
+        "entity.Shot.sg_end_date",
+        "entity.Shot.sg_rnum",
+        "entity.Asset.sg_status_list",
+        "open_notes"
+    ]
+    versions = sg.find("Version", filters, fields)
+    if not versions:
+        return []
+
+    note_map = _get_notes_for_versions(sg, versions)
+    for version in versions:
+        version['notes'] = note_map.get(version['id'], [])
+    
+    print(f"Successfully fetched {len(versions)} versions.")
+    return versions
 
 @timing
 def _get_notes_for_versions(sg, versions):
@@ -156,6 +216,11 @@ if __name__ == "__main__":
     
     token_sg = SessionTokenSG(session_token).sg
 
-    versions = get_versions_for_task(token_sg, project_id, task_name)
-    pprint(versions)
-    
+    # versions = get_versions_for_task(token_sg, project_id, task_name)
+    # pprint(versions)
+
+
+    # sg는 shotgun_api3.Shotgun 인스턴스
+    task_schema = token_sg.schema_field_read('Task')
+    print('step' in task_schema)
+    print(task_schema.get('step'))

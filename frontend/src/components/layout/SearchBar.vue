@@ -147,6 +147,7 @@ const placeholder = computed(() => {
 // --- 데이터 (Data) ---
 // 지원하는 모든 필터 타입 정의
 const allFilterTypes = [
+  { name: 'Task', key: 'Task'},
   { name: 'Shot', key: 'Shot' },
   { name: 'Asset', key: 'Asset' },
   { name: 'Playlist', key: 'Playlist' },

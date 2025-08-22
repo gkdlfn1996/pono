@@ -23,12 +23,12 @@
           style="max-width: 200px;"
         ></v-autocomplete>
         <v-autocomplete
-          label="Task"
-          :items="tasks"
+          label="Pipeline Step"
+          :items="pipelineSteps"
           item-title="name"
           item-value="name"
-          :model-value="selectedTask?.name"
-          @update:model-value="selectTask"
+          :model-value="selectedPipelineStep?.name"
+          @update:model-value="selectPipelineStep"
           variant="outlined"
           density="compact"
           hide-details
@@ -88,12 +88,12 @@ import SearchBar from './SearchBar.vue';
 
 const {
   projects,
-  tasks,
+  pipelineSteps,
   selectedProject,
-  selectedTask,
+  selectedPipelineStep,
   loadProjects,
   selectProject,
-  selectTask,
+  selectPipelineStep,
   applyFilters,
 } = useShotGridData();
 
@@ -116,7 +116,7 @@ function toggleTheme() {
 
 // 검색창 활성화/비활성화 여부를 결정하는 computed 속성
 const isSearchBarDisabled = computed(() => {
-  return !selectedProject.value || !selectedTask.value;
+  return !selectedProject.value || !selectedPipelineStep.value;
 });
 
 // SearchBar로부터 필터 완료 이벤트를 받았을 때 실행되는 핸들러

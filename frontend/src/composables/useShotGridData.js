@@ -3,11 +3,11 @@ import axios from 'axios';
 
 // 반응형 상태 변수들
 const projects = ref([]);
-const tasks = ref([]);
+const pipelineSteps = ref([]);
 const displayVersions = ref([]); // 화면에 보여줄 버전만 저장할 변수
 const selectedProject = ref(null);
 const presentEntityTypes = ref([]); // 목록에 존재하는 모든 엔티티 타입
-const selectedTask = ref(null);
+const selectedPipelineStep = ref(null);
 const isLoading = ref(false);
 const currentPage = ref(1);
 const totalPages = ref(1);
@@ -39,7 +39,7 @@ apiClient.interceptors.request.use(config => {
 
 
 /**
- * ShotGrid 프로젝트 및 태스크 데이터를 관리하는 Composition API 훅
+ * ShotGrid 프로젝트 및 파이프라인스텝 데이터를 관리하는 Composition API 훅
  */
 export function useShotGridData() {
     /**
@@ -57,33 +57,43 @@ export function useShotGridData() {
     };
 
     /**
-     * 특정 프로젝트에 속한 태스크 목록을 불러옵니다.
+     * 특정 프로젝트에 속한 파이프라인 스텝 목록을 불러옵니다.
      * @param {number} projectId - 태스크를 불러올 프로젝트의 ID
-     */
-    const loadTasks = async (projectId) => {
-        try {
-            const response = await apiClient.get(`/api/projects/${projectId}/tasks`);
-            // 백엔드에서 받은 태스크 목록 앞에 'All' 옵션을 추가합니다.
-            tasks.value = [{ name: 'All' }, ...response.data];
-            console.log(`Tasks for project ${projectId} loaded:`, tasks.value);
+    //  */
+    // const loadTasks = async (projectId) => {
+    //     try {
+    //         const response = await apiClient.get(`/api/projects/${projectId}/tasks`);
+    //         // 백엔드에서 받은 태스크 목록 앞에 'All' 옵션을 추가합니다.
+    //         tasks.value = [{ name: 'All' }, ...response.data];
+    //         console.log(`Tasks for project ${projectId} loaded:`, tasks.value);
+    //     } catch (error) {
+    //         console.error(`Failed to load tasks for project ${projectId}:`, error);
+    //         // TODO: 사용자에게 에러 메시지를 표시하는 로직 추가
+    //     }
+    // };
+    const loadPipelineSteps = async (projectId) => {
+        try{
+            const response = await apiClient.get(`/api/projects/${projectId}/pipeline-steps`);
+            // 백엔드에서 받은 스텝 목록 앞에 'All'옵션을 추가합니다.
+            pipelineSteps.value = [{ name: 'All'}, ...response.data];
+            console.log('Pipeline steps for project ${projectID} loaded:', pipelineSteps.value);
         } catch (error) {
-            console.error(`Failed to load tasks for project ${projectId}:`, error);
+            console.error('Failed to load pipeline steps for project ${projectId}:', error);
             // TODO: 사용자에게 에러 메시지를 표시하는 로직 추가
         }
     };
-
 
     /**
      * 백엔드에서 정렬/페이지네이션 처리된 버전 목록을 불러옵니다.
      */
     const loadVersions = async (useCache = false) => {
-        if (!selectedProject.value || !selectedTask.value) return;
+        if (!selectedProject.value || !selectedPipelineStep.value) return;
         isLoading.value = true;
         try {
             const response = await apiClient.get('/api/view/versions/', {
                 params: {
                     project_id: selectedProject.value.id,
-                    task_name: selectedTask.value.name,
+                    pipeline_step: selectedPipelineStep.value.name,
                     page: currentPage.value,
                     page_size: versionsPerPage,
                     sort_by: sortBy.value,
@@ -112,33 +122,32 @@ export function useShotGridData() {
     };
 
 
-
     /**
-     * 선택된 프로젝트를 설정하고 해당 프로젝트의 태스크를 불러옵니다.
+     * 선택된 프로젝트를 설정하고 해당 프로젝트의 파이프라인 스텝을 불러옵니다.
      * @param {number} projectId - 선택할 프로젝트의 ID
      */
     const selectProject = async (projectId) => {
         const project = projects.value.find(p => p.id === projectId);
         if (project) {
             selectedProject.value = project;
-            selectedTask.value = null; // 프로젝트 변경 시 태스크 초기화
-            await loadTasks(projectId);
+            selectedPipelineStep.value = null; // 프로젝트 변경 시 스탭 초기화
+            await loadPipelineSteps(projectId);
         }
     };
 
     /**
-     * 선택된 태스크를 설정합니다.
-     * @param {number} taskName - 선택할 태스크의 이름
+     * 선택된 파이프라인 스텝을 설정합니다.
+     * @param {string} stepName - 선택할 파이프라인 스텝의 이름
      */
-    const selectTask = async (taskName) => {
-        // 'All'을 선택했거나 실제 태스크를 선택한 경우 모두 처리합니다.
-        const task = (taskName === 'All')
+    const selectPipelineStep = async (stepName) => {
+        console.log('선택된 stepName:', stepName);
+        // 'All'을 선택했거나 실제 스텝을 선택한 경우 모두 처리합니다.
+        const step = (stepName === 'All')
             ? { name: 'All' }
-            : tasks.value.find(t => t.name === taskName);
-
-        if (task) {
-            selectedTask.value = task;
-            // 태스크가 바뀌면 정렬 상태를 기본값으로 초기화하고 1페이지부터 로드
+            : pipelineSteps.value.find(s => s.name === stepName);
+        if (step) {
+            selectedPipelineStep.value = step;
+            // 스텝이 바뀌면 정렬 상태를 기본값으로 초기화하고 1페이지부터 로드
             currentPage.value = 1;
             sortBy.value = 'created_at';
             sortOrder.value = 'desc';
@@ -171,11 +180,11 @@ export function useShotGridData() {
 
     return {
         projects: readonly(projects),
-        tasks: readonly(tasks),
+        pipelineSteps: readonly(pipelineSteps),
         displayVersions: readonly(displayVersions),
         selectedProject: readonly(selectedProject),
         presentEntityTypes: readonly(presentEntityTypes),
-        selectedTask: readonly(selectedTask),
+        selectedPipelineStep: readonly(selectedPipelineStep),
         suggestionSources: readonly(suggestionSources),
         isLoading: readonly(isLoading),
         currentPage: readonly(currentPage),
@@ -183,11 +192,11 @@ export function useShotGridData() {
         sortBy: readonly(sortBy),
         sortOrder: readonly(sortOrder),
         loadProjects,
-        loadTasks,
+        loadPipelineSteps,
         loadVersions,
         changePage,
         selectProject,
-        selectTask,
+        selectPipelineStep,
         setSort,
         applyFilters,
     };

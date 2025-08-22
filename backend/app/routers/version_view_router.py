@@ -113,6 +113,11 @@ def _apply_search_filters(data: List[Dict], filters: List[Dict]) -> List[Dict]:
                 if not (entity and entity.get('type') == filter_type and filter_value in entity.get('name', '').lower()):
                     match_all = False
                     break
+            elif filter_type == 'Task':
+                task = item.get('sg_task')
+                if not (task and filter_value in task.get('name', '').lower()):
+                    match_all = False
+                    break
             # 다른 필터 타입에 대한 로직 추가 가능
 
         if match_all:
@@ -125,6 +130,7 @@ def _extract_suggestions(data: List[Dict]) -> Dict[str, List[str]]:
     전체 버전 데이터에서 각 필터 타입에 대한 제안 목록을 추출합니다.
     """
     suggestions = {
+        'Task': set(),
         'Shot': set(),
         'Asset': set(),
         'Tag': set(),
@@ -158,6 +164,11 @@ def _extract_suggestions(data: List[Dict]) -> Dict[str, List[str]]:
             if note.get('subject'):
                 suggestions['Subject'].add(note['subject'])
 
+        # Task 이름 추가
+        task = item.get('sg_task')
+        if task and task.get('name'):
+            suggestions['Task'].add(task['name'])
+
     # 각 set을 정렬된 리스트로 변환
     return {key: sorted(list(value)) for key, value in suggestions.items()}
 
@@ -167,7 +178,7 @@ def _extract_suggestions(data: List[Dict]) -> Dict[str, List[str]]:
 @router.get("/")
 async def get_processed_versions(
     project_id: int,
-    task_name: str,
+    pipeline_step: str,
     page: int = 1,
     page_size: int = 50,
     sort_by: str = 'created_at',
@@ -178,7 +189,7 @@ async def get_processed_versions(
 ):
     # 1. 캐시 키 생성 및 확인
     # 캐시는 필터링되지 않은 전체 데이터에 대해서만 사용합니다.
-    cache_key = f"{project_id}_{task_name}"
+    cache_key = f"{project_id}_{pipeline_step}"
     current_time = time.time()
     
     # use_cache=true 일 때만 캐시를 사용하도록 조건 변경
@@ -186,7 +197,7 @@ async def get_processed_versions(
         all_versions = API_CACHE[cache_key]["data"]
     else:
         # 캐시 없으면 ShotGrid에서 모든 데이터를 가져옴
-        all_versions = shotgrid_api.get_versions_for_task(sg, project_id, task_name)
+        all_versions = shotgrid_api.get_versions_for_pipeline_step(sg, project_id, pipeline_step)
         API_CACHE[cache_key] = {"timestamp": current_time, "data": all_versions}
 
     # 2. SearchBar 필터 적용

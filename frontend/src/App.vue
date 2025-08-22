@@ -21,7 +21,7 @@
 
       <!-- 로그인 성공 시 표시되는 메인 UI -->
       <v-container fluid v-else class="main-content-container">
-        <v-row v-if="selectedProject && selectedTask">
+        <v-row v-if="selectedProject && selectedPipelineStep">
           <v-col cols="12">
             <!-- <VersionList_org
               :isLoading="isLoading"
@@ -112,7 +112,7 @@ const {
   currentPage,
   totalPages,
   selectedProject,
-  selectedTask,
+  selectedPipelineStep,
   sortBy,
   sortOrder,
   presentEntityTypes,

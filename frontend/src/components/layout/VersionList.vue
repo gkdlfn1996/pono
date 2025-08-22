@@ -17,10 +17,10 @@
         @click="refreshVersions"
         :disabled="props.isLoading"
       ></v-btn>
-      <div v-if="selectedProject && selectedTask" class="ml-4 text-subtitle-1 text-grey">
+      <div v-if="selectedProject && selectedPipelineStep" class="ml-4 text-subtitle-1 text-grey">
         <span>{{ selectedProject.name }}</span>
         <v-icon size="small" class="mx-1">mdi-chevron-right</v-icon>
-        <span>{{ selectedTask.name }}</span>
+        <span>{{ selectedPipelineStep.name }}</span>
       </div>
       <v-spacer></v-spacer>
       <!-- 정렬 컨트롤 UI -->
@@ -149,7 +149,7 @@ const currentSortName = computed(() => {
 });
 
 // 현재 선택된 프로젝트와 태스크 정보를 가져옵니다.
-const { selectedProject, selectedTask } = useShotGridData();
+const { selectedProject, selectedPipelineStep } = useShotGridData();
 
 // 'refresh-versions' 이벤트를 부모에게 전달하기 위해 emit을 정의합니다.
 const emit = defineEmits(['refresh-versions']);
