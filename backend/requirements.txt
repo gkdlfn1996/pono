@@ -10,3 +10,4 @@ uvloop==0.17.0
 PyJWT
 python-multipart
 requests
+shotgun_api3

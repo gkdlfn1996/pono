@@ -1,3 +1,25 @@
+"""
+ShotGrid 데이터 조회 로직을 담당하는 모듈입니다.
+
+이 모듈은 두 가지 방식으로 사용할 수 있습니다.
+
+1. 동기 방식 (Synchronous):
+   - 이 파일에 정의된 대부분의 함수(예: get_projects)는 표준 동기 함수입니다.
+   - 일반적인 Python 스크립트 환경에서 기존 방식 그대로 가져와서 사용할 수 있습니다.
+   - 예: `from shotgrid_api import get_projects`
+
+2. 비동기 방식 (Asynchronous):
+   - FastAPI와 같은 비동기 환경에서의 사용을 위해, 모든 동기 함수에 대응하는
+     비동기 버전을 `async_api` 객체를 통해 제공합니다.
+   - `async_api` 객체는 이 모듈이 로드될 때 자동으로 생성됩니다.
+   - 비동기 환경에서는 이 객체를 통해 함수를 호출해야 서버 블로킹을 방지할 수 있습니다.
+   - 예: `from shotgrid_api import async_api`
+   - 사용법: `await async_api.get_projects(...)`
+
+`async_api`는 이 파일 하단의 자동화 코드를 통해, 이 모듈에 있는 모든 공개 함수들의
+비동기 버전을 자동으로 생성하여 포함하므로, 별도의 수동 관리가 필요 없습니다.
+"""
+
 from functools import wraps
 from pprint import pprint
 import time
@@ -14,11 +36,10 @@ def timing(f):
         return ret
     return count_time
 
-# --------------------------------------------------------------------------
 
-"""
-샷그리드 데이터 관련 api 모음
-"""
+# ===================================================================
+# Part 1: 동기 API_샷그리드 데이터 관련 api 모음
+# ===================================================================
 
 def get_tasks_for_project(sg, project_id):
     """
@@ -56,7 +77,7 @@ def get_pipeline_steps_for_project(sg, project_id):
     tasks = sg.find(
         "Task",
         [["project", "is", {"type": "Project", "id": project_id}]],
-        ["step"]  # 'step' 필드는 Step 엔티티와의 연결 정보를 담고 있습니다.
+        ["step"]  # 'step' 필드는 Step 엔티티과의 연결 정보를 담고 있습니다.
     )
 
     if not tasks:
@@ -123,7 +144,6 @@ def get_versions_for_pipeline_step(sg, project_id, pipeline_step_name):
     특정 프로젝트와 파이프라인 스텝 이름에 연결된 Version 목록을 조회합니다.
     """
     print(f"Attempting to fetch versions for pipeline_step '{pipeline_step_name}' in project {project_id}")
-
     # 기본적으로 프로젝트 필터만 설정합니다.
     filters = [['project', 'is', {'type': 'Project', 'id': project_id}]]
 
@@ -154,7 +174,7 @@ def get_versions_for_pipeline_step(sg, project_id, pipeline_step_name):
     print(f"Successfully fetched {len(versions)} versions.")
     return versions
 
-@timing
+# @timing
 def _get_notes_for_versions(sg, versions):
     """
     주어진 버전 ID 목록에 연결된 모든 노트를 조회하고,
@@ -202,6 +222,35 @@ def get_projects(sg):
     )
     print(f"Successfully fetched {len(result)} projects.")
     return result
+
+
+# ===================================================================
+# Part 2: 비동기 API 자동 생성 영역
+# ===================================================================
+
+import sys
+import inspect
+from functools import partial, wraps
+from types import SimpleNamespace
+from fastapi.concurrency import run_in_threadpool
+
+# 비동기 함수들을 담을 빈 객체(네임스페이스) 생성
+async_api = SimpleNamespace()
+
+def _create_async_wrapper(sync_func):
+    """동기 함수를 받아 스레드 풀에서 실행하는 비동기 함수로 변환하는 래퍼"""
+    @wraps(sync_func)
+    async def _wrapper(*args, **kwargs):
+        func_call = partial(sync_func, *args, **kwargs)
+        return await run_in_threadpool(func_call)
+    return _wrapper
+
+# 현재 모듈에 정의된 모든 공개 함수를 찾아서 비동기 버전을 생성하고 async_api 객체에 추가
+_current_module_namespace = locals().copy()
+for name, func in _current_module_namespace.items():
+    if inspect.isfunction(func) and not name.startswith("_"):
+        async_version = _create_async_wrapper(func)
+        setattr(async_api, name, async_version)
 
 
 if __name__ == "__main__":

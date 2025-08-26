@@ -1,9 +1,7 @@
 import requests
 from fastapi import APIRouter, Depends, HTTPException, status, Header
 from fastapi.security import OAuth2PasswordRequestForm
-import sys # sys 임포트 유지
-sys.path.append("/netapp/INHouse/sg") # 경로 추가 유지
-from SG_Authenticator import UserSG, SessionTokenSG # UserSG와 SessionTokenSG 임포트 유지
+from .. import shotgrid_authenticator
 
 SERVER_URL = "https://idea.shotgrid.autodesk.com"
 
@@ -18,7 +16,9 @@ async def login_for_session_token(form_data: OAuth2PasswordRequestForm = Depends
     사용자 ID/PW로 ShotGrid에 인증하고, 성공 시 ShotGrid 세션 토큰을 반환합니다.
     """
     try:
-        user_sg_auth = UserSG(login_id=form_data.username, login_pwd=form_data.password) # UserSG 인스턴스 생성
+        user_sg_auth = shotgrid_authenticator.UserSG(
+            login_id=form_data.username, login_pwd=form_data.password
+        )
         sg_session_token = user_sg_auth.get_session_token() # get_session_token 호출 (세션 토큰 문자열 반환)
         print(f"SESSION_TOKEN : {sg_session_token}")
         
@@ -79,7 +79,9 @@ async def get_shotgrid_instance(authorization: str = Header(None)):
 
     session_token = parts[1]
     try:
-        sg_instance = SessionTokenSG(session_token=session_token).sg
+        sg_instance = shotgrid_authenticator.SessionTokenSG(
+            session_token=session_token
+        ).sg
         if not sg_instance:
             raise Exception("Failed to create ShotGrid instance with session token.")
         return sg_instance

@@ -1,11 +1,11 @@
 # /backend/app/routers/version_view_router.py
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from typing import Dict, Any, List
 import time
 import json
 from operator import itemgetter
-from .. import shotgrid_api
+from ..shotgrid_api import async_api
 from .auth_router import get_shotgrid_instance
 
 router = APIRouter(
@@ -177,6 +177,7 @@ def _extract_suggestions(data: List[Dict]) -> Dict[str, List[str]]:
 
 @router.get("/")
 async def get_processed_versions(
+    request: Request,
     project_id: int,
     pipeline_step: str,
     page: int = 1,
@@ -197,7 +198,13 @@ async def get_processed_versions(
         all_versions = API_CACHE[cache_key]["data"]
     else:
         # 캐시 없으면 ShotGrid에서 모든 데이터를 가져옴
-        all_versions = shotgrid_api.get_versions_for_pipeline_step(sg, project_id, pipeline_step)
+        all_versions = await async_api.get_versions_for_pipeline_step(
+            sg, project_id, pipeline_step
+        )
+        # 작업 완료 후 클라이언트 연결 상태 확인
+        if await request.is_disconnected():
+            print(f"Client disconnected for {project_id}/{pipeline_step}, discarding results.")
+            return
         API_CACHE[cache_key] = {"timestamp": current_time, "data": all_versions}
 
     # 2. SearchBar 필터 적용
