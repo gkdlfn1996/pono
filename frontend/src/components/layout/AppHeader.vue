@@ -16,6 +16,7 @@
           item-value="id"
           :model-value="selectedProject?.id"
           @update:model-value="selectProject"
+          :disabled="isVersionsLoading"
           variant="outlined"
           density="compact"
           hide-details
@@ -29,6 +30,7 @@
           item-value="name"
           :model-value="selectedPipelineStep?.name"
           @update:model-value="selectPipelineStep"
+          :disabled="isVersionsLoading"
           variant="outlined"
           density="compact"
           hide-details
@@ -94,6 +96,7 @@ const {
   loadProjects,
   selectProject,
   selectPipelineStep,
+  isVersionsLoading,
   applyFilters,
 } = useShotGridData();
 

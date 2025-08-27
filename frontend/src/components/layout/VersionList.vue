@@ -1,9 +1,14 @@
 <template>
   <!-- 로딩 상태 표시는 props.isLoading을 직접 사용합니다. -->
   <!-- v-if와 v-else-if를 사용하여 로딩, 데이터 있음, 데이터 없음 세 가지 상태를 명확히 분리합니다. -->
-  <div v-if="props.isLoading" class="text-center py-10">
+  <div v-if="isVersionsLoading" class="text-center py-10">
     <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
     <p class="mt-4 text-grey-lighten-1">버전 목록을 불러오는 중입니다...</p>
+    <p
+      class="mt-2 text-caption text-grey"
+      style="cursor: pointer; text-decoration: underline;"
+      @click="cancelLoadVersions"
+    >Cancel</p>
   </div>
 
   <!-- 데이터가 있을 때는 props.versions를 직접 사용합니다. -->
@@ -15,7 +20,7 @@
         size="small"
         variant="text"
         @click="refreshVersions"
-        :disabled="props.isLoading"
+        :disabled="isVersionsLoading"
       ></v-btn>
       <div v-if="selectedProject && selectedPipelineStep" class="ml-4 text-subtitle-1 text-grey">
         <span>{{ selectedProject.name }}</span>
@@ -122,10 +127,6 @@ const props = defineProps({
     type: Array,
     required: true,
   },
-  isLoading: {
-    type: Boolean,
-    default: false,
-  },
   // 정렬 관련 props 추가
   sortBy: String,
   sortOrder: String,
@@ -149,7 +150,12 @@ const currentSortName = computed(() => {
 });
 
 // 현재 선택된 프로젝트와 태스크 정보를 가져옵니다.
-const { selectedProject, selectedPipelineStep } = useShotGridData();
+const { 
+  selectedProject, 
+  selectedPipelineStep,
+  isVersionsLoading,
+  cancelLoadVersions 
+} = useShotGridData();
 
 // 'refresh-versions' 이벤트를 부모에게 전달하기 위해 emit을 정의합니다.
 const emit = defineEmits(['refresh-versions']);

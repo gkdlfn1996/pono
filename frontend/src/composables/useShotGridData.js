@@ -8,7 +8,9 @@ const displayVersions = ref([]); // 화면에 보여줄 버전만 저장할 변�
 const selectedProject = ref(null);
 const presentEntityTypes = ref([]); // 목록에 존재하는 모든 엔티티 타입
 const selectedPipelineStep = ref(null);
-const isLoading = ref(false);
+let previousSelectedPipelineStep = null; // 이전 스텝을 기억하기 위한 변수
+const isVersionsLoading = ref(false); // 로딩 상태 변수 이름 변경
+let cancelTokenSource = null; // Axios 취소 토큰 소스를 저장할 변수
 const currentPage = ref(1);
 const totalPages = ref(1);
 const sortBy = ref('created_at'); // 정렬 기준
@@ -56,21 +58,6 @@ export function useShotGridData() {
         }
     };
 
-    /**
-     * 특정 프로젝트에 속한 파이프라인 스텝 목록을 불러옵니다.
-     * @param {number} projectId - 태스크를 불러올 프로젝트의 ID
-    //  */
-    // const loadTasks = async (projectId) => {
-    //     try {
-    //         const response = await apiClient.get(`/api/projects/${projectId}/tasks`);
-    //         // 백엔드에서 받은 태스크 목록 앞에 'All' 옵션을 추가합니다.
-    //         tasks.value = [{ name: 'All' }, ...response.data];
-    //         console.log(`Tasks for project ${projectId} loaded:`, tasks.value);
-    //     } catch (error) {
-    //         console.error(`Failed to load tasks for project ${projectId}:`, error);
-    //         // TODO: 사용자에게 에러 메시지를 표시하는 로직 추가
-    //     }
-    // };
     const loadPipelineSteps = async (projectId) => {
         try{
             const response = await apiClient.get(`/api/projects/${projectId}/pipeline-steps`);
@@ -87,8 +74,17 @@ export function useShotGridData() {
      * 백엔드에서 정렬/페이지네이션 처리된 버전 목록을 불러옵니다.
      */
     const loadVersions = async (useCache = false) => {
+        if (isVersionsLoading.value) {
+            // 이미 로딩 중이면 중복 실행 방지
+            return;
+        }
         if (!selectedProject.value || !selectedPipelineStep.value) return;
-        isLoading.value = true;
+        
+        isVersionsLoading.value = true;
+
+        // 모듈 변수에 새로운 취소 토큰 소스를 바로 할당합니다.
+        cancelTokenSource = axios.CancelToken.source();
+
         try {
             const response = await apiClient.get('/api/view/versions/', {
                 params: {
@@ -100,7 +96,9 @@ export function useShotGridData() {
                     sort_order: sortOrder.value,
                     filters: JSON.stringify(activeFilters.value),
                     use_cache: useCache,
-                }
+                },
+                // 할당된 모듈 변수에서 토큰을 가져와 사용합니다.
+                cancelToken: cancelTokenSource.token,
             });
             const data = response.data;
             console.log("### Processed Data from Backend:", data); // 상세 로그 추가
@@ -109,9 +107,16 @@ export function useShotGridData() {
             presentEntityTypes.value = data.presentEntityTypes;
             suggestionSources.value = data.suggestions || {}; // 제안 목록 데이터 저장
         } catch (error) {
-            console.error(`Failed to load versions:`, error);
+            if (axios.isCancel(error)) {
+                // 취소 시, 선택된 파이프라인 스텝을 이전 상태로 롤백합니다.
+                selectedPipelineStep.value = previousSelectedPipelineStep;
+                console.log('Version loading cancelled by user.')
+            } else {
+                console.error(`Failed to load versions;`, error)
+            }
         } finally {
-            isLoading.value = false;
+            isVersionsLoading.value = false;
+            cancelTokenSource = null; // 작업 완료 후 토큰 소스 초기화
         }
     };
 
@@ -140,6 +145,8 @@ export function useShotGridData() {
      * @param {string} stepName - 선택할 파이프라인 스텝의 이름
      */
     const selectPipelineStep = async (stepName) => {
+        // 새로운 스텝을 선택하면, 현재 스텝을 "이전 스텝"으로 백업합니다.
+        previousSelectedPipelineStep = selectedPipelineStep.value;
         console.log('선택된 stepName:', stepName);
         // 'All'을 선택했거나 실제 스텝을 선택한 경우 모두 처리합니다.
         const step = (stepName === 'All')
@@ -177,6 +184,15 @@ export function useShotGridData() {
         currentPage.value = 1; // 정렬 기준이 바뀌면 항상 1페이지로 이동
         loadVersions(true); // 정렬 시에는 캐시 사용
     };
+    
+    /**
+     * 현재 진행 중인 버전 로딩 작업을 취소합니다. 
+     */
+    const cancelLoadVersions = () => {
+        if (cancelTokenSource) {
+            cancelTokenSource.cancel(`Operation canceled by the user.`)
+        }
+    }
 
     return {
         projects: readonly(projects),
@@ -186,7 +202,7 @@ export function useShotGridData() {
         presentEntityTypes: readonly(presentEntityTypes),
         selectedPipelineStep: readonly(selectedPipelineStep),
         suggestionSources: readonly(suggestionSources),
-        isLoading: readonly(isLoading),
+        isVersionsLoading: readonly(isVersionsLoading), // 변경된 이름으로 내보내기
         currentPage: readonly(currentPage),
         totalPages: readonly(totalPages),
         sortBy: readonly(sortBy),
@@ -199,5 +215,6 @@ export function useShotGridData() {
         selectPipelineStep,
         setSort,
         applyFilters,
+        cancelLoadVersions, // 취소 함수 내보내기
     };
 }

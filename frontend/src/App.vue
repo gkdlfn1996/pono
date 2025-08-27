@@ -37,7 +37,6 @@
               :sendMessage="sendMessage"
             /> -->
             <VersionList
-              :isLoading="isLoading"
               :versions="displayVersions"
               :sortBy="sortBy"
               :sortOrder="sortOrder"
@@ -45,7 +44,7 @@
               :setSort="setSort"
               @refresh-versions="loadVersions"
             />
-            <div class="text-center mt-4" v-if="!isLoading && totalPages > 1">
+            <div class="text-center mt-4" v-if="!isVersionsLoading && totalPages > 1">
               <v-pagination
                 :model-value="currentPage"
                 :length="totalPages"
@@ -108,7 +107,7 @@ const isAuthCheckComplete = ref(false);
 // --- ShotGrid 데이터 중앙 상태 ---
 const {
   displayVersions,
-  isLoading,
+  isVersionsLoading,
   currentPage,
   totalPages,
   selectedProject,
