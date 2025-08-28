@@ -4,13 +4,29 @@
     <h4 class="text-subtitle-1 font-weight-bold mb-2">{{ title }}</h4>
     <!-- Thumbnail: Responsive container to enforce 16:9 aspect ratio -->
     <v-responsive :aspect-ratio="16/9" class="mb-2 rounded">
+      <!-- Thumbnail Loading State -->
+      <div v-if="version.image === undefined"
+        class="d-flex align-center justify-center bg-grey-darken-1"
+        style="width: 100%; height: 100%;"
+      >
+        <v-progress-circular color="grey-lighten-4" indeterminate></v-progress-circular>
+      </div>
+      <!-- Thumbnail Not Available State -->
+      <div v-else-if="version.image === null"
+        class="d-flex align-center justify-center bg-grey-darken-1"
+        style="width: 100%; height: 100%;"
+      >
+        <v-icon size="48" color="grey-lighten-1">mdi-image-off</v-icon>
+      </div>
+      <!-- Thumbnail Available State -->
       <v-img
-        v-if="version.image"
+        v-else
         :src="version.image"
         class="fill-height"
         cover
       >
         <template v-slot:placeholder>
+          <!-- This placeholder is for when the image URL is present but the image itself is still loading -->
           <div class="d-flex align-center justify-center fill-height">
             <v-progress-circular color="grey-lighten-4" indeterminate></v-progress-circular>
           </div>
@@ -21,13 +37,6 @@
           </div>
         </template>
       </v-img>
-      <div
-        v-else
-        class="d-flex align-center justify-center bg-grey-darken-1"
-        style="width: 100%; height: 100%;"
-      >
-        <v-icon size="48" color="grey-lighten-1">mdi-image-off</v-icon>
-      </div>
     </v-responsive>
 
     <v-row no-gutters class="flex-grow-1">

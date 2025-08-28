@@ -49,7 +49,7 @@ export function useShotGridData() {
      */
     const loadProjects = async () => {
         try {
-            const response = await apiClient.get('/api/projects');
+            const response = await apiClient.get('/api/data/projects');
             projects.value = response.data;
             console.log('Projects loaded:', projects.value);
         } catch (error) {
@@ -60,13 +60,55 @@ export function useShotGridData() {
 
     const loadPipelineSteps = async (projectId) => {
         try{
-            const response = await apiClient.get(`/api/projects/${projectId}/pipeline-steps`);
+            const response = await apiClient.get(`/api/data/projects/${projectId}/pipeline-steps`);
             // 백엔드에서 받은 스텝 목록 앞에 'All'옵션을 추가합니다.
             pipelineSteps.value = [{ name: 'All'}, ...response.data];
             console.log('Pipeline steps for project ${projectID} loaded:', pipelineSteps.value);
         } catch (error) {
             console.error('Failed to load pipeline steps for project ${projectId}:', error);
             // TODO: 사용자에게 에러 메시지를 표시하는 로직 추가
+        }
+    };
+
+    /**
+     * '가벼운' 버전 목록을 받은 후, 해당 버전들의 '무거운' 데이터(썸네일, 노트)를
+     * 별도의 API로 요청하여 가져오는 함수입니다.
+     * 가져온 데이터는 이미 화면에 표시된 displayVersions 배열에 합쳐집니다.
+     * @param {Array} versions - '가벼운' 버전 정보 객체들의 배열
+     */
+    const loadHeavyDetails = async (versions) => {
+        if (!versions || versions.length === 0) return;
+
+        const versionIds = versions.map(v => v.id);
+
+        try {
+            const response = await apiClient.post('/api/data/heavy-version-data', versionIds, {
+                params: {
+                    project_id: selectedProject.value.id,
+                    pipeline_step: selectedPipelineStep.value.name,
+                }
+            });
+            const heavyData = response.data;
+
+            // 받은 무거운 데이터를 기존 displayVersions에 효율적으로 합치기
+            const versionMap = new Map(displayVersions.value.map(v => [v.id, v]));
+            
+            // 썸네일 정보 합치기
+            heavyData.thumbnails.forEach(thumb => {
+                if (versionMap.has(thumb.id)) versionMap.get(thumb.id).image = thumb.image;
+            });
+            // 노트 정보 합치기
+            Object.entries(heavyData.notes).forEach(([versionId, notes]) => {
+                if (versionMap.has(parseInt(versionId))) versionMap.get(parseInt(versionId)).notes = notes;
+            });
+
+        } catch (error) {
+            console.error("Failed to load heavy details:", error);
+            // 에러 발생 시, 해당 버전들의 썸네일과 노트를 null로 설정하여 로딩 스피너를 멈추고 '데이터 없음' 상태를 표시
+            displayVersions.value.forEach(version => {
+                version.image = null;
+                version.notes = null;
+            });
         }
     };
 
@@ -86,7 +128,7 @@ export function useShotGridData() {
         cancelTokenSource = axios.CancelToken.source();
 
         try {
-            const response = await apiClient.get('/api/view/versions/', {
+            const response = await apiClient.get('/api/data/versions', {
                 params: {
                     project_id: selectedProject.value.id,
                     pipeline_step: selectedPipelineStep.value.name,
@@ -106,13 +148,17 @@ export function useShotGridData() {
             totalPages.value = data.total_pages;
             presentEntityTypes.value = data.presentEntityTypes;
             suggestionSources.value = data.suggestions || {}; // 제안 목록 데이터 저장
+            
+            // 가벼운 데이터 로딩 성공 후, 무거운 데이터 로딩을 즉시 시작
+            loadHeavyDetails(data.versions);
+
         } catch (error) {
             if (axios.isCancel(error)) {
                 // 취소 시, 선택된 파이프라인 스텝을 이전 상태로 롤백합니다.
                 selectedPipelineStep.value = previousSelectedPipelineStep;
                 console.log('Version loading cancelled by user.')
             } else {
-                console.error(`Failed to load versions;`, error)
+                console.error('Failed to load versions:', error);
             }
         } finally {
             isVersionsLoading.value = false;
