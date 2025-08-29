@@ -2,8 +2,9 @@ from fastapi import APIRouter, Depends, Request, HTTPException
 from typing import List
 import asyncio
 
-from ..shotgrid_api import async_api
-from .. import shotgrid_cache_manager, version_view, shotgrid_authenticator
+from ..shotgrid.shotgrid_api import async_api
+from ..shotgrid import shotgrid_cache_manager, shotgrid_authenticator
+from .. import version_view
 from .auth_router import get_shotgrid_instance
 
 router = APIRouter(

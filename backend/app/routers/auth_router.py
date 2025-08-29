@@ -1,7 +1,7 @@
 import requests
 from fastapi import APIRouter, Depends, HTTPException, status, Header
 from fastapi.security import OAuth2PasswordRequestForm
-from .. import shotgrid_authenticator
+from ..shotgrid import shotgrid_authenticator
 
 SERVER_URL = "https://idea.shotgrid.autodesk.com"
 
