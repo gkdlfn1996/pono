@@ -56,7 +56,7 @@ def apply_sorting(data: List[Dict], sort_by: str, sort_order: str) -> List[Dict]
         primarySortType = 'Asset'
 
     if primarySortType:
-        final_sorted = sorted(sorted_by_value, key=lambda item: 0 if item.get('entity', {}).get('type') == primarySortType else 1)
+        final_sorted = sorted(sorted_by_value, key=lambda item: 0 if (item.get('entity') or {}).get('type') == primarySortType else 1)
     else:
         final_sorted = sorted_by_value
 
