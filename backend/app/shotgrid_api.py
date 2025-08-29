@@ -159,6 +159,12 @@ def get_notes_by_ids(sg, version_ids: List[int]):
     if not version_ids:
         return {}
 
+    # 1. 모든 버전에 대해 note_map을 None으로 초기화
+    note_map = {}
+    for vid in version_ids:
+        note_map[vid] = None
+
+    # 2. ShotGrid에서 노트 조회
     version_entities = []
     for vid in version_ids:
         version_entities.append({'type': 'Version', 'id': vid})
@@ -167,13 +173,12 @@ def get_notes_by_ids(sg, version_ids: List[int]):
     note_fields = ['content', 'user', 'created_at', 'subject', 'note_links']
     notes = sg.find("Note", note_filters, note_fields)
 
-    # note를 Version ID 기준으로 매핑
-    note_map = {}
+    # 3. note를 Version ID 기준으로 매핑
     for note in notes:
         for linked_ver in note.get("note_links", []):
             version_id = linked_ver['id']
-            if version_id not in note_map:
-                note_map[version_id] = []
+            if note_map.get(version_id) is None:
+                note_map[version_id] = []  # 첫 노트를 발견하면 리스트로 초기화
 
             note_map[version_id].append({
                 "content" : note["content"],
@@ -182,9 +187,10 @@ def get_notes_by_ids(sg, version_ids: List[int]):
                 "created_at" : note["created_at"]
             })
     
-    # 각 노트 목록을 생성 시간(created_at)기준으로 정렬
+    # 4. 각 노트 목록을 생성 시간(created_at)기준으로 정렬
     for version_id in note_map:
-        note_map[version_id].sort(key=lambda x: x.get('created_at'), reverse=True)
+        if note_map[version_id] is not None:
+            note_map[version_id].sort(key=lambda x: x.get('created_at'), reverse=True)
 
     return note_map
 
