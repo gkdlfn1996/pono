@@ -98,7 +98,7 @@ def apply_search_filters(data: List[Dict], filters_str: str) -> List[Dict]:
                 if not any(filter_value in pl.get('name', '').lower() for pl in playlists):
                     match_all = False; break
             elif filter_type == 'Subject':
-                notes = item.get('notes', [])
+                notes = item.get('notes') or []
                 if not any(filter_value in note.get('subject', '').lower() for note in notes if note.get('subject')):
                     match_all = False; break
             elif filter_type == 'Shot' or filter_type == 'Asset':
@@ -144,7 +144,7 @@ def extract_suggestions(data: List[Dict]) -> Dict[str, List[str]]:
         if entity and entity.get('type') in ['Shot', 'Asset'] and entity.get('name'):
             suggestions[entity['type']].add(entity['name'])
         # Subject 이름 추가
-        for note in item.get('notes', []):
+        for note in (item.get('notes') or []):
             if note.get('subject'): suggestions['Subject'].add(note['subject'])
         # Task 이름 추가
         task = item.get('sg_task')

@@ -74,4 +74,3 @@ def update_cache_with_heavy_details(
         if version_id_int in version_map:
             version_map[version_id_int]['notes'] = notes
 
-    print(f"Cache for {cache_key} updated this page with heavy details complete.")
