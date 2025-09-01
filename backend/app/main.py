@@ -4,6 +4,9 @@ PONO Backend Main Application File.
 """
 
 from fastapi import FastAPI
+from sqlalchemy import text
+from .draftnote.database import engine
+from .draftnote.models import Base
 from fastapi.middleware.cors import CORSMiddleware
 
 # routers 폴더에서 각 기능별 라우터를 가져옵니다.
@@ -15,6 +18,12 @@ app = FastAPI(
     description="VFX Note-taking and collaboration tool backend.",
     version="0.1.0",
 )
+
+# 데이터베이스 테이블 생성
+# 애플리케이션 시작 시 draftnote/models.py에 정의된 모든 테이블을 데이터베이스에 생성합니다.
+# 개발 단계에서 테이블 스키마 변경 시 유용하며, 운영 환경에서는 마이그레이션 도구를 사용하는 것이 일반적입니다.
+Base.metadata.create_all(bind=engine)
+
 
 # CORS(Cross-Origin Resource Sharing) 설정
 app.add_middleware(

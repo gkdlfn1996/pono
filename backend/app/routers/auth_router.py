@@ -1,6 +1,9 @@
 import requests
 from fastapi import APIRouter, Depends, HTTPException, status, Header
 from fastapi.security import OAuth2PasswordRequestForm
+from ..draftnote import models # models.py 임포트 (최상단으로 이동)
+from sqlalchemy.orm import Session
+from ..draftnote.database import get_db
 from ..shotgrid import shotgrid_authenticator
 
 SERVER_URL = "https://idea.shotgrid.autodesk.com"
@@ -11,7 +14,7 @@ router = APIRouter(
 )
 
 @router.post("/login")
-async def login_for_session_token(form_data: OAuth2PasswordRequestForm = Depends()):
+async def login_for_session_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)): # db 의존성 추가
     """
     사용자 ID/PW로 ShotGrid에 인증하고, 성공 시 ShotGrid 세션 토큰을 반환합니다.
     """
@@ -24,10 +27,20 @@ async def login_for_session_token(form_data: OAuth2PasswordRequestForm = Depends
         
         # UserSG 인스턴스 내부에 있는 sg 객체를 사용하여 사용자 정보 조회
         # user_sg_auth.sg는 UserSG.__init__에서 이미 인증된 Shotgun 객체입니다.
-        user_info = user_sg_auth.sg.find_one("HumanUser", [["login", "is", form_data.username]], ["id", "name", "login"])
-        print(f"[SUCCESS] User '{form_data.username}' authenticated. Returning session token.")
+        sg_user_info = user_sg_auth.sg.find_one("HumanUser", [["login", "is", form_data.username]], ["id", "name", "login"])
+
+        # 로컬 DB에 사용자 정보 저장 또는 조회
+        local_user = db.query(models.User).filter(models.User.username == sg_user_info["login"]).first()
+        if not local_user:
+            # 사용자가 없으면 새로 생성
+            local_user = models.User(id=sg_user_info["id"], username=sg_user_info["login"]) # ShotGrid ID를 local_user.id로 사용
+            db.add(local_user)
+            db.commit()
+            db.refresh(local_user)
         
-        return {"session_token": sg_session_token, "token_type": "bearer", "user_info": user_info}
+        print(f"[SUCCESS] User '{form_data.username}' authenticated. Returning session token. Local user ID: {local_user.id}")
+        
+        return {"session_token": sg_session_token, "token_type": "bearer", "user_info": sg_user_info} # ShotGrid에서 받은 user_info 그대로 반환
     
     except Exception as e:
         print(f"Authentication failed for user '{form_data.username}': {e}")
@@ -36,6 +49,7 @@ async def login_for_session_token(form_data: OAuth2PasswordRequestForm = Depends
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
 
 @router.get("/validate-session-token", response_model=bool)
 async def validate_session_token(authorization: str = Header(None)):
