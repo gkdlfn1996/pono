@@ -8,7 +8,7 @@
           <v-toolbar-title class="font-weight-black text-blue-lighten-2 pl-4 mr-2 d-none d-xl-flex">PONO</v-toolbar-title>
         </v-col>
         <v-spacer></v-spacer>
-        <!-- 프로젝트 & 테스크 -->
+        <!-- 프로젝트 & 파이프라인스텝 -->
         <v-autocomplete
           label="Project"
           :items="projects"

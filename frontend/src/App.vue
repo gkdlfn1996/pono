@@ -89,6 +89,7 @@
 <script setup>
 import { ref, onMounted, onErrorCaptured } from 'vue';
 import { useAuth } from './composables/useAuth';
+import { useDraftNotes } from './composables/useDraftNotes';
 import { useShotGridData } from './composables/useShotGridData';
 
 // 컴포넌트 임포트
@@ -102,6 +103,7 @@ import VersionList from './components/layout/VersionList.vue';
 
 // --- 인증 관련 상태 및 함수 ---
 const { isAuthenticated, user, loginError, login, logout, checkAuthStatus } = useAuth();
+// const { myNote, otherNotes, loadDraftNotesForVersion, saveMyDraftNote, initializeDraftNotes } = useDraftNotes(); // useDraftNotes에서 필요한 상태와 함수 가져오기
 const isAuthCheckComplete = ref(false);
 
 // --- ShotGrid 데이터 중앙 상태 ---

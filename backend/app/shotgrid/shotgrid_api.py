@@ -57,34 +57,6 @@ def get_projects(sg):
     print(f"Successfully fetched {len(result)} projects.")
     return result
 
-# def get_tasks_for_project(sg, project_id):
-#     """
-#     특정 프로젝트에 연결된 Task 목록을 조회합니다.
-#     """
-#     raw_tasks = sg.find(
-#         "Task",
-#         [["project.Project.id", "is", project_id]],
-#         ["id", "content"]
-#     )
-
-#     # 이름으로 중복을 제거
-#     grouped_tasks = {}
-#     for task in raw_tasks:
-#         if 'content' in task and task['content']:
-#             task_name = task['content']
-#             # task_id = task['id']
-#             if task_name not in grouped_tasks:
-#                 grouped_tasks[task_name] = {'name': task_name}
-#             # grouped_tasks[task_name]['ids'].append(task_id)
-    
-#     processed_tasks = list(grouped_tasks.values())
-
-#     # 태스크 이름을 알파벳 순으로 정렬
-#     processed_tasks.sort(key=lambda x: x.get('name', '').lower())
-    
-#     print(f"ShotGrid tasks for project_id {project_id}: {[item['name'] for item in processed_tasks]}")
-#     return processed_tasks
-
 def get_pipeline_steps_for_project(sg, project_id):
     """
     특정 프로젝트에 연결된 Pipeline Step 목록을 조회합니다.

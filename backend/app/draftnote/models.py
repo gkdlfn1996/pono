@@ -43,10 +43,25 @@ class Note(Base):
     __tablename__ = "notes"
 
     id = Column(Integer, primary_key=True, index=True)
-    version_id = Column(Integer, index=True) # ShotGrid 버전 ID (예: sg_version_id)
+    version_id = Column(Integer, ForeignKey("versions.id"), index=True) # ShotGrid 버전 ID (예: sg_version_id)
     owner_id = Column(Integer, ForeignKey("users.id"))
     content = Column(Text)
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
 
     owner = relationship("User", back_populates="notes")
+    version = relationship("Version", back_populates="notes")
+
+class Version(Base):
+    """
+    ShotGrid 버전의 핵심 메타데이터를 저장하는 SQLAlchemy 모델입니다.
+    로컬 노트 데이터와 ShotGrid의 프로젝트/스텝 정보를 연결하는 역할을 합니다.
+    """
+    __tablename__ = "versions"
+
+    id = Column(Integer, primary_key=True, index=True) # ShotGrid의 Version ID
+    name = Column(String, index=True) # ShotGrid의 Version Name (code 필드)
+    step_name = Column(String, index=True)
+    project_id = Column(Integer, index=True)
+
+    notes = relationship("Note", back_populates="version")
