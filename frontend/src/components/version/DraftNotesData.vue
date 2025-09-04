@@ -10,7 +10,7 @@
         @update:model-value="onInput"
         @blur="onBlur"
         variant="outlined"
-        :class="{ 'saving-note': props.isSaving }"
+        :class="{ 'saving-note': props.isSaved }"
         class="flex-grow-1"
         no-resize
         rows="1"
@@ -22,13 +22,20 @@
       <div class="d-flex align-center mb-2">
         <h4 class="text-subtitle-1 font-weight-bold">Others Draft Notes</h4>
       </div>
-      <v-card variant="outlined" class="notes-container flex-grow-1 d-flex flex-column">
+      <v-card 
+        variant="outlined" 
+        class="notes-container flex-grow-1 d-flex flex-column"
+        @click="handleInteraction"
+        @scroll.passive="handleInteraction"
+        :ripple="false"
+      >
         <template v-if="props.otherNotes && props.otherNotes.length">
           <div 
             v-for="(note, index) in props.otherNotes" 
             :key="note.id" 
             :ref="el => noteRefs[note.id] = el"
             :data-note-id="note.id"
+            class="note-item"
             :class="{ 'new-note-highlight': props.newNoteIds.has(note.id) }"
           >
             <div class="d-flex justify-space-between align-center px-2 pb-1">
@@ -56,7 +63,7 @@ const props = defineProps({
   version: { type: Object, required: true },
   myNote: String,
   otherNotes: Array,
-  isSaving: Boolean,
+  isSaved: Boolean,
   newNoteIds: Set,
   saveNote: Function,
   debouncedSave: Function,
@@ -65,6 +72,8 @@ const props = defineProps({
 
 const localContent = ref(props.myNote || '');
 const noteRefs = ref({});
+const visibleNoteIds = ref(new Set()); // 현재 화면에 보이는 노트 ID를 추적
+const timedNoteIds = new Set(); // 중복 타이머 생성을 방지하기 위한 Set
 let observer = null;
 
 // Prop이 외부에서 변경될 때, 내부 상태도 업데이트합니다.
@@ -83,20 +92,38 @@ const onBlur = () => {
   props.saveNote(props.version, localContent.value);
 };
 
-/**
- * IntersectionObserver를 설정하여, 노트 요소가 화면에 보이면
- * 하이라이트를 제거하는 로직을 수행합니다.
- */
+const handleInteraction = () => {
+  // 현재 화면에 보이면서, 하이라이트 상태이고, 아직 타이머가 설정되지 않은 노트들을 찾습니다.
+  const notesToTime = (props.otherNotes || []).filter(
+    note => 
+      visibleNoteIds.value.has(note.id) &&
+      props.newNoteIds.has(note.id) && 
+      !timedNoteIds.has(note.id)
+  );
+
+  notesToTime.forEach(note => {
+    // 타이머가 설정되었음을 기록하여 중복 실행을 방지합니다.
+    timedNoteIds.add(note.id);
+
+    // 3초 후에 하이라이트를 제거합니다.
+    setTimeout(() => {
+      props.clearNewNoteFlag(note.id);
+      timedNoteIds.delete(note.id);
+    }, 500);
+  });
+};
+
+// IntersectionObserver를 설정하여, 노트 요소가 화면에 보이는지 여부를 감시합니다.
 const setupObserver = () => {
   if (observer) observer.disconnect();
 
   observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
+      const noteId = parseInt(entry.target.dataset.noteId);
       if (entry.isIntersecting) {
-        const noteId = parseInt(entry.target.dataset.noteId);
-        if (props.newNoteIds.has(noteId)) {
-          props.clearNewNoteFlag(noteId);
-        }
+        visibleNoteIds.value.add(noteId);
+      } else {
+        visibleNoteIds.value.delete(noteId);
       }
     });
   }, { threshold: 0.8 });
@@ -138,6 +165,7 @@ const formatDateTime = (isoString) => {
 
 <style scoped>
 .notes-container {
+  cursor: default;
   overflow-y: auto;
 }
 .note-content {
@@ -145,12 +173,21 @@ const formatDateTime = (isoString) => {
   word-wrap: break-word;
   line-height: 1.4;
 }
-.saving-note {
-  background-color: #E3F2FD; /* 연한 파란색으로 저장 중 표시 */
-  transition: background-color 0.2s ease-in-out;
+.note-item {
+  background-color: transparent;
+  transition: background-color 0.5s ease-in-out;
 }
+
+
+/* My Draft Note 변경사항 저장 시각 피드백  */
+:deep(.v-textarea.saving-note .v-field__field) {
+  transition: background-color 0.2s ease-in-out;
+  background-color: #E3F2FD; /* 연한 파란색 배경 */
+}
+
 .new-note-highlight {
   background-color: #FFF9C4; /* 연한 노란색으로 새 노트 표시 */
-  transition: background-color 0.5s ease;
 }
+
+
 </style>

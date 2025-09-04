@@ -170,22 +170,20 @@ async def create_or_update_note(
     업데이트된 노트 정보를 브로드캐스트합니다.
     """
     try:
-        # 1. 버전 정보 UPSERT (database.py의 upsert_versions 함수 호출)
-        upsert_versions(db, [note_data.version_meta.dict()])
+        # 1. 버전 정보 UPSERT (Pydantic V2 호환)
+        upsert_versions(db, [note_data.version_meta.model_dump()])
         
-        # 2. 노트 정보 UPSERT (database.py의 upsert_note 함수 호출)
-        # upsert_note 함수 내부에서 기존 노트가 있는지 확인하는 로직이 처리됩니다.
+        # 2. 노트 정보 UPSERT
         note_to_save = {"version_id": note_data.version_id, "content": note_data.content}
         saved_note = upsert_note(db, note_to_save, note_data.owner_id)
         
         db.commit()
         db.refresh(saved_note)
 
-        # 3. 웹소켓 브로드캐스트 (효율적으로 변경된 방식)
-        note_info_for_broadcast = NoteInfo.from_orm(saved_note)
-        # await manager.broadcast(note_info_for_broadcast.json(), saved_note.version_id)
-        await manager.broadcast(note_info_for_broadcast.json(), 0) # Temporarily broadcast to channel 0
-        print(f"[WebSocket] create_or_update_note: Broadcast initiated for version_id=0.")
+        # 3. 웹소켓 브로드캐스트 (Pydantic V2 호환 및 올바른 version_id 사용)
+        note_info_for_broadcast = NoteInfo.model_validate(saved_note)
+        await manager.broadcast(note_info_for_broadcast.model_dump_json(), saved_note.version_id)
+        print(f"[WebSocket] create_or_update_note: Broadcast initiated for version_id={saved_note.version_id}.")
 
         return note_info_for_broadcast
     except Exception as e:

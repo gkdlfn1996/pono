@@ -32,7 +32,7 @@
               @refresh-versions="loadVersions"
               :myNotes="myNotes"
               :otherNotes="otherNotes"
-              :isSaving="isSaving"
+              :isSaved="isSaved"
               :newNoteIds="newNoteIds"
               :saveNote="saveMyNote"
               :debouncedSave="debouncedSave"
@@ -117,7 +117,8 @@ const {
 } = useShotGridData();
 
 // --- Draft Notes & WebSocket 중앙 상태 ---
-const { myNotes, otherNotes, isSaving, newNoteIds, fetchNotesByStep, saveMyNote, debouncedSave, handleIncomingNote, clearNewNoteFlag } = useDraftNotes();
+const { myNotes, otherNotes, isSaved, newNoteIds, fetchNotesByStep, saveMyNote, debouncedSave, handleIncomingNote, clearNewNoteFlag } = useDraftNotes();
+// '커넥션 매니저'로 업그레이드된 useWebSocket 사용
 const ws = useWebSocket();
 
 // App 컴포넌트가 마운트될 때 인증 상태를 확인합니다.
@@ -140,7 +141,12 @@ const showShotDetailPanel = ref(false);
 const handleLogin = async (credentials) => {
   await login(credentials.username, credentials.password);
 };
-const handleLogout = () => logout();
+
+// 로그아웃 시 모든 웹소켓 연결을 해제합니다.
+const handleLogout = () => {
+  ws.disconnectAll();
+  logout();
+};
 
 const scrollToTop = () => {
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -158,19 +164,41 @@ watch(selectedPipelineStep, (newStep) => {
     }
 });
 
-// 2. 인증 상태가 되면 웹소켓 연결
+// ==================================================================
+// ======================= 핵심 수정 로직 ============================
+// ==================================================================
+
+// 2. 화면에 표시되는 버전 목록(displayVersions)을 감시하여 웹소켓 연결을 동적으로 관리
+watch(displayVersions, (newVersions, oldVersions) => {
+    if (!isAuthenticated.value) return;
+
+    const newVersionIds = new Set(newVersions.map(v => v.id));
+    const oldVersionIds = new Set((oldVersions || []).map(v => v.id));
+
+    // 새로 추가된 버전에 대해 연결 생성
+    newVersionIds.forEach(versionId => {
+        if (!oldVersionIds.has(versionId) && !ws.isConnected(versionId)) {
+            const wsUrl = `ws://${window.location.hostname}:8001/api/notes/ws/${versionId}`;
+            console.log(`[App.vue] Connecting WebSocket for version ${versionId}`);
+            ws.connect(versionId, wsUrl, handleIncomingNote);
+        }
+    });
+
+    // 화면에서 사라진 버전에 대해 연결 해제
+    oldVersionIds.forEach(versionId => {
+        if (!newVersionIds.has(versionId)) {
+            console.log(`[App.vue] Disconnecting WebSocket for version ${versionId}`);
+            ws.disconnect(versionId);
+        }
+    });
+}, { deep: true }); // 객체 내부의 변경까지 감지하기 위해 deep 옵션 사용
+
+// 3. 로그아웃 시 모든 연결 해제 (handleLogout 함수로 이전)
 watch(isAuthenticated, (isAuth) => {
-    if (isAuth && !ws.isConnected.value) {
-        // 백엔드 /ws/{version_id}는 특정 버전에만 한정되므로,
-        // 모든 노트 변경을 수신하기 위한 범용 엔드포인트가 필요합니다.
-        // 백엔드 라우터에서 /ws/{version_id}를 수정하여 version_id를 옵셔널로 받거나,
-        // 새 범용 엔드포인트를 만들어야 합니다. 여기서는 임시로 version_id 0을 사용합니다.
-        const wsUrl = `ws://${window.location.hostname}:8001/api/notes/ws/0`;
-        ws.connect(wsUrl, handleIncomingNote);
-    } else if (!isAuth && ws.isConnected.value) {
-        ws.disconnect();
+    if (!isAuth) {
+        ws.disconnectAll();
     }
-}, { immediate: true });
+});
 
 </script>
 

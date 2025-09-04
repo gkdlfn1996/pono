@@ -30,7 +30,7 @@ const myNotes = ref({}); // { versionId: "note content", ... }
 const otherNotes = ref({}); // { versionId: [ {note}, {note} ], ... }
 
 /** @type {import('vue').Ref<Object<string, boolean>>} */
-const isSaving = ref({}); // { versionId: true/false, ... }
+const isSaved = ref({}); // { versionId: true/false, ... }
 
 /** @type {import('vue').Ref<Set<number>>} */
 const newNoteIds = ref(new Set()); // 새로 받은 노트 ID를 추적하여 하이라이트 효과를 주기 위한 Set
@@ -87,7 +87,6 @@ export function useDraftNotes() {
         if (!version || !user.value || !selectedProject.value || !selectedPipelineStep.value) return;
         
         const versionId = version.id;
-        isSaving.value[versionId] = true;
         console.log('[useDraftNotes] saveMyNote: user.value:', user.value); // user.value 객체 전체 출력
         
         const noteData = {
@@ -106,10 +105,11 @@ export function useDraftNotes() {
         try {
             await apiClient.post('/api/notes/', noteData);
             myNotes.value[versionId] = content;
+            isSaved.value[versionId] = true;
         } catch (error) {
             console.error(`[useDraftNotes] Failed to save note for version ${versionId}:`, error);
         } finally {
-            setTimeout(() => { isSaving.value[versionId] = false; }, 500);
+            setTimeout(() => { isSaved.value[versionId] = false; }, 500);
         }
     };
     
@@ -165,7 +165,7 @@ export function useDraftNotes() {
     return {
         myNotes: readonly(myNotes),
         otherNotes: readonly(otherNotes),
-        isSaving: readonly(isSaving),
+        isSaved: readonly(isSaved),
         newNoteIds: readonly(newNoteIds),
         fetchNotesByStep,
         saveMyNote,

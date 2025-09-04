@@ -77,7 +77,7 @@
                 :version="versionItem"
                 :myNote="props.myNotes[versionItem.id]"
                 :otherNotes="props.otherNotes[versionItem.id]"
-                :isSaving="props.isSaving[versionItem.id]"
+                :isSaved="props.isSaved[versionItem.id]"
                 :newNoteIds="props.newNoteIds"
                 :saveNote="props.saveNote"
                 :debouncedSave="props.debouncedSave"
@@ -122,7 +122,7 @@ const props = defineProps({
   // 노트 관련 props 추가
   myNotes: Object,
   otherNotes: Object,
-  isSaving: Object,
+  isSaved: Object,
   newNoteIds: Set,
   saveNote: Function,
   debouncedSave: Function,

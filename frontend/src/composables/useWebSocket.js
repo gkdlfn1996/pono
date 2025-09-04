@@ -1,74 +1,101 @@
 /**
- * useWebSocket.js
+ * useWebSocket.js (Connection Manager)
  *
- * 웹소켓 연결의 생성, 유지, 해제 및 메시지 수신을 중앙에서 관리하는 모듈.
- * 이 모듈은 메시지의 내용이 무엇인지는 관여하지 않고, 연결과 전달의 역할만 수행합니다.
+ * 여러 개의 명명된 웹소켓 연결을 동시에 생성, 유지, 해제하는 '커넥션 매니저' 모듈.
+ * 각 연결은 고유한 키(예: version_id)로 식별됩니다.
  */
 import { ref, readonly } from 'vue';
 
-// 모듈 스코프에서 웹소켓 인스턴스와 연결 상태를 관리합니다.
-const socket = ref(null);
-const isConnected = ref(false);
-// 외부에서 전달받을 메시지 처리 콜백 함수
-let onMessageCallback = null;
+// 모듈 스코프에서 모든 웹소켓 연결 인스턴스를 관리합니다.
+// { key: { socket: WebSocket, isConnected: boolean, callback: function }, ... }
+const connections = ref({});
 
 export function useWebSocket() {
 
     /**
-     * 웹소켓 서버에 연결을 시도합니다.
+     * 특정 키로 식별되는 웹소켓 서버에 연결을 시도합니다.
+     * @param {string | number} key - 이 연결을 식별할 고유 키 (예: versionId)
      * @param {string} url - 연결할 웹소켓 서버의 주소
      * @param {function} callback - 메시지 수신 시 실행할 콜백 함수
      */
-    const connect = (url, callback) => {
-        if (socket.value && isConnected.value) {
-            console.log("[useWebSocket] WebSocket is already connected.");
+    const connect = (key, url, callback) => {
+        if (connections.value[key] && connections.value[key].isConnected) {
+            console.log(`[WS Manager] Connection for key '${key}' is already active.`);
             return;
         }
-        
-        onMessageCallback = callback;
-        socket.value = new WebSocket(url);
-        
-        // 웹소켓 연결이 성공적으로 열렸을 때 자동으로 실행될 코드를 지정합니다.
-        socket.value.onopen = () => {
-            isConnected.value = true;
-            console.log("[useWebSocket] WebSocket connected.");
+
+        const socket = new WebSocket(url);
+        connections.value[key] = {
+            socket: socket,
+            isConnected: false,
+            callback: callback,
         };
 
-        // 서버로부터 메시지가 도착했을 때 자동으로 실행될 코드를 지정합니다. 
-        // event.data에 서버가 보낸 메시지가 담겨 있습니다.
-        socket.value.onmessage = (event) => {
-            console.log("[useWebSocket] WebSocket message received.");
-            if (onMessageCallback) {
-                // 메시지가 오면, 등록된 콜백 함수를 호출하여 데이터 처리를 위임합니다.
-                onMessageCallback(event.data);
+        socket.onopen = () => {
+            if (connections.value[key]) {
+                connections.value[key].isConnected = true;
+                console.log(`[WS Manager] Connected with key '${key}'.`);
             }
         };
 
-        // 연결이 끊어졌을 때 자동으로 실행될 코드를 지정합니다.
-        socket.value.onclose = () => {
-            isConnected.value = false;
-            console.log("[useWebSocket] WebSocket disconnected.");
-            socket.value = null;
+        socket.onmessage = (event) => {
+            const conn = connections.value[key];
+            if (conn && conn.callback) {
+                conn.callback(event.data);
+            }
         };
 
-        // 에러가 발생했을 때 자동으로 실행될 코드를 지정합니다.
-        socket.value.onerror = (error) => {
-            console.error("[useWebSocket] WebSocket error:", error);
+        socket.onclose = () => {
+            console.log(`[WS Manager] Disconnected from key '${key}'.`);
+            if (connections.value[key]) {
+                delete connections.value[key];
+            }
+        };
+
+        socket.onerror = (error) => {
+            console.error(`[WS Manager] Error on key '${key}':`, error);
+            if (connections.value[key]) {
+                delete connections.value[key];
+            }
         };
     };
 
     /**
-     * 현재 활성화된 웹소켓 연결을 해제합니다.
+     * 특정 키의 웹소켓 연결을 해제합니다.
+     * @param {string | number} key - 해제할 연결의 고유 키
      */
-    const disconnect = () => {
-        if (socket.value) {
-            socket.value.close();
+    const disconnect = (key) => {
+        const conn = connections.value[key];
+        if (conn && conn.socket) {
+            conn.socket.close();
+            // onclose 이벤트 핸들러에서 connections 객체 정리가 처리됩니다.
         }
     };
 
+    /**
+     * 모든 활성 웹소켓 연결을 해제합니다. (예: 로그아웃 시)
+     */
+    const disconnectAll = () => {
+        console.log("[WS Manager] Disconnecting all connections.");
+        for (const key in connections.value) {
+            disconnect(key);
+        }
+    };
+    
+    /**
+     * 특정 키의 연결 상태를 확인하는 헬퍼 함수
+     * @param {string | number} key 
+     * @returns {boolean}
+     */
+    const isConnected = (key) => {
+        return !!(connections.value[key] && connections.value[key].isConnected);
+    };
+
     return {
-        isConnected: readonly(isConnected),
+        connections: readonly(connections),
         connect,
         disconnect,
+        disconnectAll,
+        isConnected,
     };
 }
