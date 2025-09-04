@@ -10,7 +10,7 @@
         @update:model-value="onInput"
         @blur="onBlur"
         variant="outlined"
-        :class="{ 'saving-note': props.isSaved }"
+        :class="{ 'saved-note': props.isSaved }"
         class="flex-grow-1"
         no-resize
         rows="1"
@@ -175,15 +175,18 @@ const formatDateTime = (isoString) => {
 }
 .note-item {
   background-color: transparent;
-  transition: background-color 0.5s ease-in-out;
+  transition: background-color 0.3s ease-in-out;
 }
 
+:deep(.v-textarea .v-field__field) {
+  transition: background-color 0.3s ease-in-out;
+}
 
 /* My Draft Note 변경사항 저장 시각 피드백  */
-:deep(.v-textarea.saving-note .v-field__field) {
-  transition: background-color 0.2s ease-in-out;
+:deep(.v-textarea.saved-note .v-field__field) {
   background-color: #E3F2FD; /* 연한 파란색 배경 */
 }
+
 
 .new-note-highlight {
   background-color: #FFF9C4; /* 연한 노란색으로 새 노트 표시 */
