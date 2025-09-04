@@ -72,7 +72,12 @@ def get_notes_by_step(db: Session, project_id: int, step_name: str):
     """
     프로젝트 ID와 스텝 이름을 기준으로, JOIN을 통해 모든 노트를 조회합니다.
     """
-    return db.query(models.Note).join(models.Version).filter(
-        models.Version.project_id == project_id,
-        models.Version.step_name == step_name
-    ).all()
+    query = db.query(models.Note).join(models.Version).filter(
+        models.Version.project_id == project_id
+    )
+
+    # step_name이 'All'이 아닌 경우에만 스텝 필터를 추가합니다.
+    if step_name != 'All':
+        query = query.filer(models.Version.step_name == step_name)
+
+    return query.all()

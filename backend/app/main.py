@@ -3,7 +3,7 @@ PONO Backend Main Application File.
 이 파일은 FastAPI 애플리케이션을 생성하고, 미들웨어와 API 라우터들을 연결합니다.
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from sqlalchemy import text
 from .draftnote.database import engine
 from .draftnote.models import Base
@@ -43,9 +43,34 @@ app.include_router(auth_router.router)
 app.include_router(draft_notes_router.router)
 app.include_router(shotgrid_data_router.router)
 
+
+@app.websocket("/ws/test")
+async def websocket_test_endpoint(websocket: WebSocket):
+    print(f"[WebSocket Test] Received connection request")
+    try:
+        await websocket.accept()
+        print(f"[WebSocket Test] Connection accepted")
+        while True:
+            data = await websocket.receive_text()
+            print(f"[WebSocket Test] Received message: {data}")
+            await websocket.send_text(f"Message text was: {data}")
+    except WebSocketDisconnect:
+        print(f"[WebSocket Test] Disconnected")
+
+
+
 @app.get("/", tags=["Root"])
 async def read_root():
     """
     루트 경로, API 서버가 정상적으로 동작하는지 확인합니다.
     """
     return {"message": "Welcome to PONO API"}
+
+'''
+const ws = new WebSocket("ws://30.0.1.141:8001/ws/test");
+ws.onopen = (event) => console.log("WS Test: Connected", event);
+ws.onmessage = (event) => console.log("WS Test: Message received", event.data);
+ws.onclose = (event) => console.log("WS Test: Disconnected", event);
+ws.onerror = (event) => console.error("WS Test: Error", event);
+'''
+

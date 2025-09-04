@@ -23,19 +23,6 @@
       <v-container fluid v-else class="main-content-container">
         <v-row v-if="selectedProject && selectedPipelineStep">
           <v-col cols="12">
-            <!-- <VersionList_org
-              :isLoading="isLoading"
-              :versions="versions"
-              @refresh-versions="loadVersions(selectedTask.name)"
-
-              :notes="notesContent"
-              :notesComposable="notes"
-              :isSaving="isSaving"
-              @save-note="handleSaveNote"
-              @input-note="handleInputNote"
-              @reload-other-notes="notes.reloadOtherNotesForVersion"
-              :sendMessage="sendMessage"
-            /> -->
             <VersionList
               :versions="displayVersions"
               :sortBy="sortBy"
@@ -43,6 +30,13 @@
               :presentEntityTypes="presentEntityTypes"
               :setSort="setSort"
               @refresh-versions="loadVersions"
+              :myNotes="myNotes"
+              :otherNotes="otherNotes"
+              :isSaving="isSaving"
+              :newNoteIds="newNoteIds"
+              :saveNote="saveMyNote"
+              :debouncedSave="debouncedSave"
+              :clearNewNoteFlag="clearNewNoteFlag"
             />
             <div class="text-center mt-4" v-if="!isVersionsLoading && totalPages > 1">
               <v-pagination
@@ -87,10 +81,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onErrorCaptured } from 'vue';
+import { ref, onMounted, onErrorCaptured, watch } from 'vue';
 import { useAuth } from './composables/useAuth';
 import { useDraftNotes } from './composables/useDraftNotes';
 import { useShotGridData } from './composables/useShotGridData';
+import { useWebSocket } from './composables/useWebSocket';
 
 // 컴포넌트 임포트
 import LoginSection from './components/layout/LoginSection.vue';
@@ -103,7 +98,6 @@ import VersionList from './components/layout/VersionList.vue';
 
 // --- 인증 관련 상태 및 함수 ---
 const { isAuthenticated, user, loginError, login, logout, checkAuthStatus } = useAuth();
-// const { myNote, otherNotes, loadDraftNotesForVersion, saveMyDraftNote, initializeDraftNotes } = useDraftNotes(); // useDraftNotes에서 필요한 상태와 함수 가져오기
 const isAuthCheckComplete = ref(false);
 
 // --- ShotGrid 데이터 중앙 상태 ---
@@ -122,6 +116,10 @@ const {
   setSort,
 } = useShotGridData();
 
+// --- Draft Notes & WebSocket 중앙 상태 ---
+const { myNotes, otherNotes, isSaving, newNoteIds, fetchNotesByStep, saveMyNote, debouncedSave, handleIncomingNote, clearNewNoteFlag } = useDraftNotes();
+const ws = useWebSocket();
+
 // App 컴포넌트가 마운트될 때 인증 상태를 확인합니다.
 onMounted(async () => {
   await checkAuthStatus();
@@ -137,22 +135,43 @@ onErrorCaptured((err) => {
 const drawer = ref(false);
 const showNotesPanel = ref(false);
 const showShotDetailPanel = ref(false);
-// const notesContent = ref({});
-// const isSaving = ref({});
 
 // --- 이벤트 핸들러 ---
 const handleLogin = async (credentials) => {
   await login(credentials.username, credentials.password);
 };
 const handleLogout = () => logout();
-// const handleSaveNote = () => console.log('handleSaveNote called');
-// const handleInputNote = () => console.log('handleInputNote called');
-// const sendMessage = () => console.log('sendMessage called');
-// const notes = { reloadOtherNotesForVersion: () => console.log('reloadOtherNotesForVersion called') };
 
 const scrollToTop = () => {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 };
+
+// --- 로직 통합 ---
+
+// 1. 선택된 스텝이 변경되면, 버전과 노트를 동시에 로딩
+watch(selectedPipelineStep, (newStep) => {
+    if (newStep && selectedProject.value) {
+        Promise.all([
+            loadVersions(false), // 캐시 미사용하고 새로고침
+            fetchNotesByStep(selectedProject.value.id, newStep.name)
+        ]);
+    }
+});
+
+// 2. 인증 상태가 되면 웹소켓 연결
+watch(isAuthenticated, (isAuth) => {
+    if (isAuth && !ws.isConnected.value) {
+        // 백엔드 /ws/{version_id}는 특정 버전에만 한정되므로,
+        // 모든 노트 변경을 수신하기 위한 범용 엔드포인트가 필요합니다.
+        // 백엔드 라우터에서 /ws/{version_id}를 수정하여 version_id를 옵셔널로 받거나,
+        // 새 범용 엔드포인트를 만들어야 합니다. 여기서는 임시로 version_id 0을 사용합니다.
+        const wsUrl = `ws://${window.location.hostname}:8001/api/notes/ws/0`;
+        ws.connect(wsUrl, handleIncomingNote);
+    } else if (!isAuth && ws.isConnected.value) {
+        ws.disconnect();
+    }
+}, { immediate: true });
+
 </script>
 
 <style scoped>

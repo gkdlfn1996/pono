@@ -73,7 +73,16 @@
 
             <!-- 2단: DraftNotesData (Draft Notes 영역) -->
             <v-col cols="12" md="5">
-              <DraftNotesData :version="versionItem" />
+              <DraftNotesData
+                :version="versionItem"
+                :myNote="props.myNotes[versionItem.id]"
+                :otherNotes="props.otherNotes[versionItem.id]"
+                :isSaving="props.isSaving[versionItem.id]"
+                :newNoteIds="props.newNoteIds"
+                :saveNote="props.saveNote"
+                :debouncedSave="props.debouncedSave"
+                :clearNewNoteFlag="props.clearNewNoteFlag"
+              />
             </v-col>
 
             <!-- 3단: VersionNotesData (Version Notes 영역) -->
@@ -101,37 +110,23 @@ import VersionNotesData from '../version/VersionNotesData.vue';
 import { computed } from 'vue';
 import { useShotGridData } from '../../composables/useShotGridData';
 
-// import { versions, isLoading, selectedTask, selectTask } from '../../composables/useShotGridData';
-
-// const props = defineProps({
-//   notes: Object, // notesContent 객체 (초기값 및 외부 업데이트용)
-//   notesComposable: Object, // notes composable 전체를 받음
-//   isSaving: Object, // isSaving prop 타입을 Object로 변경
-//   sendMessage: Function, // 웹소켓 메시지 전송 함수
-// });
-
-// const emit = defineEmits(['save-note', 'input-note', 'reload-other-notes']);
-
-// const refreshVersions = () => {
-//   if (selectedTask.value) {
-//     // 현재 선택된 태스크로 버전 목록을 다시 로드합니다.
-//     // selectTask 함수는 내부적으로 로딩 상태를 관리하고 versions를 업데이트합니다.
-//     selectTask(selectedTask.value.name);
-//   }
-// };
-
-// 부모로부터 받을 props를 명확하게 정의합니다.
-// App.vue에서 :versions="versions"로 넘겨주었으므로, 여기서 받습니다.
 const props = defineProps({
   versions: {
     type: Array,
     required: true,
   },
-  // 정렬 관련 props 추가
   sortBy: String,
   sortOrder: String,
   presentEntityTypes: Array,
   setSort: Function,
+  // 노트 관련 props 추가
+  myNotes: Object,
+  otherNotes: Object,
+  isSaving: Object,
+  newNoteIds: Set,
+  saveNote: Function,
+  debouncedSave: Function,
+  clearNewNoteFlag: Function,
 });
 
 // 정렬 옵션
@@ -149,7 +144,6 @@ const currentSortName = computed(() => {
   return found ? found.name : '';
 });
 
-// 현재 선택된 프로젝트와 태스크 정보를 가져옵니다.
 const { 
   selectedProject, 
   selectedPipelineStep,
@@ -157,16 +151,11 @@ const {
   cancelLoadVersions 
 } = useShotGridData();
 
-// 'refresh-versions' 이벤트를 부모에게 전달하기 위해 emit을 정의합니다.
 const emit = defineEmits(['refresh-versions']);
 
-// 새로고침 버튼 클릭 시 이 함수가 호출됩니다.
 function refreshVersions() {
-  // isLoading 상태와 관계없이 항상 이벤트를 발생시켜
-  // 데이터 재로딩은 부모(App.vue)가 책임지도록 합니다.
   emit('refresh-versions');
 }
-
 </script>
 
 <style scoped>

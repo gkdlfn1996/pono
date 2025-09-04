@@ -29,35 +29,87 @@ router = APIRouter(
 )
 
 # -------------------------------------- WebSocket ---------------------------------------------
-# (WebSocket 관련 코드는 변경 없음)
+
 class ConnectionManager:
+    """
+    활성 WebSocket 연결을 관리하는 클래스입니다.
+    각 버전 ID별로 연결된 클라이언트들을 그룹화하여, 특정 버전의 클라이언트들에게만
+    메시지를 보낼 수 있도록 합니다.
+
+    버전 ID별로 연결을 그룹화하여 특정 버전의 클라이언트에게 메시지를 보낼 수 있습니다.
+    """
+
     def __init__(self):
         self.active_connections: dict[int, List[WebSocket]] = {}
+
     async def connect(self, websocket: WebSocket, version_id: int):
+        """
+        새로운 WebSocket 연결을 수락하고, 해당 버전 ID에 연결된 클라이언트 목록에 추가합니다.
+        """
         await websocket.accept()
         if version_id not in self.active_connections:
             self.active_connections[version_id] = []
         self.active_connections[version_id].append(websocket)
+        print(f"[WebSocket] CONNECTED: version_id={version_id}, client={websocket.client_address}")
+        print(f"[WebSocket] Active connections for {version_id}: {len(self.active_connections[version_id])}")
+
     def disconnect(self, websocket: WebSocket, version_id: int):
+        """
+        WebSocket 연결을 해제하고, 해당 버전 ID의 클라이언트 목록에서 제거합니다.
+        """
         if version_id in self.active_connections:
             self.active_connections[version_id].remove(websocket)
+            print(f"[WebSocket] DISCONNECTED: version_id={version_id}, client={websocket.client_address}")
+
             if not self.active_connections[version_id]:
                 del self.active_connections[version_id]
+                print(f"[WebSocket] No more active connections for version_id={version_id}. Removing key.")
+
+
     async def broadcast(self, message: str, version_id: int):
+        """
+        특정 버전 ID에 연결된 모든 클라이언트에게 메시지를 브로드캐스트합니다.
+        `exclude_websocket`이 지정된 경우, 해당 클라이언트에게는 메시지를 보내지 않습니다.
+        (예: 메시지를 보낸 본인에게는 다시 보내지 않음)
+        """
         if version_id in self.active_connections:
             for connection in self.active_connections[version_id]:
                 await connection.send_text(message)
+            print(f"[WebSocket] BROADCAST: message to version_id={version_id}, {len(self.active_connections[version_id])} clients.")
 
 manager = ConnectionManager()
 
+
+# -------------------------------------- WebSocket API Endpoints ---------------------------------------------
+
 @router.websocket("/ws/{version_id}")
 async def websocket_endpoint(websocket: WebSocket, version_id: int):
-    await manager.connect(websocket, version_id)
+    """
+    클라이언트의 WebSocket 연결 요청을 처리하는 엔드포인트입니다.
+    연결이 수립되면 클라이언트로부터 메시지를 수신하고, 수신된 메시지를
+    동일한 버전 ID에 연결된 다른 클라이언트들에게 브로드캐스트합니다.
+
+    버전 ID별로 WebSocket 연결을 처리하는 엔드포인트입니다.
+    """
+    # await manager.connect(websocket, version_id)
+
+    print(f"[WebSocket] Endpoint: Received connection request for version_id={version_id}")
+    await websocket.accept() # Try accepting directly first
+    print(f"[WebSocket] Endpoint: Connection accepted for version_id={version_id}")
+    manager.active_connections.setdefault(version_id, []).append(websocket) # Manually add to manager
+
     try:
+        print(f"[WebSocket] Endpoint: Waiting for messages on version_id={version_id}")
         while True:
+            # 클라이언트로부터 받은 메시지를 다른 클라이언트에게 브로드캐스트합니다.
+            # 메시지를 보낸 클라이언트는 제외합니다
             await websocket.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(websocket, version_id)
+
+
+
+
 
 # -------------------------------------- Pydantic Models ---------------------------------------------
 
@@ -97,13 +149,15 @@ class NoteInfo(BaseModel):
     클라이언트에 반환될 노트의 상세 정보를 나타내는 Pydantic 모델입니다.
     """
     id: int
+    version_id: int
     content: str
     updated_at: datetime
     owner: UserInfo
     class Config:
         from_attributes = True
 
-# -------------------------------------- API Endpoints ---------------------------------------------
+
+# -------------------------------------- Dratf Notes API Endpoints ---------------------------------------------
 
 @router.post("/", response_model=NoteInfo)
 async def create_or_update_note(
@@ -129,7 +183,9 @@ async def create_or_update_note(
 
         # 3. 웹소켓 브로드캐스트 (효율적으로 변경된 방식)
         note_info_for_broadcast = NoteInfo.from_orm(saved_note)
-        await manager.broadcast(note_info_for_broadcast.json(), saved_note.version_id)
+        # await manager.broadcast(note_info_for_broadcast.json(), saved_note.version_id)
+        await manager.broadcast(note_info_for_broadcast.json(), 0) # Temporarily broadcast to channel 0
+        print(f"[WebSocket] create_or_update_note: Broadcast initiated for version_id=0.")
 
         return note_info_for_broadcast
     except Exception as e:

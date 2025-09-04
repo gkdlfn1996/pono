@@ -96,8 +96,10 @@ def get_lightweight_versions(sg, project_id, pipeline_step_name):
         filters.append(['sg_task.Task.step.Step.code', 'is', pipeline_step_name])
 
     fields = [
-        "id", "code", "created_at", "tags", "playlists",
-        "sg_status_list", "user", "sg_task", "entity", "step",
+        "id", "code", "created_at", "tags", "playlists", 
+        "project",
+        "sg_status_list", "user", "sg_task", "entity",
+        # "sg_task.Task.step",
         "sg_task.Task.due_date",
         "sg_task.Task.sg_status_list",
         "entity.Shot.sg_status_list",
@@ -106,7 +108,7 @@ def get_lightweight_versions(sg, project_id, pipeline_step_name):
         "entity.Asset.sg_status_list",  # Asset일 경우의 상태
     ]
     versions = sg.find("Version", filters, fields)
-    
+    # pprint(versions)
     print(f"Successfully fetched {len(versions)} versions.")
     return versions
 
@@ -203,12 +205,13 @@ if __name__ == "__main__":
     from shotgrid_authenticator import UserSG, SessionTokenSG
     from pprint import pprint
     
-    session_token = '1a425e3b3414dda3efc3e30d2d2c5aa7'
+    session_token = '985aad9919e375b969828a60ebe8f4d3'
     project_id = 815
-    task_name = 'ani'
+    pipeline_step_name = 'All'
     
     token_sg = SessionTokenSG(session_token).sg
  
+    get_lightweight_versions(token_sg, project_id, pipeline_step_name)
  
     # # sg는 shotgun_api3.Shotgun 인스턴스
     # task_schema = token_sg.schema_field_read('Task')

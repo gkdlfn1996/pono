@@ -51,7 +51,6 @@ export function useShotGridData() {
         try {
             const response = await apiClient.get('/api/data/projects');
             projects.value = response.data;
-            console.log('Projects loaded:', projects.value);
         } catch (error) {
             console.error('Failed to load projects:', error);
             // TODO: 사용자에게 에러 메시지를 표시하는 로직 추가
@@ -63,7 +62,6 @@ export function useShotGridData() {
             const response = await apiClient.get(`/api/data/projects/${projectId}/pipeline-steps`);
             // 백엔드에서 받은 스텝 목록 앞에 'All'옵션을 추가합니다.
             pipelineSteps.value = [{ name: 'All'}, ...response.data];
-            console.log('Pipeline steps for project ${projectID} loaded:', pipelineSteps.value);
         } catch (error) {
             console.error('Failed to load pipeline steps for project ${projectId}:', error);
             // TODO: 사용자에게 에러 메시지를 표시하는 로직 추가
@@ -181,6 +179,7 @@ export function useShotGridData() {
         const project = projects.value.find(p => p.id === projectId);
         if (project) {
             selectedProject.value = project;
+            console.log('선택된 project:', project);
             selectedPipelineStep.value = null; // 프로젝트 변경 시 스탭 초기화
             await loadPipelineSteps(projectId);
         }
