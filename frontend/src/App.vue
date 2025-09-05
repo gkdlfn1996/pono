@@ -114,10 +114,23 @@ const {
   loadVersions,
   changePage,
   setSort,
+  clearShotGridDataState,
 } = useShotGridData();
 
 // --- Draft Notes & WebSocket 중앙 상태 ---
-const { myNotes, otherNotes, isSaved, newNoteIds, fetchNotesByStep, saveMyNote, debouncedSave, handleIncomingNote, clearNewNoteFlag } = useDraftNotes();
+const { 
+  myNotes, 
+  otherNotes, 
+  isSaved, 
+  newNoteIds, 
+  fetchNotesByStep, 
+  saveMyNote, 
+  debouncedSave, 
+  handleIncomingNote, 
+  clearNewNoteFlag,
+  clearDraftNotesState,
+} = useDraftNotes();
+
 // '커넥션 매니저'로 업그레이드된 useWebSocket 사용
 const ws = useWebSocket();
 
@@ -144,8 +157,10 @@ const handleLogin = async (credentials) => {
 
 // 로그아웃 시 모든 웹소켓 연결을 해제합니다.
 const handleLogout = () => {
-  ws.disconnectAll();
-  logout();
+  ws.disconnectAll(); // 모든 웹소켓 연결 해제
+  logout(); // useAuth의 로그아웃 처리 (인증 정보 삭제)
+  clearShotGridDataState(); // useShotGridData 상태 초기화
+  clearDraftNotesState(); // useDraftNotes 상태 초기화
 };
 
 const scrollToTop = () => {

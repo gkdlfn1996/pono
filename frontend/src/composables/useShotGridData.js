@@ -1,7 +1,11 @@
 import { ref, readonly } from 'vue';
 import axios from 'axios';
 
-// 반응형 상태 변수들
+//================================ 반응형 상태 변수들 (Reactive State Variables) =================================
+
+// 이 섹션에는 useShotGridData 훅이 관리하는 모든 반응형(Reactive) 상태 변수들이 정의됩니다.
+// 컴포넌트나 다른 훅에서 이 변수들을 참조하여 UI를 업데이트하거나 데이터를 활용합니다.
+
 const projects = ref([]);
 const pipelineSteps = ref([]);
 const displayVersions = ref([]); // 화면에 보여줄 버전만 저장할 변수
@@ -18,6 +22,14 @@ const sortOrder = ref('desc'); // 정렬 순서 (asc, desc)
 const activeFilters = ref([]); // SearchBar로부터 받은 필터 조건
 const suggestionSources = ref({}); // SearchBar 제안 목록 데이터
 const versionsPerPage = 50; // 페이지 당 버전 수
+
+
+
+//=================================== API 클라이언트 설정 (API Client Setup) =======================================
+
+// 이 섹션에서는 백엔드 API와 통신하기 위한 Axios 클라이언트 인스턴스를 설정합니다.
+// 모든 API 요청에 인증 토큰을 자동으로 포함하도록 인터셉터를 구성합니다.
+
 
 // 동적 API 주소 설정 (useAuth.js와 동일하게 설정)
 const hostname = window.location.hostname;
@@ -39,13 +51,16 @@ apiClient.interceptors.request.use(config => {
 
 
 
+//=============================== 메인 Composition API 훅 (Main Composition API Hook) =================================
 
-/**
- * ShotGrid 프로젝트 및 파이프라인스텝 데이터를 관리하는 Composition API 훅
- */
+// useShotGridData 훅의 진입점입니다. 이 함수는 ShotGrid 관련 데이터와 로직을 캡슐화하여
+// 다른 Vue 컴포넌트나 훅에서 재사용할 수 있도록 합니다.
+
 export function useShotGridData() {
     /**
      * ShotGrid에서 프로젝트 목록을 불러옵니다.
+     * `projects` 반응형 변수를 업데이트합니다.
+     * @returns {Promise<void>} 프로젝트 로딩 완료 시 resolve되는 Promise
      */
     const loadProjects = async () => {
         try {
@@ -57,6 +72,13 @@ export function useShotGridData() {
         }
     };
 
+
+    /**
+    * 특정 프로젝트의 파이프라인 스텝 목록을 불러옵니다.
+    * `pipelineSteps` 반응형 변수를 업데이트합니다.
+    * @param {number} projectId - 파이프라인 스텝을 불러올 프로젝트의 ID
+    * @returns {Promise<void>} 파이프라인 스텝 로딩 완료 시 resolve되는 Promise
+    */
     const loadPipelineSteps = async (projectId) => {
         try{
             const response = await apiClient.get(`/api/data/projects/${projectId}/pipeline-steps`);
@@ -112,6 +134,9 @@ export function useShotGridData() {
 
     /**
      * 백엔드에서 정렬/페이지네이션 처리된 버전 목록을 불러옵니다.
+     * `displayVersions`, `totalPages`, `presentEntityTypes`, `suggestionSources`를 업데이트합니다.
+     * @param {boolean} useCache - 캐시 사용 여부 (true: 사용, false: 새로고침)
+     * @returns {Promise<void>} 버전 목록 로딩 완료 시 resolve되는 Promise
      */
     const loadVersions = async (useCache = false) => {
         if (isVersionsLoading.value) {
@@ -165,14 +190,26 @@ export function useShotGridData() {
     };
 
 
+
+    //============================== 데이터 선택 및 조작 함수 (Data Selection & Manipulation Functions) ================================
+
+    // 이 그룹의 함수들은 사용자 인터랙션에 따라 데이터를 선택하거나, 필터링, 정렬, 페이지네이션 등을 통해
+    // 표시되는 데이터의 형태를 변경하는 역할을 합니다.
+    
+    /**
+      * 현재 페이지를 변경하고 해당 페이지의 버전 목록을 불러옵니다.
+      * `currentPage`를 업데이트하고 `loadVersions`를 호출합니다.
+      * @param {number} page - 이동할 페이지 번호
+      * @returns {void}
+      */
     const changePage = (page) => {
         currentPage.value = page;
         loadVersions(true); // 페이지 이동 시에는 캐시 사용
     };
 
-
     /**
      * 선택된 프로젝트를 설정하고 해당 프로젝트의 파이프라인 스텝을 불러옵니다.
+     * `selectedProject`와 `pipelineSteps`를 업데이트합니다.
      * @param {number} projectId - 선택할 프로젝트의 ID
      */
     const selectProject = async (projectId) => {
@@ -187,7 +224,9 @@ export function useShotGridData() {
 
     /**
      * 선택된 파이프라인 스텝을 설정합니다.
+     * `selectedPipelineStep`, `currentPage`, `sortBy`, `sortOrder`를 업데이트하고 `loadVersions`를 호출합니다.
      * @param {string} stepName - 선택할 파이프라인 스텝의 이름
+     * @returns {Promise<void>} 파이프라인 스텝 선택 및 버전 로딩 완료 시 resolve되는 Promise
      */
     const selectPipelineStep = async (stepName) => {
         // 새로운 스텝을 선택하면, 현재 스텝을 "이전 스텝"으로 백업합니다.
@@ -209,7 +248,9 @@ export function useShotGridData() {
 
     /**
      * SearchBar로부터 받은 필터를 적용하고 버전 목록을 새로고침합니다.
+     * `activeFilters`를 업데이트하고 `loadVersions`를 호출합니다.
      * @param {Array} newFilters - SearchBar에서 전달된 필터 객체 배열
+     * @returns {void}
      */
     const applyFilters = (newFilters) => {
         activeFilters.value = newFilters;
@@ -217,6 +258,12 @@ export function useShotGridData() {
         loadVersions(true); // 새 필터 적용 시에도 캐시 사용
     };
 
+    /**
+     * 버전 목록의 정렬 기준 및 순서를 설정합니다.
+     * `sortBy`와 `sortOrder`를 업데이트하고 `loadVersions`를 호출합니다.
+     * @param {string} newSortBy - 새로운 정렬 기준 (예: 'created_at', 'version_name')
+     * @returns {void}
+     */
     const setSort = (newSortBy) => {
         if (sortBy.value === newSortBy) {
             // 같은 버튼을 누르면 정렬 순서만 변경
@@ -229,15 +276,55 @@ export function useShotGridData() {
         currentPage.value = 1; // 정렬 기준이 바뀌면 항상 1페이지로 이동
         loadVersions(true); // 정렬 시에는 캐시 사용
     };
-    
+
+
+
+    //============================== 유틸리티 함수 (Utility Functions) ==================================
+
+    // 이 그룹의 함수들은 주요 데이터 로딩이나 조작 외의 보조적인 역할을 수행합니다.
+
     /**
      * 현재 진행 중인 버전 로딩 작업을 취소합니다. 
+     * `cancelTokenSource`를 사용하여 진행 중인 Axios 요청을 취소합니다.
+     * @returns {void}
      */
     const cancelLoadVersions = () => {
         if (cancelTokenSource) {
             cancelTokenSource.cancel(`Operation canceled by the user.`)
         }
     }
+
+
+
+    //================================ 상태 초기화 함수 (State Clearing Function) =================================
+
+    // 이 함수는 useShotGridData 훅이 관리하는 모든 반응형 상태 변수들을 초기 값으로 되돌립니다.
+    // 주로 로그아웃과 같이 애플리케이션의 상태를 완전히 리셋해야 할 때 호출됩니다.
+
+    /**
+     * 모든 ShotGrid 관련 상태를 초기화합니다.
+     * 로그아웃 시 호출됩니다.
+     * @returns {void}
+     */
+    const clearShotGridDataState = () => {
+        projects.value = [];
+        pipelineSteps.value = [];
+        displayVersions.value = [];
+        selectedProject.value = null;
+        presentEntityTypes.value = [];
+        selectedPipelineStep.value = null;
+        isVersionsLoading.value = false;
+        currentPage.value = 1;
+        totalPages.value = 1;
+        sortBy.value = 'created_at';
+        sortOrder.value = 'desc';
+        activeFilters.value = [];
+        suggestionSources.value = {};
+    };
+
+
+
+    //=================================== 내보내기 인터페이스 (Exported Interface) ===================================
 
     return {
         projects: readonly(projects),
@@ -261,5 +348,6 @@ export function useShotGridData() {
         setSort,
         applyFilters,
         cancelLoadVersions, // 취소 함수 내보내기
+        clearShotGridDataState,
     };
 }
