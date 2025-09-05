@@ -99,7 +99,7 @@ export function useAuth() {
     const logout = () => {
         clearAllAuthData();
         // 로그아웃 후, 페이지를 새로고침하여 모든 상태를 완벽하게 초기화합니다.
-        window.location.reload();
+        // window.location.reload();
     };
 
     return {

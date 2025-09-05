@@ -68,11 +68,18 @@
               <v-switch
                 v-model="isDarkTheme"
                 hide-details
-                inset
                 prepend-icon="mdi-white-balance-sunny"
                 append-icon="mdi-weather-night"
                 @update:modelValue="toggleTheme"
+                @click.stop
               ></v-switch>
+            </v-list-item-title>
+          </v-list-item>
+          <v-divider></v-divider>
+          <v-list-item @click="emit('logout')">
+            <v-list-item-title class="d-flex align-center">
+              <v-icon class="mr-2">mdi-logout</v-icon>
+              Logout
             </v-list-item-title>
           </v-list-item>
         </v-list>
@@ -132,4 +139,9 @@ function handleFiltersComplete(filters) {
 
 <style scoped>
 /* Styles for AppHeader */
+/* 테마변경 아이콘 사이즈 줄이기 */
+:deep(.v-list-item .v-switch .v-icon) {
+  font-size: 20px !important;
+}
+
 </style>
