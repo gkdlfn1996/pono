@@ -50,8 +50,8 @@ class ConnectionManager:
         if version_id not in self.active_connections:
             self.active_connections[version_id] = []
         self.active_connections[version_id].append(websocket)
-        print(f"[WebSocket] CONNECTED: version_id={version_id}, client={websocket.client_address}")
-        print(f"[WebSocket] Active connections for {version_id}: {len(self.active_connections[version_id])}")
+        # print(f"[WebSocket] CONNECTED: version_id={version_id}, client={websocket.client}")
+        # print(f"[WebSocket] Active connections for {version_id}: {len(self.active_connections[version_id])}")
 
     def disconnect(self, websocket: WebSocket, version_id: int):
         """
@@ -59,11 +59,11 @@ class ConnectionManager:
         """
         if version_id in self.active_connections:
             self.active_connections[version_id].remove(websocket)
-            print(f"[WebSocket] DISCONNECTED: version_id={version_id}, client={websocket.client_address}")
+            # print(f"[WebSocket] DISCONNECTED: version_id={version_id}, client={websocket.client}")
 
             if not self.active_connections[version_id]:
                 del self.active_connections[version_id]
-                print(f"[WebSocket] No more active connections for version_id={version_id}. Removing key.")
+                # print(f"[WebSocket] No more active connections for version_id={version_id}. Removing key.")
 
 
     async def broadcast(self, message: str, version_id: int):
@@ -93,13 +93,13 @@ async def websocket_endpoint(websocket: WebSocket, version_id: int):
     """
     # await manager.connect(websocket, version_id)
 
-    print(f"[WebSocket] Endpoint: Received connection request for version_id={version_id}")
+    # print(f"[WebSocket] Endpoint: Received connection request for version_id={version_id}")
     await websocket.accept() # Try accepting directly first
-    print(f"[WebSocket] Endpoint: Connection accepted for version_id={version_id}")
+    # print(f"[WebSocket] Endpoint: Connection accepted for version_id={version_id}")
     manager.active_connections.setdefault(version_id, []).append(websocket) # Manually add to manager
 
     try:
-        print(f"[WebSocket] Endpoint: Waiting for messages on version_id={version_id}")
+        # print(f"[WebSocket] Endpoint: Waiting for messages on version_id={version_id}")
         while True:
             # 클라이언트로부터 받은 메시지를 다른 클라이언트에게 브로드캐스트합니다.
             # 메시지를 보낸 클라이언트는 제외합니다

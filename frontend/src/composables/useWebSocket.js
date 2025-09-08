@@ -18,13 +18,15 @@ export function useWebSocket() {
      * @param {string} url - 연결할 웹소켓 서버의 주소
      * @param {function} callback - 메시지 수신 시 실행할 콜백 함수
      */
-    const connect = (key, url, callback) => {
-        if (connections.value[key] && connections.value[key].isConnected) {
-            console.log(`[WS Manager] Connection for key '${key}' is already active.`);
+    const connect = (key, url, callback) => new Promise((resolve, reject) => {
+        if (connections.value[key]?.isConnected) {
+            // console.log(`[WS Manager] Connection for key '${key}' is already active.`);
+            resolve(); // 이미 연결되어 있으면 성공으로 간주
             return;
         }
 
         const socket = new WebSocket(url);
+
         connections.value[key] = {
             socket: socket,
             isConnected: false,
@@ -32,21 +34,19 @@ export function useWebSocket() {
         };
 
         socket.onopen = () => {
-            if (connections.value[key]) {
-                connections.value[key].isConnected = true;
-                console.log(`[WS Manager] Connected with key '${key}'.`);
-            }
+            const conn = connections.value[key];
+            if (conn) conn.isConnected = true;
+            // console.log(`[WS Manager] Connected with key '${key}'.`);
+            resolve(); // 연결 성공
         };
 
         socket.onmessage = (event) => {
             const conn = connections.value[key];
-            if (conn && conn.callback) {
-                conn.callback(event.data);
-            }
+            if (conn?.callback) conn.callback(event.data);
         };
 
         socket.onclose = () => {
-            console.log(`[WS Manager] Disconnected from key '${key}'.`);
+            // console.log(`[WS Manager] Disconnected from key '${key}'.`);
             if (connections.value[key]) {
                 delete connections.value[key];
             }
@@ -54,11 +54,10 @@ export function useWebSocket() {
 
         socket.onerror = (error) => {
             console.error(`[WS Manager] Error on key '${key}':`, error);
-            if (connections.value[key]) {
-                delete connections.value[key];
-            }
+            delete connections.value[key];
+            reject(error); // 연결 실패
         };
-    };
+    });
 
     /**
      * 특정 키의 웹소켓 연결을 해제합니다.
@@ -76,7 +75,7 @@ export function useWebSocket() {
      * 모든 활성 웹소켓 연결을 해제합니다. (예: 로그아웃 시)
      */
     const disconnectAll = () => {
-        console.log("[WS Manager] Disconnecting all connections.");
+        // console.log("[WS Manager] Disconnecting all connections.");
         for (const key in connections.value) {
             disconnect(key);
         }
