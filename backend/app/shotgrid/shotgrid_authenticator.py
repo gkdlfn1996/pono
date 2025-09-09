@@ -2,6 +2,8 @@
 import os
 import pprint
 import shotgun_api3
+from fastapi import Request
+from fastapi.responses import JSONResponse
 
 
 SG_SERVER_URL = "https://idea.shotgrid.autodesk.com"
@@ -86,6 +88,17 @@ def is_session_token_valid(server_url: str, session_token: str) -> bool:
     response = requests.post(url, headers=headers, data=data)
     # HTTP 200 OK 일 때만 유효한 세션 토큰으로 판단
     return response.status_code == 200
+
+async def authentication_fault_handler(request: Request, exc):
+    """
+    ShotGrid의 AuthenticationFault를 처리하는 핸들러 함수.
+    서버가 멈추는 대신 401 Unauthorized 응답을 반환합니다.
+    """
+    print(f"AuthenticationFault caught by handler: {exc}")
+    return JSONResponse(
+        status_code=401,
+        content={"detail": "Authentication failed. Invalid or expired session token."},
+    )
 
 if __name__ == "__main__":
     SERVER_URL = "https://idea.shotgrid.autodesk.com"

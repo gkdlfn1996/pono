@@ -8,22 +8,11 @@
 
 
 import { ref, readonly } from 'vue';
-import axios from 'axios';
+import apiClient from '@/plugins/apiClient'; //전역 API 클라이언트 인터셉터 사용
 import _ from 'lodash'; // 디바운스 기능을 위해 lodash 임포트
 import { useAuth } from './useAuth';
 import { useShotGridData } from './useShotGridData'; // useShotGridData 임포트
 
-// --- API 클라이언트 설정 ---
-const hostname = window.location.hostname;
-const baseURL = `http://${hostname}:8001`;
-const apiClient = axios.create({ baseURL });
-
-// 모든 API 요청에 인증 토큰을 자동으로 추가하는 인터셉터
-apiClient.interceptors.request.use(config => {
-    const token = sessionStorage.getItem('accessToken');
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-    return config;
-});
 
 //=================================== 반응형 상태 변수들 (Reactive State Variables) =======================================
 

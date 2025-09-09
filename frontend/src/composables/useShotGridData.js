@@ -1,4 +1,5 @@
 import { ref, readonly } from 'vue';
+import apiClient from '@/plugins/apiClient'; //전역 API 클라이언트 인터셉터 사용
 import axios from 'axios';
 
 //================================ 반응형 상태 변수들 (Reactive State Variables) =================================
@@ -25,29 +26,6 @@ const versionsPerPage = 50; // 페이지 당 버전 수
 
 
 
-//=================================== API 클라이언트 설정 (API Client Setup) =======================================
-
-// 이 섹션에서는 백엔드 API와 통신하기 위한 Axios 클라이언트 인스턴스를 설정합니다.
-// 모든 API 요청에 인증 토큰을 자동으로 포함하도록 인터셉터를 구성합니다.
-
-
-// 동적 API 주소 설정 (useAuth.js와 동일하게 설정)
-const hostname = window.location.hostname;
-const baseURL = `http://${hostname}:8001`;
-
-// API 클라이언트 인스턴스 생성
-const apiClient = axios.create({
-    baseURL: baseURL,
-});
-
-// Axios 요청 인터셉터: 모든 요청에 accessToken을 포함
-apiClient.interceptors.request.use(config => {
-    const token = sessionStorage.getItem('accessToken');
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-});
 
 
 

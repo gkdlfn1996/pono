@@ -1,5 +1,5 @@
 import { ref, readonly } from 'vue';
-import axios from 'axios';
+import apiClient from '@/plugins/apiClient'; //전역 API 클라이언트 인터셉터 사용
 
 
 // --- 상태 관리 ---
@@ -7,22 +7,6 @@ const isAuthenticated = ref(false);
 const user = ref(null);
 const loginError = ref(null);
 
-// --- 동적 API 주소 설정 ---
-const hostname = window.location.hostname;
-const baseURL = `http://${hostname}:8001`;
-
-const apiClient = axios.create({
-    baseURL: baseURL,
-});
-
-// --- Axios 요청 인터셉터 ---
-apiClient.interceptors.request.use(config => {
-    const token = sessionStorage.getItem('accessToken');
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-});
 
 // --- 핵심 인증 함수들 ---
 
