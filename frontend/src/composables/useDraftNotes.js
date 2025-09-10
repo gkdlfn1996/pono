@@ -108,7 +108,7 @@ export function useDraftNotes() {
             version_meta: {
                 id: version.id,
                 name: version.code,
-                step_name: selectedPipelineStep.value.name, 
+                step_name: version['sg_task.Task.step']?.name, 
                 project_id: selectedProject.value.id
             }
         };
