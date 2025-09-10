@@ -2,7 +2,8 @@
   <!-- 2단: Draft Notes 영역 -->
   <div class="d-flex flex-column h-100">
     <!-- My Draft Note -->
-    <div class="d-flex flex-column" style="flex-basis: 50%; padding-bottom: 8px;">
+    <!-- <div class="d-flex flex-column" style="flex-basis: 50%; padding-bottom: 8px;"> -->
+    <div style="height: 50%; display: flex; flex-direction: column; padding-bottom: 8px;">
       <h4 class="text-subtitle-1 font-weight-bold mb-2">My Draft Note</h4>
       <v-textarea
         label="여기에 노트를 작성하세요"
@@ -19,7 +20,8 @@
     </div>
 
     <!-- Other's Draft Notes -->
-    <div class="d-flex flex-column" style="flex-basis: 50%; padding-top: 8px;">
+    <!-- <div class="d-flex flex-column" style="flex-basis: 50%; padding-top: 8px;"> -->
+    <div style="height: 50%; display: flex; flex-direction: column; padding-top: 8px;">
       <div class="d-flex align-center mb-2">
         <h4 class="text-subtitle-1 font-weight-bold">Others Draft Notes</h4>
       </div>
@@ -38,6 +40,7 @@
             :data-note-id="note.id"
             class="note-item"
             :class="{ 'new-note-highlight': props.newNoteIds.has(note.id) }"
+            @click="onNoteClick(note)"
           >
             <div class="d-flex justify-space-between align-center px-2 pb-1">
               <span class="text-subtitle-2 text-grey-darken-1">{{ note.owner.username }} ({{ note.owner.login }})</span>
@@ -102,6 +105,14 @@ const onBlur = () => {
   props.saveNote(props.version, localContent.value);
 };
 
+// 사용자가 노트를 직접 클릭했을 때 하이라이트를 즉시 제거하는 함수
+const onNoteClick = (note) => {
+  if (props.newNoteIds.has(note.id)) {
+    props.clearNewNoteFlag(note.id);
+  }
+}
+
+
 const handleInteraction = () => {
   // 현재 화면에 보이면서, 하이라이트 상태이고, 아직 타이머가 설정되지 않은 노트들을 찾습니다.
   const notesToTime = (props.otherNotes || []).filter(
@@ -136,7 +147,7 @@ const setupObserver = () => {
         visibleNoteIds.value.delete(noteId);
       }
     });
-  }, { threshold: 0.8 });
+  }, { threshold: 0.5 });
 
   // 현재 렌더링된 모든 노트 DOM 요소를 관찰 대상으로 추가합니다.
   Object.values(noteRefs.value).forEach(el => {
