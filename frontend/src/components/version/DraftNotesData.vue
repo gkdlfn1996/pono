@@ -40,7 +40,7 @@
             :class="{ 'new-note-highlight': props.newNoteIds.has(note.id) }"
           >
             <div class="d-flex justify-space-between align-center px-2 pb-1">
-              <span class="text-subtitle-2 text-grey-darken-1">{{ note.owner.username }}</span>
+              <span class="text-subtitle-2 text-grey-darken-1">{{ note.owner.username }} ({{ note.owner.login }})</span>
               <span class="text-caption text-right text-grey-darken-1">{{ formatDateTime(note.updated_at) }}</span>
             </div>
             <v-card-text class="note-content text-body-2 pa-2">

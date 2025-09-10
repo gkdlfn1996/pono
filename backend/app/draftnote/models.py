@@ -31,7 +31,8 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    username = Column(String, unique=True, index=True) # ShotGrid 사용자 이름
+    username = Column(String, index=True) # ShotGrid 사용자 이름
+    login = Column(String, unique=True, index=True) # ShotGrid 사용자 로그인 ID (사번)
 
     notes = relationship("Note", back_populates="owner")
 
@@ -43,9 +44,9 @@ class Note(Base):
     __tablename__ = "notes"
 
     id = Column(Integer, primary_key=True, index=True)
+    content = Column(Text)
     version_id = Column(Integer, ForeignKey("versions.id"), index=True) # ShotGrid 버전 ID (예: sg_version_id)
     owner_id = Column(Integer, ForeignKey("users.id"))
-    content = Column(Text)
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
 

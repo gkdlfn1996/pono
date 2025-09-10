@@ -30,10 +30,14 @@ async def login_for_session_token(form_data: OAuth2PasswordRequestForm = Depends
         sg_user_info = user_sg_auth.sg.find_one("HumanUser", [["login", "is", form_data.username]], ["id", "name", "login"])
 
         # 로컬 DB에 사용자 정보 저장 또는 조회
-        local_user = db.query(models.User).filter(models.User.username == sg_user_info["login"]).first()
+        local_user = db.query(models.User).filter(models.User.login == sg_user_info["login"]).first()
         if not local_user:
             # 사용자가 없으면 새로 생성
-            local_user = models.User(id=sg_user_info["id"], username=sg_user_info["login"]) # ShotGrid ID를 local_user.id로 사용
+            local_user = models.User(
+                id=sg_user_info["id"],          # ShotGrid User ID
+                login=sg_user_info["login"],     # ShotGrid 로그인 ID(사번)
+                username=sg_user_info["name"]   # SHotGrid 사용자 이름
+                )
             db.add(local_user)
             db.commit()
             db.refresh(local_user)

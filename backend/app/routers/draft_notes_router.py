@@ -140,7 +140,8 @@ class UserInfo(BaseModel):
     노트 소유자의 기본 정보를 나타내는 Pydantic 모델입니다.
     """
     id: int
-    username: str
+    username: str   # 사용자 이름
+    login: str      # 사용자 로그인 ID(사번)
     class Config:
         from_attributes = True
 
