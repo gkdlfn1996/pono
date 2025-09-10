@@ -6,8 +6,9 @@
       <h4 class="text-subtitle-1 font-weight-bold mb-2">My Draft Note</h4>
       <v-textarea
         label="여기에 노트를 작성하세요"
-        :model-value="props.myNote"
+        :model-value="localContent"
         @update:model-value="onInput"
+        @focus="isFocused = true"
         @blur="onBlur"
         variant="outlined"
         :class="{ 'saved-note': props.isSaved }"
@@ -71,14 +72,22 @@ const props = defineProps({
 });
 
 const localContent = ref(props.myNote || '');
+const isFocused = ref(false); // 사용자가 입력창에 포커스 중인지 추적하는 상태
 const noteRefs = ref({});
 const visibleNoteIds = ref(new Set()); // 현재 화면에 보이는 노트 ID를 추적
 const timedNoteIds = new Set(); // 중복 타이머 생성을 방지하기 위한 Set
 let observer = null;
 
-// Prop이 외부에서 변경될 때, 내부 상태도 업데이트합니다.
+// Prop(myNote)이 외부(웹소켓 등)에서 변경될 때, 내부 상태(localContent)도 업데이트합니다.
 watch(() => props.myNote, (newVal) => {
-  localContent.value = newVal || '';
+  // 사용자가 현재 입력 중(포커스 상태)이라면, 외부 데이터로 덮어쓰지 않고 무시합니다.
+  if (isFocused.value) {
+    return;
+  }
+  // 포커스 상태가 아닐 때만, 외부 데이터와 내부 데이터가 다를 경우 동기화합니다.
+  if (newVal !== localContent.value) {
+    localContent.value = newVal || '';
+  }
 });
 
 // 사용자가 입력할 때마다 내부 상태를 업데이트하고, 디바운스 저장 함수를 호출합니다.
@@ -87,8 +96,9 @@ const onInput = (value) => {
   props.debouncedSave(props.version, value);
 };
 
-// 포커스를 잃었을 때 즉시 저장 함수를 호출합니다.
+// 포커스를 잃었을 때, 포커스 상태를 false로 바꾸고 즉시 저장 함수를 호출합니다.
 const onBlur = () => {
+  isFocused.value = false;
   props.saveNote(props.version, localContent.value);
 };
 
