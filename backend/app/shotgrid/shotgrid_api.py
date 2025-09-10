@@ -99,7 +99,7 @@ def get_lightweight_versions(sg, project_id, pipeline_step_name):
         "id", "code", "created_at", "tags", "playlists", 
         "project",
         "sg_status_list", "user", "sg_task", "entity",
-        # "sg_task.Task.step",
+        "sg_task.Task.step",
         "sg_task.Task.due_date",
         "sg_task.Task.sg_status_list",
         "entity.Shot.sg_status_list",
