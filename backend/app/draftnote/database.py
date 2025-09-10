@@ -80,4 +80,7 @@ def get_notes_by_step(db: Session, project_id: int, step_name: str):
     if step_name != 'All':
         query = query.filter(models.Version.step_name == step_name)
 
+    # updated_at 필드를 기준으로 내림차순(최신순)으로 정렬합니다.
+    query = query.order_by(models.Note.updated_at.desc())
+
     return query.all()

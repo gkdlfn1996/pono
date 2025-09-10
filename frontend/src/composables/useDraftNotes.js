@@ -165,6 +165,9 @@ export function useDraftNotes() {
                     console.log(`[useDraftNotes] handleIncomingNote: Other user's note for version ${verId} added (new).`);
                     otherNotes.value[verId].push(note);
                 }
+                // 실시간으로 노트를 받으면, 항상 updated_at 기준으로 다시 정렬하여 최신순을 유지합니다.
+                otherNotes.value[verId].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+
                 // 새 노트 ID를 Set에 추가하여 하이라이트 준비
                 newNoteIds.value.add(note.id);
                 console.log("[useDraftNotes] handleIncomingNote: newNoteIds after update:", newNoteIds.value);
