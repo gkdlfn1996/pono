@@ -13,7 +13,9 @@ notes_router 모듈
 - 특정 버전의 모든 노트 조회 (GET /api/notes/{version_id})
 """
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, HTTPException, status
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import Depends, HTTPException, status, Response
+
 from typing import List
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -161,7 +163,7 @@ class NoteInfo(BaseModel):
 
 # -------------------------------------- Dratf Notes API Endpoints ---------------------------------------------
 
-@router.post("/", response_model=NoteInfo)
+@router.post("/", response_model=NoteInfo, status_code=status.HTTP_200_OK)
 async def create_or_update_note(
     note_data: NoteCreate,
     db: Session = Depends(get_db)
@@ -183,7 +185,7 @@ async def create_or_update_note(
                 # owner.id로 노트를 식별해야 하므로, owner 정보를 포함하여 broadcast
                 note_info_for_broadcast = NoteInfo(id=0, version_id=note_data.version_id, content="", updated_at=datetime.now(), owner=UserInfo(id=note_data.owner_id, username="", login=""))
                 await manager.broadcast(note_info_for_broadcast.model_dump_json(), note_data.version_id)
-            return {"detail": "Empty note processed."}
+            return Response(status_code=status.HTTP_204_NO_CONTENT)
         else:
             # 내용이 있으면: 기존의 저장/업데이트 로직 실행
             upsert_versions(db, [note_data.version_meta.model_dump()])
