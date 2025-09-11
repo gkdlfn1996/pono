@@ -174,7 +174,7 @@ watch(selectedPipelineStep, (newStep) => {
     if (newStep && selectedProject.value) {
         Promise.all([
             loadVersions(false), // 캐시 미사용하고 새로고침
-            fetchNotesByStep(selectedProject.value.id, newStep.name)
+            fetchNotesByStep(selectedProject.value.id, newStep)
         ]);
     }
 });

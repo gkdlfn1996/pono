@@ -25,7 +25,7 @@
       <div v-if="selectedProject && selectedPipelineStep" class="ml-4 text-subtitle-1 text-grey">
         <span>{{ selectedProject.name }}</span>
         <v-icon size="small" class="mx-1">mdi-chevron-right</v-icon>
-        <span>{{ selectedPipelineStep.name }}</span>
+        <span>{{ selectedPipelineStep }}</span>
       </div>
       <v-spacer></v-spacer>
       <!-- 정렬 컨트롤 UI -->
