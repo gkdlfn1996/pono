@@ -20,7 +20,8 @@ from pydantic import BaseModel
 from datetime import datetime
 
 # 사용자님 스타일대로 get_db와 crud 함수들을 직접 임포트
-from ..draftnote.database import get_db, upsert_versions, upsert_note, get_notes_by_step
+from ..draftnote.database import get_db, upsert_versions, upsert_note
+from ..draftnote.database import get_notes_by_step, delete_note_if_exists
 from ..draftnote import models
 
 router = APIRouter(
@@ -171,22 +172,35 @@ async def create_or_update_note(
     업데이트된 노트 정보를 브로드캐스트합니다.
     """
     try:
-        # 1. 버전 정보 UPSERT (Pydantic V2 호환)
-        upsert_versions(db, [note_data.version_meta.model_dump()])
-        
-        # 2. 노트 정보 UPSERT
-        note_to_save = {"version_id": note_data.version_id, "content": note_data.content}
-        saved_note = upsert_note(db, note_to_save, note_data.owner_id)
-        
-        db.commit()
-        db.refresh(saved_note)
+        # 1. 노트 내용이 비어있는지 확인 (공백만 있는 경우 포함)
+        if not note_data.content.strip():
+            # 내용이 비었으면: 노트 삭제
+            was_deleted = delete_note_if_exists(db, note_data.version_id, note_data.owner_id)
+            if was_deleted:
+                db.commit()
+                # 삭제 성공 시, 다른 사용자에게 빈 내용의 노트를 보내 삭제되었음을 알림
+                # 프론트엔드는 content가 비어있는 NoteInfo를 받으면 목록에서 해당 노트를 제거함
+                # owner.id로 노트를 식별해야 하므로, owner 정보를 포함하여 broadcast
+                note_info_for_broadcast = NoteInfo(id=0, version_id=note_data.version_id, content="", updated_at=datetime.now(), owner=UserInfo(id=note_data.owner_id, username="", login=""))
+                await manager.broadcast(note_info_for_broadcast.model_dump_json(), note_data.version_id)
+            return {"detail": "Empty note processed."}
+        else:
+            # 내용이 있으면: 기존의 저장/업데이트 로직 실행
+            upsert_versions(db, [note_data.version_meta.model_dump()])
+            
+            # 2. 노트 정보 UPSERT
+            note_to_save = {"version_id": note_data.version_id, "content": note_data.content}
+            saved_note = upsert_note(db, note_to_save, note_data.owner_id)
+            
+            db.commit()
+            db.refresh(saved_note)
 
-        # 3. 웹소켓 브로드캐스트 (Pydantic V2 호환 및 올바른 version_id 사용)
-        note_info_for_broadcast = NoteInfo.model_validate(saved_note)
-        await manager.broadcast(note_info_for_broadcast.model_dump_json(), saved_note.version_id)
-        print(f"[WebSocket] create_or_update_note: Broadcast initiated for version_id={saved_note.version_id}.")
+            # 3. 웹소켓 브로드캐스트 (Pydantic V2 호환 및 올바른 version_id 사용)
+            note_info_for_broadcast = NoteInfo.model_validate(saved_note)
+            await manager.broadcast(note_info_for_broadcast.model_dump_json(), saved_note.version_id)
+            print(f"[WebSocket] create_or_update_note: Broadcast initiated for version_id={saved_note.version_id}.")
 
-        return note_info_for_broadcast
+            return note_info_for_broadcast
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))

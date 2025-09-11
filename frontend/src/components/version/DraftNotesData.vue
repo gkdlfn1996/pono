@@ -112,7 +112,6 @@ const onNoteClick = (note) => {
   }
 }
 
-
 const handleInteraction = () => {
   // 현재 화면에 보이면서, 하이라이트 상태이고, 아직 타이머가 설정되지 않은 노트들을 찾습니다.
   const notesToTime = (props.otherNotes || []).filter(

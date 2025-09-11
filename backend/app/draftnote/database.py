@@ -84,3 +84,17 @@ def get_notes_by_step(db: Session, project_id: int, step_name: str):
     query = query.order_by(models.Note.updated_at.desc())
 
     return query.all()
+
+def delete_note_if_exists(db: Session, version_id: int, owner_id: int):
+    """
+    주어진 version_id와 owner_id에 해당하는 노트가 있으면 삭제합니다.
+    """
+    note_to_delete = db.query(models.Note).filter(
+        models.Note.version_id == version_id,
+        models.Note.owner_id == owner_id
+    ).first()
+
+    if note_to_delete:
+        db.delete(note_to_delete)
+        return True # 삭제 성공
+    return False # 삭제할 노트 없음

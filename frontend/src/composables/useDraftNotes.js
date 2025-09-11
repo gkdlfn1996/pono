@@ -149,28 +149,42 @@ export function useDraftNotes() {
             const myId = user.value?.id;
 
             if (note.owner.id === myId) {
-                // 내가 다른 브라우저에서 수정한 내용이 실시간으로 올 경우
-                console.log(`[useDraftNotes] handleIncomingNote: My note for version ${verId} updated.`);
-                myNotes.value[verId] = note.content;
-            } 
-            else {
-                if (!otherNotes.value[verId]) otherNotes.value[verId] = [];
-                const noteIndex = otherNotes.value[verId].findIndex(n => n.id === note.id);
-                if (noteIndex > -1) {
-                    // 기존 노트 업데이트
-                    console.log(`[useDraftNotes] handleIncomingNote: Other user's note for version ${verId} updated (existing).`);
-                    otherNotes.value[verId][noteIndex] = note;
+                // 내가 다른 브라우저에서 수정한 내용이 실시간으로 올 경우.
+                // 내가 빈 노트를 저장하여 삭제한 경우, 내 노트 목록에서도 제거합니다.
+                if (note.content === "") {
+                    delete myNotes.value[verId];
                 } else {
-                    // 새 노트 추가
-                    console.log(`[useDraftNotes] handleIncomingNote: Other user's note for version ${verId} added (new).`);
-                    otherNotes.value[verId].push(note);
+                    myNotes.value[verId] = note.content;
                 }
-                // 실시간으로 노트를 받으면, 항상 updated_at 기준으로 다시 정렬하여 최신순을 유지합니다.
-                otherNotes.value[verId].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+            } 
+            else { // 다른 사람의 노트일 경우
+                if (!otherNotes.value[verId]) otherNotes.value[verId] = [];
 
-                // 새 노트 ID를 Set에 추가하여 하이라이트 준비
-                newNoteIds.value.add(note.id);
-                console.log("[useDraftNotes] handleIncomingNote: newNoteIds after update:", newNoteIds.value);
+                const noteIndex = otherNotes.value[verId].findIndex(n => n.owner.id === note.owner.id);
+
+                // 내용이 없는 노트는 '삭제' 신호로 간주하고 목록에서 제거합니다.
+                if (note.content === "" && noteIndex > -1) {
+                    otherNotes.value[verId].splice(noteIndex, 1);
+                    console.log(`[useDraftNotes] handleIncomingNote: Other user's note for version ${verId} DELETED.`);
+                } 
+                // 내용이 있는 노트만 추가/업데이트/정렬을 수행합니다.
+                else if (note.content) {
+                    if (noteIndex > -1) {
+                        // 기존 노트 업데이트
+                        console.log(`[useDraftNotes] handleIncomingNote: Other user\'s note for version ${verId} updated (existing).`);
+                        otherNotes.value[verId][noteIndex] = note;
+                    } else {
+                        // 새 노트 추가
+                        console.log(`[useDraftNotes] handleIncomingNote: Other user\'s note for version ${verId} added (new).`);
+                        otherNotes.value[verId].push(note);
+                    }
+                    // 실시간으로 노트를 받으면, 항상 updated_at 기준으로 다시 정렬하여 최신순을 유지합니다.
+                    otherNotes.value[verId].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+                    
+                    // 새 노트 ID를 Set에 추가하여 하이라이트 준비
+                    newNoteIds.value.add(note.id);
+                    console.log("[useDraftNotes] handleIncomingNote: newNoteIds after update:", newNoteIds.value);
+                }
             }
         } catch (error) {
             console.error("Error processing incoming note:", error);
