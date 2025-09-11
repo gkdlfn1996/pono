@@ -57,28 +57,42 @@ def get_projects(sg):
     print(f"Successfully fetched {len(result)} projects.")
     return result
 
+@timing
 def get_pipeline_steps_for_project(sg, project_id):
     """
     특정 프로젝트에 연결된 Pipeline Step 목록을 조회합니다.
     """
-    # 1. 프로젝트에 속한 모든 Task를 찾고, 각 Task에 연결된 Step 정보를 요청합니다.
-    tasks = sg.find(
-        "Task",
-        [["project", "is", {"type": "Project", "id": project_id}]],
-        ["step"]  # 'step' 필드는 Step 엔티티과의 연결 정보를 담고 있습니다.
+    project = {"type": "Project", "id": project_id}
+
+    filters = []
+    filters.append(["project", "is", project])
+    # Task에 Step이 지정된 것만
+    filters.append(["step", "is_not", None])
+
+    summary_fields = []
+    summary_fields.append({"field": "id", "type": "count"})
+
+    grouping = []
+    grouping.append({"field": "step", "type": "exact", "direction": "asc"})
+
+    result = sg.summarize(
+        entity_type="Task",
+        filters=filters,
+        summary_fields=summary_fields,
+        grouping=grouping
     )
 
-    if not tasks:
-        return []
+    # 결과 정리: (Step name만 중복 제거 후 정렬)
+    used_steps = set()
+    for g in result.get("groups", []):
+        step_name = g.get("group_name")
+        step_value = g.get("group_value")
+        count = g.get("summaries", {}).get("id", 0)
+        if step_value and count:
+            used_steps.add(step_name)
 
-    # 2. 가져온 Task들에서 Step 이름만 추출하여 중복을 제거합니다.
-    seen_steps = set()
-    for task in tasks:
-        if task.get('step') and task['step'].get('name'):
-            seen_steps.add(task['step']['name'])
-
-    # 3. 정렬된 딕셔너리 리스트 형태로 가공하여 반환합니다.
-    return sorted([{'name': name} for name in seen_steps], key=lambda x: x['name'].lower())
+    used_steps = sorted(used_steps)
+    return used_steps
 
 @timing
 def get_lightweight_versions(sg, project_id, pipeline_step_name):
@@ -205,13 +219,33 @@ if __name__ == "__main__":
     from shotgrid_authenticator import UserSG, SessionTokenSG
     from pprint import pprint
     
-    session_token = '985aad9919e375b969828a60ebe8f4d3'
-    project_id = 815
+    session_token = '9ab7f35ccbdbaadbf5ddec0e834ab4c7'
+    project_id = 848
     pipeline_step_name = 'All'
     
     token_sg = SessionTokenSG(session_token).sg
  
-    get_lightweight_versions(token_sg, project_id, pipeline_step_name)
+    @timing
+    def test():
+        p = {"type": "Project", "id": project_id}
+
+        schema = token_sg.schema_field_read("Shot", project_entity=p)
+
+        steps = []
+        for key, meta in schema.items():
+            if key.startswith("step_"):
+                name = meta["name"]["value"]
+                visible = meta["visible"]["value"]
+                if not visible or name == 'ALL TASKS':
+                    continue
+                steps.append(name)
+                steps.sort()
+        return steps
+
+    steps = get_pipeline_steps_for_project(token_sg, 815)
+
+    print(steps)
+
  
     # # sg는 shotgun_api3.Shotgun 인스턴스
     # task_schema = token_sg.schema_field_read('Task')

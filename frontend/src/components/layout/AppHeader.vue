@@ -28,7 +28,7 @@
           :items="pipelineSteps"
           item-title="name"
           item-value="name"
-          :model-value="selectedPipelineStep?.name"
+          :model-value="selectedPipelineStep"
           @update:model-value="selectPipelineStep"
           :disabled="isVersionsLoading"
           variant="outlined"
@@ -37,8 +37,8 @@
           style="max-width: 200px;">
           <template v-slot:item="{ props, item }">
             <div>
-              <v-list-item v-bind="props" :title="item.raw.name"></v-list-item>
-              <v-divider v-if="item.raw.name === 'All'"></v-divider>
+              <v-list-item v-bind="props" :title="item.raw"></v-list-item>
+              <v-divider v-if="item.raw === 'All'"></v-divider>
             </div>
           </template>
         </v-autocomplete>

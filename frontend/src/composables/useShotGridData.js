@@ -61,7 +61,7 @@ export function useShotGridData() {
         try{
             const response = await apiClient.get(`/api/data/projects/${projectId}/pipeline-steps`);
             // 백엔드에서 받은 스텝 목록 앞에 'All'옵션을 추가합니다.
-            pipelineSteps.value = [{ name: 'All'}, ...response.data];
+            pipelineSteps.value = ['All', ...response.data];
         } catch (error) {
             console.error('Failed to load pipeline steps for project ${projectId}:', error);
             // TODO: 사용자에게 에러 메시지를 표시하는 로직 추가
@@ -83,7 +83,7 @@ export function useShotGridData() {
             const response = await apiClient.post('/api/data/heavy-version-data', versionIds, {
                 params: {
                     project_id: selectedProject.value.id,
-                    pipeline_step: selectedPipelineStep.value.name,
+                    pipeline_step: selectedPipelineStep.value,
                 }
             });
             const heavyData = response.data;
@@ -132,7 +132,7 @@ export function useShotGridData() {
             const response = await apiClient.get('/api/data/versions', {
                 params: {
                     project_id: selectedProject.value.id,
-                    pipeline_step: selectedPipelineStep.value.name,
+                    pipeline_step: selectedPipelineStep.value,
                     page: currentPage.value,
                     page_size: versionsPerPage,
                     sort_by: sortBy.value,
@@ -212,8 +212,8 @@ export function useShotGridData() {
         console.log('선택된 stepName:', stepName);
         // 'All'을 선택했거나 실제 스텝을 선택한 경우 모두 처리합니다.
         const step = (stepName === 'All')
-            ? { name: 'All' }
-            : pipelineSteps.value.find(s => s.name === stepName);
+            ? 'All'
+            : pipelineSteps.value.find(s => s === stepName);
         if (step) {
             selectedPipelineStep.value = step;
             // 스텝이 바뀌면 정렬 상태를 기본값으로 초기화하고 1페이지부터 로드
