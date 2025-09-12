@@ -131,7 +131,6 @@ const {
   clearDraftNotesState,
 } = useDraftNotes();
 
-// '커넥션 매니저'로 업그레이드된 useWebSocket 사용
 const ws = useWebSocket();
 
 // App 컴포넌트가 마운트될 때 인증 상태를 확인합니다.

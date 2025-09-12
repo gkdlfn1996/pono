@@ -75,6 +75,7 @@ def get_pipeline_steps_for_project(sg, project_id):
     grouping = []
     grouping.append({"field": "step", "type": "exact", "direction": "asc"})
 
+
     result = sg.summarize(
         entity_type="Task",
         filters=filters,
@@ -126,7 +127,6 @@ def get_lightweight_versions(sg, project_id, pipeline_step_name):
     print(f"Successfully fetched {len(versions)} versions.")
     return versions
 
-@timing
 def get_thumbnails_by_ids(sg, version_ids: List[int]):
     """
     주어진 버전 ID 목록에 해당하는 썸네일을 한 번에 조회합니다.
@@ -138,7 +138,6 @@ def get_thumbnails_by_ids(sg, version_ids: List[int]):
     fields = ['id', 'image']
     return sg.find("Version", filters, fields)
 
-@timing
 def get_notes_by_ids(sg, version_ids: List[int]):
     """
     주어진 버전 ID 목록에 연결된 모든 노트를 조회하고,
@@ -219,7 +218,7 @@ if __name__ == "__main__":
     from shotgrid_authenticator import UserSG, SessionTokenSG
     from pprint import pprint
     
-    session_token = '9ab7f35ccbdbaadbf5ddec0e834ab4c7'
+    session_token = 'b296d032a4036940dddb2f0e7f26205a'
     project_id = 848
     pipeline_step_name = 'All'
     
@@ -242,12 +241,7 @@ if __name__ == "__main__":
                 steps.sort()
         return steps
 
-    steps = get_pipeline_steps_for_project(token_sg, 815)
+    # steps = get_pipeline_steps_for_project(token_sg, 815)
 
-    print(steps)
+    # print(steps)
 
- 
-    # # sg는 shotgun_api3.Shotgun 인스턴스
-    # task_schema = token_sg.schema_field_read('Task')
-    # print('step' in task_schema)
-    # print(task_schema.get('step'))
