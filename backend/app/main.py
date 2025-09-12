@@ -6,13 +6,13 @@ PONO Backend Main Application File.
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from sqlalchemy import text
 from .draftnote.database import engine
-from .draftnote.models import Base
+from .draftnote.database_models import Base
 from fastapi.middleware.cors import CORSMiddleware
 from shotgun_api3.shotgun import AuthenticationFault
 from .shotgrid.shotgrid_authenticator import authentication_fault_handler
 
 # routers 폴더에서 각 기능별 라우터를 가져옵니다.
-from .routers import auth_router, draft_notes_router, shotgrid_data_router
+from .routers import auth_router, draftnotes_router, shotgrid_data_router
 
 # FastAPI 애플리케이션 인스턴스 생성
 app = FastAPI(
@@ -45,6 +45,6 @@ app.add_middleware(
 
 # API 라우터 연결
 app.include_router(auth_router.router)
-app.include_router(draft_notes_router.router)
+app.include_router(draftnotes_router.router)
 app.include_router(shotgrid_data_router.router)
 

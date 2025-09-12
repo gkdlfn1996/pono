@@ -159,9 +159,6 @@ function refreshVersions() {
 </script>
 
 <style scoped>
-.version-list {
-  /* 필요에 따라 스타일 추가 */
-}
 .normal-spacing {
   letter-spacing: normal;
 }

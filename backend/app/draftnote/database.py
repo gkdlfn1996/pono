@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from . import models
+from . import database_models as models
 
 # .env 파일에서 환경 변수 로드
 load_dotenv()

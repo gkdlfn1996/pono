@@ -1,8 +1,8 @@
 import requests
 from fastapi import APIRouter, Depends, HTTPException, status, Header
 from fastapi.security import OAuth2PasswordRequestForm
-from ..draftnote import models # models.py 임포트 (최상단으로 이동)
 from sqlalchemy.orm import Session
+from ..draftnote import database_models as models
 from ..draftnote.database import get_db
 from ..shotgrid import shotgrid_authenticator
 
