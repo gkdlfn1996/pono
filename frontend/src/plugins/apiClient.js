@@ -22,14 +22,17 @@ apiClient.interceptors.request.use(config => {
 const handleResponseError = (error) => {
   // 백엔드에서 보낸 에러가 401 (Unauthorized)인지 확인합니다.
   if (error.response && error.response.status === 401) {
-    console.error('Authentication Error: 401. Logging out...');
-    
-    // 브라우저 저장소에서 인증 토큰과 사용자 정보를 삭제합니다.
-    sessionStorage.removeItem('accessToken');
-    sessionStorage.removeItem('user_info');
-    
-    // 로그인 페이지로 이동시키고, 앱 상태를 초기화합니다.
-    window.location.href = '/';
+    // 단, 이 에러가 로그인 요청 자체에서 발생한 것이 아니어야 합니다.
+    if (error.config.url !== '/api/auth/login') {
+      console.error('Authentication Error: 401. Logging out...');
+      
+      // 브라우저 저장소에서 인증 토큰과 사용자 정보를 삭제합니다.
+      sessionStorage.removeItem('accessToken');
+      sessionStorage.removeItem('user_info');
+      
+      // 로그인 페이지로 이동시키고, 앱 상태를 초기화합니다.
+      window.location.href = '/';
+    }
   }
   
   // 다른 모든 에러는 그대로 반환합니다.
