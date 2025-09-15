@@ -7,11 +7,12 @@
 */
 
 
-import { ref, readonly } from 'vue';
+import { ref, readonly, watch } from 'vue';
 import apiClient from '@/plugins/apiClient'; //전역 API 클라이언트 인터셉터 사용
 import _ from 'lodash'; // 디바운스 기능을 위해 lodash 임포트
 import { useAuth } from './useAuth';
 import { useShotGridData } from './useShotGridData'; // useShotGridData 임포트
+import { useWebSocket } from './useWebSocket';
 
 
 //=================================== 반응형 상태 변수들 (Reactive State Variables) =======================================
@@ -42,8 +43,12 @@ const newNoteIds = ref(new Set()); // 새로 받은 노트 ID를 추적하여 �
 // 메인 Composition API 훅 (Main Composition API Hook) 
 export function useDraftNotes() {
     const { user } = useAuth(); // 현재 로그인한 사용자 정보를 가져오기 위함
-    const { selectedProject, selectedPipelineStep } = useShotGridData(); // 선택된 프로젝트와 파이프라인 스텝 가져오기
+    const { selectedProject, selectedPipelineStep, displayVersions } = useShotGridData(); // displayVersions 추가
 
+    // --- WebSocket Connection Manager ---
+    const ws = useWebSocket();
+
+    //=============================== 웹소켓 관리 (WebSocket Management) ==================================
 
     //=============================== 데이터 로딩 및 저장 함수 (Data Loading & Saving Functions) ==================================
 
@@ -96,7 +101,7 @@ export function useDraftNotes() {
      * @returns {Promise<void>} 노트 저장 완료 시 resolve되는 Promise
      */
     const saveMyNote = async (version, content) => {
-        if (!version || !user.value || !selectedProject.value || !selectedPipelineStep.value) return;
+        if (!version || !user.value || !selectedProject.value || !selectedPipelineStep.value) return; 
         
         const versionId = version.id;
         console.log('[useDraftNotes] saveMyNote: user.value:', user.value); // user.value 객체 전체 출력
@@ -201,6 +206,56 @@ export function useDraftNotes() {
         newNoteIds.value.delete(noteId);
     };
 
+    //==================================== 웹소켓 자동 관리 (WebSocket Auto-Management) ===================================
+
+    watch(displayVersions, async (newVersions, oldVersions) => {
+        // 로그인 상태가 아니면 아무 작업도 하지 않음
+        if (!user.value) return;
+
+        const newVersionIds = new Set(newVersions.map(v => v.id));
+        const oldVersionIds = new Set((oldVersions || []).map(v => v.id));
+
+        // 새로 연결할 웹소켓 식별
+        const versionsToConnect = newVersions.filter(v => !oldVersionIds.has(v.id) && !ws.isConnected(v.id));
+        
+        // 연결 해제할 웹소켓 식별
+        const versionIdsToDisconnect = [...oldVersionIds].filter(id => !newVersionIds.has(id));
+
+        // 새로 추가된 버전에 대해 연결 생성
+        if (versionsToConnect.length > 0) {
+            const connectionPromises = versionsToConnect.map(version => {
+                const wsUrl = `ws://${window.location.hostname}:8001/api/notes/ws/${version.id}`;
+                return ws.connect(version.id, wsUrl, handleIncomingNote)
+                         .then(() => ({ status: 'fulfilled', id: version.id }))
+                         .catch(() => ({ status: 'rejected', id: version.id }));
+            });
+
+            const results = await Promise.allSettled(connectionPromises);
+            
+            const successful = results.filter(r => r.value.status === 'fulfilled').length;
+            const failed = results.filter(r => r.value.status === 'rejected');
+            if (failed.length > 0) {
+                const failedIds = failed.map(r => r.value.id);
+                console.log(`[useDraftNotes] WebSocket connection summary: ${successful} successful, ${failed.length} failed (IDs: ${failedIds.join(', ')})`);
+            }
+        }
+
+        // 화면에서 사라진 버전에 대해 연결 해제
+        if (versionIdsToDisconnect.length > 0) {
+            versionIdsToDisconnect.forEach(id => ws.disconnect(id));
+        }
+    }, { deep: true });
+
+    /**
+     * 모든 활성 웹소켓 연결을 해제합니다.
+     * @returns {void}
+     */
+    const disconnectAllNotes = () => {
+        ws.disconnectAll();
+    };
+
+
+
 
 
     //==================================== 상태 초기화 함수 (State Clearing Function) ====================================
@@ -214,10 +269,12 @@ export function useDraftNotes() {
      * @returns {void}
      */
     const clearDraftNotesState = () => {
+        disconnectAllNotes(); // 모든 웹소켓 연결 해제
         myNotes.value = {};
         otherNotes.value = {};
         isSaved.value = {};
         newNoteIds.value = new Set();
+
     };
 
 
@@ -235,5 +292,6 @@ export function useDraftNotes() {
         handleIncomingNote,
         clearNewNoteFlag,
         clearDraftNotesState,
+        disconnectAllNotes,
     };
 }

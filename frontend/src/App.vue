@@ -1,5 +1,5 @@
 <template>
-  <v-app v-if="isAuthCheckComplete">
+  <v-app v-if="isAuthCheckComplete"> 
     <!-- AppHeader는 로그인 상태일 때만 표시됩니다. -->
     <AppHeader 
       v-if="isAuthenticated" 
@@ -81,11 +81,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onErrorCaptured, watch } from 'vue';
+import { ref, onMounted, onErrorCaptured, watch, onUnmounted } from 'vue';
 import { useAuth } from './composables/useAuth';
 import { useDraftNotes } from './composables/useDraftNotes';
 import { useShotGridData } from './composables/useShotGridData';
-import { useWebSocket } from './composables/useWebSocket';
 
 // 컴포넌트 임포트
 import LoginSection from './components/layout/LoginSection.vue';
@@ -125,13 +124,12 @@ const {
   newNoteIds, 
   fetchNotesByStep, 
   saveMyNote, 
-  debouncedSave, 
-  handleIncomingNote, 
+  debouncedSave,
   clearNewNoteFlag,
   clearDraftNotesState,
+  disconnectAllNotes,
 } = useDraftNotes();
 
-const ws = useWebSocket();
 
 // App 컴포넌트가 마운트될 때 인증 상태를 확인합니다.
 onMounted(async () => {
@@ -156,7 +154,7 @@ const handleLogin = async (credentials) => {
 
 // 로그아웃 시 모든 웹소켓 연결을 해제합니다.
 const handleLogout = () => {
-  ws.disconnectAll(); // 모든 웹소켓 연결 해제
+  disconnectAllNotes(); // 모든 웹소켓 연결 해제
   logout(); // useAuth의 로그아웃 처리 (인증 정보 삭제)
   clearShotGridDataState(); // useShotGridData 상태 초기화
   clearDraftNotesState(); // useDraftNotes 상태 초기화
@@ -178,61 +176,16 @@ watch(selectedPipelineStep, (newStep) => {
     }
 });
 
-// 2. 화면에 표시되는 버전 목록(displayVersions)을 감시하여 웹소켓 연결을 동적으로 관리
-watch(displayVersions, async (newVersions, oldVersions) => {
-    // 로그인 상태가 아니면 아무 작업도 하지 않음
-    if (!isAuthenticated.value) return;
-
-    // 현재 화면의 버전 ID와 이전 화면의 버전 ID를 Set으로 만들어 비교 준비
-    const newVersionIds = new Set(newVersions.map(v => v.id));
-    const oldVersionIds = new Set((oldVersions || []).map(v => v.id));
-
-    // --- 1. 새로 연결할 웹소켓 식별 ---
-    // 이전 목록에는 없었지만 새 목록에는 있는, 즉 새로 화면에 표시된 버전들을 찾음
-    const versionsToConnect = newVersions.filter(v => !oldVersionIds.has(v.id) && !ws.isConnected(v.id));
-    
-    // --- 2. 연결 해제할 웹소켓 식별 ---
-    // 이전 목록에는 있었지만 새 목록에는 없는, 즉 화면에서 사라진 버전 ID들을 찾음
-    const versionIdsToDisconnect = [...oldVersionIds].filter(id => !newVersionIds.has(id));
-
-    // 새로 추가된 버전에 대해 연결 생성
-    if (versionsToConnect.length > 0) {
-        // --- 3. 모든 연결을 동시에 시도하고 Promise 배열로 만듦 ---
-        const connectionPromises = versionsToConnect.map(version => {
-            const wsUrl = `ws://${window.location.hostname}:8001/api/notes/ws/${version.id}`;
-            // connect 함수는 Promise를 반환. 성공/실패 여부를 추적하기 위해 .then과 .catch를 사용
-            return ws.connect(version.id, wsUrl, handleIncomingNote)
-                     .then(() => ({ status: 'fulfilled', id: version.id })) // 성공 시
-                     .catch(() => ({ status: 'rejected', id: version.id }));  // 실패 시
-        });
-
-        // --- 4. 모든 연결 시도가 완료될 때까지 기다림 ---
-        const results = await Promise.allSettled(connectionPromises);
-        
-        // --- 5. 결과 집계 및 요약 로그 생성 ---
-        const successful = results.filter(r => r.value.status === 'fulfilled').length;
-        const failed = results.filter(r => r.value.status === 'rejected');
-        const failedIds = failed.map(r => r.value.id);
-
-        let logMessage = `[WebSocket Summary] ${versionsToConnect.length}개 버전 연결 시도 -> 성공: ${successful}개`;
-        if (failed.length > 0) {
-            logMessage += `, 실패: ${failed.length}개 (ID: ${failedIds.join(', ')})`;
-        }
-        console.log(logMessage);
-    }
-
-    // 화면에서 사라진 버전에 대해 연결 해제
-    if (versionIdsToDisconnect.length > 0) {
-        // console.log(`[App.vue] Disconnecting WebSockets for ${versionIdsToDisconnect.length} versions.`);
-        versionIdsToDisconnect.forEach(id => ws.disconnect(id));
-    }
-}, { deep: true }); // 객체 내부의 변경까지 감지하기 위해 deep 옵션 사용
-
-// 3. 로그아웃 시 모든 연결 해제 (handleLogout 함수로 이전)
+// 2. 로그아웃 시 모든 연결 해제
 watch(isAuthenticated, (isAuth) => {
     if (!isAuth) {
-        ws.disconnectAll();
+        disconnectAllNotes();
     }
+});
+
+// 3. 컴포넌트가 언마운트될 때 (예: 페이지 이동, 브라우저 닫기) 모든 연결 해제
+onUnmounted(() => {
+  disconnectAllNotes();
 });
 
 </script>
