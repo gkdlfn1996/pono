@@ -11,6 +11,7 @@ import shutil
 from . import draftnote_schema as schemas
 from . import database
 from . import websocket_manager
+from . import database_models as models
 
 async def save_note_logic(note_data: schemas.NoteCreate, db: Session):
     """
@@ -22,8 +23,11 @@ async def save_note_logic(note_data: schemas.NoteCreate, db: Session):
             was_deleted = database.delete_note_if_exists(db, note_data.version_id, note_data.owner_id)
             if was_deleted:
                 db.commit()
-                # 노트 자체가 삭제되었으므로, 해당 노트 정보를 다시 조회하여 브로드캐스트
-                await broadcast_note_update(db, note_data.version_id, note_data.owner_id)
+                # 삭제 후에는 DB를 건드리지 않고 수동으로 빈 노트를 생성하여 방송
+                user = db.query(models.User).filter(models.User.id == note_data.owner_id).first()
+                owner_info = schemas.UserInfo.model_validate(user) if user else schemas.UserInfo(id=note_data.owner_id, username="", login="")
+                empty_note_info = schemas.NoteInfo(id=0, version_id=note_data.version_id, content="", owner=owner_info, attachments=[], updated_at=datetime.now())
+                await websocket_manager.manager.broadcast(empty_note_info.model_dump_json(), note_data.version_id)
             return Response(status_code=status.HTTP_204_NO_CONTENT)
         
         # 2. 내용이 있으면 노트 저장/업데이트
@@ -39,8 +43,10 @@ async def save_note_logic(note_data: schemas.NoteCreate, db: Session):
             db.refresh(saved_note)
 
             # 3. 웹소켓 브로드캐스트 (첨부파일 포함 최신 정보)
-            await broadcast_note_update(db, saved_note.version_id, saved_note.owner_id)
-            return db.query(database.models.Note).filter(database.models.Note.id == saved_note.id).first()
+            # 저장 후에는 DB에서 가져온 객체를 validate하여 방송
+            note_info = schemas.NoteInfo.model_validate(saved_note)
+            await websocket_manager.manager.broadcast(note_info.model_dump_json(), saved_note.version_id)
+            return note_info
 
     except Exception as e:
         db.rollback()
@@ -57,7 +63,7 @@ async def create_attachments_for_note(db: Session, note_id: int, files: List[Upl
         - files (List[UploadFile]): 업로드된 파일 객체 리스트.
         - owner_id (int): API를 요청한 사용자의 ID.
     """
-    note = db.query(database.models.Note).filter(database.models.Note.id == note_id).first()
+    note = db.query(models.Note).filter(models.Note.id == note_id).first()
     if not note:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Note not found")
     if note.owner_id != owner_id:
@@ -79,7 +85,7 @@ async def create_attachments_for_note(db: Session, note_id: int, files: List[Upl
             shutil.copyfileobj(file.file, buffer)
 
         # DB에 Attachment 레코드 생성
-        new_attachment = database.models.Attachment(
+        new_attachment = models.Attachment(
             note_id=note_id,
             owner_id=owner_id,
             file_type='file',
@@ -89,8 +95,10 @@ async def create_attachments_for_note(db: Session, note_id: int, files: List[Upl
         db.add(new_attachment)
     
     db.commit()
-    await broadcast_note_update(db, note.version_id, note.owner_id)
-    return note
+    db.refresh(note) # 첨부파일이 추가된 최신 상태를 DB로부터 다시 읽어옴
+    note_info = schemas.NoteInfo.model_validate(note)
+    await websocket_manager.manager.broadcast(note_info.model_dump_json(), note.version_id)
+    return note_info
 
 async def delete_attachment_by_id(db: Session, attachment_id: int, owner_id: int):
     """
@@ -101,7 +109,7 @@ async def delete_attachment_by_id(db: Session, attachment_id: int, owner_id: int
         - attachment_id (int): 삭제할 첨부파일의 ID.
         - owner_id (int): API를 요청한 사용자의 ID (권한 확인용).
     """
-    attachment = db.query(database.models.Attachment).filter(database.models.Attachment.id == attachment_id).first()
+    attachment = db.query(models.Attachment).filter(models.Attachment.id == attachment_id).first()
     if not attachment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attachment not found")
     if attachment.owner_id != owner_id:
@@ -116,20 +124,7 @@ async def delete_attachment_by_id(db: Session, attachment_id: int, owner_id: int
 
     db.delete(attachment)
     db.commit()
-    await broadcast_note_update(db, note.version_id, note.owner_id)
-    return note
-
-async def broadcast_note_update(db: Session, version_id: int, owner_id: int):
-    """
-    특정 노트의 최신 정보를 조회하여 웹소켓으로 브로드캐스트합니다.
-    노트가 존재하지 않는 경우(삭제된 경우), 빈 노트 정보를 보냅니다.
-    """
-    updated_note = db.query(database.models.Note).filter(database.models.Note.version_id == version_id, database.models.Note.owner_id == owner_id).first()
-    note_info = schemas.NoteInfo.model_validate(updated_note) if updated_note else None
-    
-    # 노트가 삭제된 경우를 대비하여, 빈 노트 정보를 보낼 수도 있음
-    if not note_info:
-        user = db.query(database.models.User).filter(database.models.User.id == owner_id).first()
-        note_info = schemas.NoteInfo(id=0, version_id=version_id, content="", owner=user, attachments=[])
-
-    await websocket_manager.manager.broadcast(note_info.model_dump_json(), version_id)
+    db.refresh(note) # 첨부파일이 삭제된 최신 상태를 DB로부터 다시 읽어옴
+    note_info = schemas.NoteInfo.model_validate(note)
+    await websocket_manager.manager.broadcast(note_info.model_dump_json(), note.version_id)
+    return note_info
