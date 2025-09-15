@@ -26,9 +26,9 @@ class VersionMeta(BaseModel):
 class AttachmentInfo(BaseModel):
     """클라이언트에 반환될 첨부파일 정보 모델"""
     id: int
-    attachment_type: str
+    file_type: str
     path_or_url: str
-    original_filename: str | None = None
+    file_name: str | None = None
 
     class Config:
         from_attributes = True

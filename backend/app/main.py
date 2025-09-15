@@ -12,7 +12,7 @@ from shotgun_api3.shotgun import AuthenticationFault
 from .shotgrid.shotgrid_authenticator import authentication_fault_handler
 
 # routers 폴더에서 각 기능별 라우터를 가져옵니다.
-from .routers import auth_router, draftnotes_router, shotgrid_data_router
+from .routers import auth_router, draftnotes_router, shotgrid_data_router, draftnotes_attachments_router
 
 # FastAPI 애플리케이션 인스턴스 생성
 app = FastAPI(
@@ -47,4 +47,4 @@ app.add_middleware(
 app.include_router(auth_router.router)
 app.include_router(draftnotes_router.router)
 app.include_router(shotgrid_data_router.router)
-
+app.include_router(draftnotes_attachments_router.router)

@@ -8,9 +8,10 @@ ShotGrid의 샷 및 버전 정보를 활용하여, 사용자들이 특정 버전
 
 ```bash
 source .venv/bin/activate
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
+# uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
+python run.py
 ```
-필요시 라이브러리 재설치
+필요시 라이브러리 재설치(가상 환경이 활성화된 상태에서 실행)
 ```bash
 # 라이브러리 설치(가상 환경이 활성화된 상태에서 실행)
 python -m pip install --no-user -r requirements.txt
@@ -31,9 +32,14 @@ npm run serve
 - Backend : 30.0.1.141:8001
 - Frontend : 30.0.1.141:8081
 
-### PONO
+### PONO 서버
 - Backend : 10.0.1.110:8001
 - Frontend : 10.0.1.110:8081
+
+<br><br>
+
+## 설정
+- **첨부파일 저장 경로**: 업로드된 파일들은 홈 디렉토리 아래의 `pono_attachments/{note_id}/{owner_id}/` 구조로 저장됩니다. 최상위 `pono_attachments` 디렉토리는 `python run.py` 실행 시 자동으로 생성되며, 하위 디렉토리는 파일 업로드 시 동적으로 생성됩니다.
 
 <br><br>
 

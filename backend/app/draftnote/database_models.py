@@ -7,16 +7,15 @@ draftnote.models 모듈
 
 주요 기능:
 - `Base`: SQLAlchemy ORM의 선언적 기본 클래스입니다.
-- `User`: 사용자 정보를 나타내는 데이터베이스 모델입니다. ShotGrid 사용자 이름과 연결됩니다.
-- `Note`: 임시 노트의 내용을 나타내는 데이터베이스 모델입니다. 특정 버전, 소유자, 내용,
-  생성 및 업데이트 시간을 포함합니다.
+- `User`: 사용자 정보를 나타내는 데이터베이스 모델입니다.
+- `Note`: 임시 노트의 내용을 나타내는 데이터베이스 모델입니다. 특정 버전, 소유자, 내용, 생성 및 업데이트 시간을 포함합니다.
+- `Attachment`: 노트에 첨부된 파일 또는 링크 정보를 나타내는 데이터베이스 모델입니다.
 
 사용 방법:
 - 이 모델들은 데이터베이스 테이블을 생성하고, 데이터를 조회, 삽입, 수정, 삭제하는 데 사용됩니다.
 - FastAPI 애플리케이션 시작 시 `Base.metadata.create_all(bind=engine)`을 호출하여
   데이터베이스에 테이블을 생성할 수 있습니다.
 """
-
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
 from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy.sql import func
@@ -24,45 +23,41 @@ from sqlalchemy.sql import func
 Base = declarative_base()
 
 class User(Base):
-    """
-    사용자 정보를 나타내는 SQLAlchemy 모델입니다.
-    ShotGrid 사용자 이름과 연결되며, 사용자가 작성한 노트들과 관계를 맺습니다.
-    """
     __tablename__ = "users"
-
     id = Column(Integer, primary_key=True, index=True)
-    username = Column(String, index=True) # ShotGrid 사용자 이름
-    login = Column(String, unique=True, index=True) # ShotGrid 사용자 로그인 ID (사번)
-
+    username = Column(String, index=True)
+    login = Column(String, unique=True, index=True)
     notes = relationship("Note", back_populates="owner")
+    attachments = relationship("Attachment", back_populates="owner")
 
 class Note(Base):
-    """
-    임시 노트의 내용을 나타내는 SQLAlchemy 모델입니다.
-    특정 ShotGrid 버전, 노트 소유자, 내용, 생성 및 업데이트 시간을 저장합니다.
-    """
     __tablename__ = "notes"
-
     id = Column(Integer, primary_key=True, index=True)
     content = Column(Text)
-    version_id = Column(Integer, ForeignKey("versions.id"), index=True) # ShotGrid 버전 ID (예: sg_version_id)
+    version_id = Column(Integer, ForeignKey("versions.id"), index=True)
     owner_id = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
-
     owner = relationship("User", back_populates="notes")
     version = relationship("Version", back_populates="notes")
+    attachments = relationship("Attachment", back_populates="note", cascade="all, delete-orphan")
 
 class Version(Base):
-    """
-    ShotGrid 버전의 핵심 메타데이터를 저장하는 SQLAlchemy 모델입니다.
-    로컬 노트 데이터와 ShotGrid의 프로젝트/스텝 정보를 연결하는 역할을 합니다.
-    """
     __tablename__ = "versions"
-
-    id = Column(Integer, primary_key=True, index=True) # ShotGrid의 Version ID
-    name = Column(String, index=True) # ShotGrid의 Version Name (code 필드)
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
     step_name = Column(String, index=True)
     project_id = Column(Integer, index=True)
-
     notes = relationship("Note", back_populates="version")
+
+class Attachment(Base):
+    __tablename__ = "attachments"
+    id = Column(Integer, primary_key=True, index=True)
+    path_or_url = Column(String, nullable=False)
+    file_type = Column(String, nullable=False)
+    file_name = Column(String, nullable=True)
+    note_id = Column(Integer, ForeignKey("notes.id"), nullable=False)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=func.now())
+    note = relationship("Note", back_populates="attachments")
+    owner = relationship("User", back_populates="attachments")
