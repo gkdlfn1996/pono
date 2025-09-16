@@ -95,6 +95,11 @@ def delete_note_if_exists(db: Session, version_id: int, owner_id: int):
     ).first()
 
     if note_to_delete:
+        # 첨부파일이 존재하면 노트를 삭제하지 않고 None을 반환
+        if note_to_delete.attachments:
+            print(f"노트 ID {note_to_delete.id}에 첨부파일이 있어 삭제를 건너뜁니다.")
+            return None
+
         db.delete(note_to_delete)
-        return True # 삭제 성공
-    return False # 삭제할 노트 없음
+        return note_to_delete # 삭제 성공 시 Note 객체 반환
+    return None # 삭제할 노트 없음
