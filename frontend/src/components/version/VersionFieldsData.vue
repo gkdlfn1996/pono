@@ -1,9 +1,9 @@
 <template>
   <!-- 1단: 정보 영역 -->
-  <div class="d-flex flex-column h-100">
+  <div class="d-flex flex-column">
     <h4 class="text-subtitle-1 font-weight-bold mb-2">{{ title }}</h4>
     <!-- Thumbnail: Responsive container to enforce 16:9 aspect ratio -->
-    <v-responsive :aspect-ratio="16/9" class="mb-2 rounded">
+    <v-responsive :aspect-ratio="16/9" class="mb-2 rounded" >
       <!-- Thumbnail Loading State -->
       <div v-if="version.image === undefined"
         class="d-flex align-center justify-center bg-grey-darken-1"

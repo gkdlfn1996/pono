@@ -65,14 +65,15 @@
         class="mb-6" variant="outlined"
       >
         <v-card-text>
-          <v-row>
+          <!-- 방법 2: v-row/v-col 대신 CSS Grid를 사용한 레이아웃 -->
+          <div class="version-grid-row">
             <!-- 1단: VersionFieldsData (정보 영역) -->
-            <v-col cols="12" md="3">
+            <div>
               <VersionFieldsData :version="versionItem" :title="versionItem.code" />
-            </v-col>
+            </div>
 
             <!-- 2단: DraftNotesData (Draft Notes 영역) -->
-            <v-col cols="12" md="5">
+            <div>
               <DraftNotesData
                 :version="versionItem"
                 :myNote="props.myNotes[versionItem.id]"
@@ -83,13 +84,13 @@
                 :debouncedSave="props.debouncedSave"
                 :clearNewNoteFlag="props.clearNewNoteFlag"
               />
-            </v-col>
+            </div>
 
             <!-- 3단: VersionNotesData (Version Notes 영역) -->
-            <v-col cols="12" md="4">
+            <div>
               <VersionNotesData :version="versionItem" />
-            </v-col>
-          </v-row>
+            </div>
+          </div>
         </v-card-text>
       </v-card>
     </div>
@@ -161,5 +162,11 @@ function refreshVersions() {
 <style scoped>
 .normal-spacing {
   letter-spacing: normal;
+}
+.version-grid-row {
+  display: grid;
+  grid-template-columns: 3fr 4fr 4fr; /* 11칸으로 나누고 3:4:4 비율로 할당 */
+  gap: 24px; /* v-col의 기본 여백과 유사한 간격 */
+  align-items: stretch; /* 모든 자식 요소들이 가장 높은 요소를 기준으로 늘어남 */
 }
 </style>
