@@ -189,8 +189,10 @@ const fallbackCopyToClipboard = (text) => {
 const handleAttachmentClick = (attachment) => {
   const hostname = window.location.hostname;
 
-  if (attachment.file_type === 'file') {
-    const previewUrl = `http://${hostname}:8001/api/attachments/${attachment.id}/preview`;
+  if (attachment.file_type === 'file' && attachment.file_name) {
+    // 사용자의 요청대로 공백을 '_'로 치환하고, URL에 안전하도록 인코딩합니다.
+    const safeFileName = encodeURIComponent(attachment.file_name.replace(/ /g, '_'));
+    const previewUrl = `http://${hostname}:8001/api/attachments/${attachment.id}/${safeFileName}`;
     window.open(previewUrl, '_blank');
   } else if (attachment.file_type === 'url') {
     const path = attachment.path_or_url;
