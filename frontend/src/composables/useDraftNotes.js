@@ -24,8 +24,8 @@ import { useWebSocket } from './useWebSocket';
 // 각 버전 ID를 키로 가지며, 값이 true이면 해당 버전의 노트 저장이 완료되었음을 의미합니다.
 // 주로 시각적 피드백(예: 파란색 깜빡임)을 위해 사용됩니다.
 
-/** @type {import('vue').Ref<Object<string, string>>} */
-const myNotes = ref({}); // { versionId: "note content", ... }
+/** @type {import('vue').Ref<Object<string, object>>} */
+const myNotes = ref({}); // { versionId: { id, content, owner, attachments: [] }, ... }
 
 /** @type {import('vue').Ref<Object<string, Array<object>>>} */
 const otherNotes = ref({}); // { versionId: [ {note}, {note} ], ... }
@@ -77,7 +77,7 @@ export function useDraftNotes() {
             response.data.forEach(note => {
                 const verId = note.version_id;
                 if (note.owner.id === myId) {
-                    newMyNotes[verId] = note.content;
+                    newMyNotes[verId] = note; // 노트 객체 전체를 저장
                 } 
                 else {
                     if (!newOtherNotes[verId]) newOtherNotes[verId] = [];
@@ -121,7 +121,8 @@ export function useDraftNotes() {
         console.log('[useDraftNotes] saveMyNote: Attempting to save note. noteData:', noteData);
         try {
             await apiClient.post('/api/notes/', noteData);
-            myNotes.value[versionId] = content;
+            // 웹소켓을 통해 최종 데이터가 들어오므로 여기서는 상태를 직접 바꾸지 않습니다.
+            // 데이터 흐름의 일관성을 위해 웹소켓 응답(handleIncomingNote)이 상태를 업데이트하도록 합니다.
             isSaved.value[versionId] = true;
         } catch (error) {
             console.error(`[useDraftNotes] Failed to save note for version ${versionId}:`, error);
@@ -141,6 +142,45 @@ export function useDraftNotes() {
     const debouncedSave = _.debounce(saveMyNote, 500);
 
     /**
+     * 특정 노트에 파일을 업로드합니다. 노트가 없으면 먼저 생성합니다.
+     * @param {object} version - 현재 버전 객체
+     * @param {object} uploadData - { files: [], urls: [] }
+     */
+    const uploadAttachments = async (version, uploadData) => {
+        if (!user.value) return;
+        
+        // FormData 생성 및 데이터 추가
+        const formData = new FormData();
+        uploadData.files.forEach(file => formData.append('files', file));
+        uploadData.urls.forEach(url => formData.append('urls', url));
+        formData.append('owner_id', user.value.id);
+
+        // 새로운 백엔드 API 호출
+        try {
+            await apiClient.post(`/api/versions/${version.id}/attachments`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            // 성공 시, 백엔드가 웹소켓으로 변경사항을 브로드캐스트하므로
+            // 프론트엔드에서 별도로 상태를 변경할 필요가 없습니다.
+        } catch (error) {
+            console.error("Failed to upload attachments:", error);
+        }
+    };
+
+    /**
+     * 특정 첨부파일을 삭제합니다.
+     * @param {number} attachmentId - 삭제할 첨부파일의 ID
+     */
+    const deleteAttachment = async (attachmentId) => {
+        if (!user.value) return;
+        try {
+            await apiClient.delete(`/api/attachments/${attachmentId}?owner_id=${user.value.id}`);
+        } catch (error) {
+            console.error("Failed to delete attachment:", error);
+        }
+    };
+
+    /**
      * 웹소켓으로 들어온 실시간 노트 메시지를 처리합니다.
      * @param {string} message - 웹소켓 서버로부터 받은 JSON 문자열
      * @returns {void}
@@ -156,39 +196,47 @@ export function useDraftNotes() {
             if (note.owner.id === myId) {
                 // 내가 다른 브라우저에서 수정한 내용이 실시간으로 올 경우.
                 // 내가 빈 노트를 저장하여 삭제한 경우, 내 노트 목록에서도 제거합니다.
-                if (note.content === "") {
-                    delete myNotes.value[verId];
+                const newMyNotes = { ...myNotes.value };
+                // id가 0인 노트는 '삭제' 신호로 간주
+                if (note.id === 0) {
+                    delete newMyNotes[verId];
                 } else {
-                    myNotes.value[verId] = note.content;
+                    newMyNotes[verId] = note;
                 }
-            } 
-            else { // 다른 사람의 노트일 경우
-                if (!otherNotes.value[verId]) otherNotes.value[verId] = [];
+                myNotes.value = newMyNotes; // 새 객체로 교체하여 반응성 보장
 
-                const noteIndex = otherNotes.value[verId].findIndex(n => n.owner.id === note.owner.id);
+            } else { // 다른 사람의 노트일 경우
+                const newOtherNotes = { ...otherNotes.value };
+                const oldNotesForVersion = newOtherNotes[verId] || [];
+                const newNotesForVersion = [...oldNotesForVersion];
 
-                // 내용이 없는 노트는 '삭제' 신호로 간주하고 목록에서 제거합니다.
-                if (note.content === "" && noteIndex > -1) {
-                    otherNotes.value[verId].splice(noteIndex, 1);
-                    console.log(`[useDraftNotes] handleIncomingNote: Other user's note for version ${verId} DELETED.`);
-                } 
-                // 내용이 있는 노트만 추가/업데이트/정렬을 수행합니다.
-                else if (note.content) {
+                const noteIndex = newNotesForVersion.findIndex(n => n.owner.id === note.owner.id);
+
+                // id가 0인 노트는 '삭제' 신호로 간주
+                if (note.id === 0) {
+                    if (noteIndex > -1) newNotesForVersion.splice(noteIndex, 1);
+                } else {
+                    // 노트 추가 또는 업데이트 (내용이 비어있어도 id가 0이 아니면 업데이트/추가 대상)
                     if (noteIndex > -1) {
-                        // 기존 노트 업데이트
-                        console.log(`[useDraftNotes] handleIncomingNote: Other user\'s note for version ${verId} updated (existing).`);
-                        otherNotes.value[verId][noteIndex] = note;
+                        newNotesForVersion[noteIndex] = note;
                     } else {
-                        // 새 노트 추가
-                        console.log(`[useDraftNotes] handleIncomingNote: Other user\'s note for version ${verId} added (new).`);
-                        otherNotes.value[verId].push(note);
+                        newNotesForVersion.push(note);
                     }
-                    // 실시간으로 노트를 받으면, 항상 updated_at 기준으로 다시 정렬하여 최신순을 유지합니다.
-                    otherNotes.value[verId].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
-                    
-                    // 새 노트 ID를 Set에 추가하여 하이라이트 준비
+                }
+
+                // 실시간으로 노트를 받으면, 항상 updated_at 기준으로 다시 정렬하여 최신순을 유지합니다.
+                newNotesForVersion.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+                
+                if (newNotesForVersion.length > 0) {
+                    newOtherNotes[verId] = newNotesForVersion;
+                } else {
+                    delete newOtherNotes[verId]; // 해당 버전에 노트가 더 없으면 키를 삭제
+                }
+                otherNotes.value = newOtherNotes; // 새 객체로 교체하여 반응성 보장
+
+                // 새 노트 ID를 Set에 추가하여 하이라이트 준비
+                if (note.id !== 0) {
                     newNoteIds.value.add(note.id);
-                    console.log("[useDraftNotes] handleIncomingNote: newNoteIds after update:", newNoteIds.value);
                 }
             }
         } catch (error) {
@@ -289,6 +337,8 @@ export function useDraftNotes() {
         fetchNotesByStep,
         saveMyNote,
         debouncedSave,
+        uploadAttachments,
+        deleteAttachment,
         handleIncomingNote,
         clearNewNoteFlag,
         clearDraftNotesState,

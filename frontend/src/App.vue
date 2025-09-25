@@ -37,6 +37,8 @@
               :saveNote="saveMyNote"
               :debouncedSave="debouncedSave"
               :clearNewNoteFlag="clearNewNoteFlag"
+              :uploadAttachments="uploadAttachments"
+              :deleteAttachment="deleteAttachment"
             />
             <div class="text-center mt-4" v-if="!isVersionsLoading && totalPages > 1">
               <v-pagination
@@ -126,6 +128,8 @@ const {
   saveMyNote, 
   debouncedSave,
   clearNewNoteFlag,
+  uploadAttachments,
+  deleteAttachment,
   clearDraftNotesState,
   disconnectAllNotes,
 } = useDraftNotes();

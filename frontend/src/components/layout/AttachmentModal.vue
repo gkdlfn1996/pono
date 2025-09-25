@@ -29,13 +29,13 @@
               >
                 <template v-slot:selection="{ fileNames }">
                   <v-chip
-                    v-for="(fileName, index) in fileNames"
+                    v-for="(file, index) in selectedFiles"
                     :key="index"
                     class="me-2"
                     size="small"
                     color="primary"
                   >
-                    {{ fileName }}
+                    {{ file.name }}
                   </v-chip>
                 </template>
               </v-file-input>

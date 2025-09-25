@@ -83,6 +83,8 @@
                 :saveNote="props.saveNote"
                 :debouncedSave="props.debouncedSave"
                 :clearNewNoteFlag="props.clearNewNoteFlag"
+                :uploadAttachments="props.uploadAttachments"
+                :deleteAttachment="props.deleteAttachment"
               />
             </div>
 
@@ -128,6 +130,8 @@ const props = defineProps({
   saveNote: Function,
   debouncedSave: Function,
   clearNewNoteFlag: Function,
+  uploadAttachments: Function,
+  deleteAttachment: Function,
 });
 
 // 정렬 옵션
@@ -168,5 +172,9 @@ function refreshVersions() {
   grid-template-columns: 3fr 4fr 4fr; /* 11칸으로 나누고 3:4:4 비율로 할당 */
   gap: 24px; /* v-col의 기본 여백과 유사한 간격 */
   align-items: stretch; /* 모든 자식 요소들이 가장 높은 요소를 기준으로 늘어남 */
+}
+
+.version-grid-row > div {
+  min-width: 0; /* 그리드 아이템이 내용보다 작아질 수 있도록 허용 */
 }
 </style>
