@@ -1,10 +1,10 @@
 <template>
   <v-navigation-drawer
-    :model-value="modelValue"
+    v-model="props.modelValue"
+    @update:model-value="emit('update:modelValue', $event)"
     :width="600"
-    :right="true"
+    location="right"
     temporary
-    fixed
   >
     <v-toolbar flat>
       <v-toolbar-title>Shot Detail Panel</v-toolbar-title>
@@ -15,7 +15,7 @@
     </v-toolbar>
     <v-card-text>
       <!-- Shot Detail content will go here -->
-      <p>Shot thumbnail, metadata, and ShotGrid data will be displayed here.</p>
+      <!-- <p>Shot thumbnail, metadata, and ShotGrid data will be displayed here.</p> -->
     </v-card-text>
   </v-navigation-drawer>
 </template>

@@ -65,9 +65,7 @@
       </v-container>
     </v-main>
 
-    <!-- FloatingMenu 등 다른 UI 요소들 (로그인 상태일 때만 표시) -->
-    <FloatingMenu v-if="isAuthenticated" />
-    <NotesPanel v-if="isAuthenticated" v-model="showNotesPanel" />
+    <!-- 다른 UI 요소들 (로그인 상태일 때만 표시) -->
     <ShotDetailPanel v-if="isAuthenticated" v-model="showShotDetailPanel" />
 
     <!-- 최상단으로 스크롤하는 플로팅 버튼 -->
@@ -92,9 +90,7 @@ import { useShotGridData } from './composables/useShotGridData';
 import LoginSection from './components/layout/LoginSection.vue';
 import AppHeader from './components/layout/AppHeader.vue';
 import AppSidebar from './components/layout/AppSidebar.vue';
-import FloatingMenu from './components/layout/FloatingMenu.vue';
-import NotesPanel from './components/panels/NotesPanel.vue';
-import ShotDetailPanel from './components/panels/ShotDetailPanel.vue';
+import ShotDetailPanel from './components/layout/ShotDetailPanel.vue';
 import VersionList from './components/layout/VersionList.vue';
 
 // --- 인증 관련 상태 및 함수 ---
@@ -148,7 +144,6 @@ onErrorCaptured((err) => {
 
 // --- UI 상태 ---
 const drawer = ref(false);
-const showNotesPanel = ref(false);
 const showShotDetailPanel = ref(false);
 
 // --- 이벤트 핸들러 ---
