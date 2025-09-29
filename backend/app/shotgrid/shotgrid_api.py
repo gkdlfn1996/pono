@@ -181,6 +181,24 @@ def get_notes_by_ids(sg, version_ids: List[int]):
 
     return note_map
 
+def get_linked_entity_notes(sg, entity_type: str, entity_id: int):
+    """
+    주어진 Entity(Shot 또는 Asset)에 연결된 모든 '오픈' 상태의 노트를 조회합니다.
+    """
+    if not entity_type or not entity_id:
+        return []
+
+    filters = [
+        ['note_links', 'in', {'type': entity_type, 'id': entity_id}],
+        ['sg_status_list', 'is_not', 'cls']  # 'cls' (closed) 상태가 아닌 노트만
+    ]
+    fields = ['content', 'user', 'created_at', 'subject']
+    order = [{'field_name': 'created_at', 'direction': 'desc'}] # 최신순 정렬
+
+    entity_notes = sg.find("Note", filters, fields, order)
+    print(f"Found {len(entity_notes)} open notes for {entity_type} ID {entity_id}")
+    return entity_notes
+
 
 
 # ===================================================================

@@ -1,6 +1,8 @@
 <template>
   <!-- 로딩 상태 표시는 props.isLoading을 직접 사용합니다. -->
   <!-- v-if와 v-else-if를 사용하여 로딩, 데이터 있음, 데이터 없음 세 가지 상태를 명확히 분리합니다. -->
+  <!-- 3단: VersionNotesData (Version Notes 영역) -->
+
   <div v-if="isVersionsLoading" class="text-center py-10">
     <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
     <p class="mt-4 text-grey-lighten-1">버전 목록을 불러오는 중입니다...</p>
@@ -89,8 +91,26 @@
             </div>
 
             <!-- 3단: VersionNotesData (Version Notes 영역) -->
-            <div>
-              <VersionNotesData :version="versionItem" />
+            <div class="d-flex flex-column h-100">
+              <v-tabs v-model="tabStates[versionItem.id]" class="notes-tabs" hide-slider>
+                <v-tab value="version" class="text-subtitle-1 font-weight-bold mb-3">
+                  Version Notes
+                </v-tab>
+                <v-tab v-if="versionItem.entity" :value="'linked_entity'" class="text-subtitle-1 font-weight-bold mb-3">
+                  {{ versionItem.entity.type === 'Shot' ? 'Linked Shot Notes' : 'Linked Asset Notes' }}
+                </v-tab>
+              </v-tabs>
+              <v-window v-model="tabStates[versionItem.id]" class="notes-window flex-grow-1">
+                <v-window-item value="version" class="h-100">
+                  <VersionNotesData :version="versionItem" />
+                </v-window-item>
+                <v-window-item :value="'linked_entity'" class="h-100">
+                  <LinkedNotesData 
+                    :entity="versionItem.entity"
+                    :notes="linkedNotes[versionItem.entity.id]"
+                  />
+                </v-window-item>
+              </v-window>
             </div>
           </div>
         </v-card-text>
@@ -110,7 +130,8 @@
 import VersionFieldsData from '../version/VersionFieldsData.vue';
 import DraftNotesData from '../version/DraftNotesData.vue';
 import VersionNotesData from '../version/VersionNotesData.vue';
-import { computed } from 'vue';
+import LinkedNotesData from '../version/LinkedNotesData.vue';
+import { ref, computed, watch } from 'vue';
 import { useShotGridData } from '../../composables/useShotGridData';
 
 const props = defineProps({
@@ -134,6 +155,15 @@ const props = defineProps({
   deleteAttachment: Function,
 });
 
+// 각 버전 카드의 탭 상태를 독립적으로 관리하기 위한 객체
+const tabStates = ref({});
+
+// 각 버전의 링크 노트 데이터를 저장하는 객체
+const linkedNotes = ref({});
+
+// 현재 로딩 중인 엔티티 ID를 추적하는 Set
+const loadingEntities = ref(new Set());
+
 // 정렬 옵션
 const sortOptions = [
   { name: 'Version - Name', key: 'version_name', disabled: computed(() => false) },
@@ -149,9 +179,10 @@ const currentSortName = computed(() => {
   return found ? found.name : '';
 });
 
-const { 
-  selectedProject, 
+const {
+  selectedProject,
   selectedPipelineStep,
+  loadLinkedNotes,
   isVersionsLoading,
   cancelLoadVersions 
 } = useShotGridData();
@@ -161,6 +192,34 @@ const emit = defineEmits(['refresh-versions']);
 function refreshVersions() {
   emit('refresh-versions');
 }
+
+// 탭 상태를 감시하여, 링크 노트 탭이 처음 열릴 때 데이터를 로드합니다.
+watch(tabStates, async (newStates) => {
+  console.log('[VersionList] 1. tabStates 변경 감지:', newStates);
+  for (const versionId in newStates) {
+    const newState = newStates[versionId];
+
+    // 탭이 'linked_entity'로 변경되었고,
+    if (newState === 'linked_entity') {
+      const version = props.versions.find(v => v.id == versionId);
+      // 아직 해당 entity의 노트 데이터가 로드되지 않았고, 현재 로딩 중도 아니라면 데이터 로딩을 시작합니다.
+      if (version && version.entity && !linkedNotes.value[version.entity.id] && !loadingEntities.value.has(version.entity.id)) {
+        try {
+          console.log(`[VersionList] 2. 링크 노트 탭 활성화 & 데이터 없음 확인. 데이터 로딩 시작. Entity ID: ${version.entity.id}`);
+          loadingEntities.value.add(version.entity.id); // 로딩 시작 표시
+
+          const notesData = await loadLinkedNotes(version.entity);
+          console.log(`[VersionList] 3. 데이터 로딩 완료. 받은 데이터:`, notesData);
+          linkedNotes.value[version.entity.id] = notesData;
+          console.log('[VersionList] 4. linkedNotes 상태 업데이트 완료:', linkedNotes.value);
+        } finally {
+          loadingEntities.value.delete(version.entity.id); // 성공/실패 여부와 관계없이 로딩 상태 해제
+        }
+      }
+    }
+  }
+}, { deep: true });
+
 </script>
 
 <style scoped>
@@ -176,5 +235,33 @@ function refreshVersions() {
 
 .version-grid-row > div {
   min-width: 0; /* 그리드 아이템이 내용보다 작아질 수 있도록 허용 */
+}
+
+.notes-window {
+  min-height: 0 !important; /* Vuetify 기본값 300px 덮어쓰기 */
+  height: 100%;
+}
+
+.notes-tabs {
+  height: auto; /* 탭 높이를 내용에 맞게 조절 */
+}
+
+.notes-tabs .v-tab {
+  line-height: 1.75rem !important; 
+  padding: 0 !important;
+}
+
+.notes-tabs .v-tab:first-child {
+  margin-right: 16px !important;
+}
+
+
+:deep(.notes-tabs .v-btn) {
+  height: auto !important;
+}
+
+/* 선택되지 않은 탭의 색상을 회색으로 변경 */
+:deep(.notes-tabs .v-tab:not(.v-tab--selected)) {
+  color: grey;
 }
 </style>

@@ -23,6 +23,7 @@ const sortOrder = ref('desc'); // 정렬 순서 (asc, desc)
 const activeFilters = ref([]); // SearchBar로부터 받은 필터 조건
 const suggestionSources = ref({}); // SearchBar 제안 목록 데이터
 const versionsPerPage = 50; // 페이지 당 버전 수
+const linkedNotesCache = ref({}); // 링크 노트 캐시를 위한 객체
 
 
 
@@ -164,6 +165,37 @@ export function useShotGridData() {
         } finally {
             isVersionsLoading.value = false;
             cancelTokenSource = null; // 작업 완료 후 토큰 소스 초기화
+        }
+    };
+
+    /**
+     * 연결된 엔티티(샷/에셋)의 노트를 불러옵니다.
+     * 한 번 불러온 노트는 linkedNotesCache에 저장하여 재사용합니다.
+     * @param {object} entity - {id, type} 정보를 가진 엔티티 객체
+     * @returns {Promise<Array>} 노트 목록 Promise
+     */
+    const loadLinkedNotes = async (entity) => {
+        console.log('[useShotGridData] 1. loadLinkedNotes 호출됨. Entity:', entity);
+        if (!entity || !entity.id) return [];
+
+        // 1. 캐시 확인
+        if (linkedNotesCache.value[entity.id]) {
+            console.log(`[useShotGridData] 2. 캐시 HIT. Entity ID: ${entity.id}`);
+            return linkedNotesCache.value[entity.id];
+        }
+
+        console.log(`[useShotGridData] 2. 캐시 MISS. API 호출 시작. Entity ID: ${entity.id}`);
+        // 2. 캐시 없으면 API 호출
+        try {
+            const response = await apiClient.get('/api/data/linked-entity-notes', {
+                params: { entity_type: entity.type, entity_id: entity.id }
+            });
+            console.log('[useShotGridData] 3. API 호출 성공. 응답 데이터:', response.data);
+            linkedNotesCache.value[entity.id] = response.data; // 3. 결과 캐시
+            return response.data;
+        } catch (error) {
+            console.error(`[useShotGridData] 3. API 호출 실패. Entity ID: ${entity.id}:`, error);
+            return []; // 에러 발생 시 빈 배열 반환
         }
     };
 
@@ -319,6 +351,7 @@ export function useShotGridData() {
         sortOrder: readonly(sortOrder),
         loadProjects,
         loadPipelineSteps,
+        loadLinkedNotes,
         loadVersions,
         changePage,
         selectProject,

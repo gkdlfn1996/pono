@@ -78,3 +78,10 @@ async def get_heavyweight_data(
         project_id, pipeline_step, heavy_data
     )
     return heavy_data
+
+@router.get("/linked-entity-notes")
+async def get_linked_entity_notes(entity_type: str, entity_id: int, sg=Depends(get_shotgrid_instance)):
+    """
+    연결된 샷, 에셋의 모든 오픈 노트를 조회합니다.
+    """
+    return await async_api.get_linked_entity_notes(sg, entity_type, entity_id)
