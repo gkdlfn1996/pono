@@ -195,7 +195,6 @@ function refreshVersions() {
 
 // 탭 상태를 감시하여, 링크 노트 탭이 처음 열릴 때 데이터를 로드합니다.
 watch(tabStates, async (newStates) => {
-  console.log('[VersionList] 1. tabStates 변경 감지:', newStates);
   for (const versionId in newStates) {
     const newState = newStates[versionId];
 
@@ -205,13 +204,10 @@ watch(tabStates, async (newStates) => {
       // 아직 해당 entity의 노트 데이터가 로드되지 않았고, 현재 로딩 중도 아니라면 데이터 로딩을 시작합니다.
       if (version && version.entity && !linkedNotes.value[version.entity.id] && !loadingEntities.value.has(version.entity.id)) {
         try {
-          console.log(`[VersionList] 2. 링크 노트 탭 활성화 & 데이터 없음 확인. 데이터 로딩 시작. Entity ID: ${version.entity.id}`);
           loadingEntities.value.add(version.entity.id); // 로딩 시작 표시
 
           const notesData = await loadLinkedNotes(version.entity);
-          console.log(`[VersionList] 3. 데이터 로딩 완료. 받은 데이터:`, notesData);
           linkedNotes.value[version.entity.id] = notesData;
-          console.log('[VersionList] 4. linkedNotes 상태 업데이트 완료:', linkedNotes.value);
         } finally {
           loadingEntities.value.delete(version.entity.id); // 성공/실패 여부와 관계없이 로딩 상태 해제
         }

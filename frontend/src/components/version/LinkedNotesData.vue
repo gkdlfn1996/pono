@@ -8,6 +8,7 @@
         variant="outlined"
         density="compact"
         hide-details
+        single-line
         prepend-inner-icon="mdi-magnify"
         clearable
         @keydown.enter="applySearch"

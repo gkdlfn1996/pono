@@ -175,26 +175,22 @@ export function useShotGridData() {
      * @returns {Promise<Array>} 노트 목록 Promise
      */
     const loadLinkedNotes = async (entity) => {
-        console.log('[useShotGridData] 1. loadLinkedNotes 호출됨. Entity:', entity);
         if (!entity || !entity.id) return [];
 
         // 1. 캐시 확인
         if (linkedNotesCache.value[entity.id]) {
-            console.log(`[useShotGridData] 2. 캐시 HIT. Entity ID: ${entity.id}`);
             return linkedNotesCache.value[entity.id];
         }
 
-        console.log(`[useShotGridData] 2. 캐시 MISS. API 호출 시작. Entity ID: ${entity.id}`);
         // 2. 캐시 없으면 API 호출
         try {
             const response = await apiClient.get('/api/data/linked-entity-notes', {
                 params: { entity_type: entity.type, entity_id: entity.id }
             });
-            console.log('[useShotGridData] 3. API 호출 성공. 응답 데이터:', response.data);
             linkedNotesCache.value[entity.id] = response.data; // 3. 결과 캐시
             return response.data;
         } catch (error) {
-            console.error(`[useShotGridData] 3. API 호출 실패. Entity ID: ${entity.id}:`, error);
+            console.error(`Failed to load linked notes for entity ${entity.id}:`, error);
             return []; // 에러 발생 시 빈 배열 반환
         }
     };
