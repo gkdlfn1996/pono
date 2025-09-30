@@ -37,19 +37,47 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from "vue";
 
 // AppSidebar 컴포넌트로부터 사용자 이름을 받기 위한 props
 const props = defineProps({
   username: String,
 });
 
-const subject = ref('');
-const headerNote = ref('');
+const STORAGE_KEY = "pono-global-header";
+
+const subject = ref("");
+const headerNote = ref("");
+
+// 컴포넌트가 마운트될 때 localStorage에서 데이터를 불러옵니다.
+onMounted(() => {
+  const savedData = localStorage.getItem(STORAGE_KEY);
+  if (savedData) {
+    const { subject: savedSubject, headerNote: savedHeaderNote } =
+      JSON.parse(savedData);
+    subject.value = savedSubject || "";
+    headerNote.value = savedHeaderNote || "";
+  }
+});
 
 const save = () => {
-  // TODO: 실제 저장 로직은 추후 구현합니다.
-  console.log('Saving:', { subject: subject.value, headerNote: headerNote.value });
+  const subjectValue = subject.value.trim();
+  const headerNoteValue = headerNote.value.trim();
+
+  if (!subjectValue && !headerNoteValue) {
+    // 두 필드가 모두 비어있으면 localStorage에서 항목을 제거합니다.
+    localStorage.removeItem(STORAGE_KEY);
+  } else {
+    // 그렇지 않으면, 데이터를 객체로 묶어 localStorage에 저장합니다.
+    const dataToSave = {
+      subject: subjectValue,
+      headerNote: headerNoteValue,
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+  }
+
+  // 다른 컴포넌트에게 데이터가 변경되었음을 알리는 이벤트를 발생시킵니다.
+  window.dispatchEvent(new CustomEvent("pono-header-updated"));
 };
 </script>
 
