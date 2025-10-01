@@ -69,7 +69,9 @@
               {{ note.content }}
             </v-card-text>
             <!-- 다른 사람 노트의 첨부파일 목록 -->
-            <AttachmentHandler v-if="note.attachments && note.attachments.length > 0" :attachments="note.attachments" readonly wrapper-class="attachments-section ma-2 pa-2 rounded" />
+            <div class="ma-2">
+            <AttachmentHandler v-if="note.attachments && note.attachments.length > 0" :attachments="note.attachments" readonly />
+            </div>
             <v-divider v-if="index < props.otherNotes.length - 1"></v-divider>
           </div>
         </template>
