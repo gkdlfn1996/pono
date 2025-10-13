@@ -37,7 +37,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
+import { useAuth } from "../../composables/useAuth";
 
 // AppSidebar 컴포넌트로부터 사용자 이름을 받기 위한 props
 const props = defineProps({
@@ -45,13 +46,21 @@ const props = defineProps({
 });
 
 const STORAGE_KEY = "pono-global-header";
+const { user } = useAuth();
+
+const userSpecificStorageKey = computed(() => {
+  if (user.value && user.value.login) {
+    return `pono-header-${user.value.login}`;
+  }
+  return STORAGE_KEY; // Fallback or initial key if user not logged in yet
+});
 
 const subject = ref("");
 const headerNote = ref("");
 
 // 컴포넌트가 마운트될 때 localStorage에서 데이터를 불러옵니다.
 onMounted(() => {
-  const savedData = localStorage.getItem(STORAGE_KEY);
+  const savedData = localStorage.getItem(userSpecificStorageKey.value);
   if (savedData) {
     const { subject: savedSubject, headerNote: savedHeaderNote } =
       JSON.parse(savedData);
@@ -65,15 +74,15 @@ const save = () => {
   const headerNoteValue = headerNote.value.trim();
 
   if (!subjectValue && !headerNoteValue) {
-    // 두 필드가 모두 비어있으면 localStorage에서 항목을 제거합니다.
-    localStorage.removeItem(STORAGE_KEY);
+    // 두 필드가 모두 비어있으면 localStorage에서 해당 사용자 항목을 제거합니다.
+    localStorage.removeItem(userSpecificStorageKey.value);
   } else {
     // 그렇지 않으면, 데이터를 객체로 묶어 localStorage에 저장합니다.
     const dataToSave = {
       subject: subjectValue,
       headerNote: headerNoteValue,
     };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+    localStorage.setItem(userSpecificStorageKey.value, JSON.stringify(dataToSave));
   }
 
   // 다른 컴포넌트에게 데이터가 변경되었음을 알리는 이벤트를 발생시킵니다.
