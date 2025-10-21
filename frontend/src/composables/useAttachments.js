@@ -37,26 +37,77 @@ export function useAttachments() {
   };
 
   /**
+   * copy 이벤트 리스너로 clipboardData를 세팅한 뒤 execCommand('copy')를 호출합니다.
+   * 모달/포커스 트랩 상황에서 selection이 방해받을 때 유리합니다.
+   * @param {string} text
+   * @returns {boolean} 성공 여부
+   */
+  function forceCopyUsingCopyEvent(text) {
+    let ok = false;
+    function onCopy(e) {
+      try {
+        e.clipboardData.setData('text/plain', text);
+        e.preventDefault();
+        ok = true;
+      } catch (_) {
+        ok = false;
+      }
+    }
+    document.addEventListener('copy', onCopy, true);
+    try {
+      document.execCommand('copy');
+    } catch (_) {
+      ok = false;
+    }
+    document.removeEventListener('copy', onCopy, true);
+    return ok;
+  }
+
+  /**
    * navigator.clipboard.writeText API를 사용할 수 없을 때, document.execCommand를 이용한 클립보드 복사 폴백 함수.
    * @param {string} text - 클립보드에 복사할 텍스트.
    */
   const fallbackCopyToClipboard = (text) => {
+    // 1) copy 이벤트 리스너 방식
+    const byEvent = forceCopyUsingCopyEvent(text);
+    if (byEvent) {
+      copiedPath.value = { path: text, show: true };
+      setTimeout(() => { copiedPath.value = { path: null, show: false }; }, 1000);
+      return;
+    }
+
+    // 2) textarea 선택 방식
     const textarea = document.createElement('textarea');
     textarea.value = text;
+    textarea.setAttribute('readonly', '');
     textarea.style.position = 'fixed';
-    textarea.style.left = '-9999px';
+    textarea.style.top = '0';
+    textarea.style.left = '0';
+    textarea.style.opacity = '0';
     document.body.appendChild(textarea);
+
+    textarea.focus();
     textarea.select();
     try {
-      const successful = document.execCommand('copy');
-      if (successful) {
-        copiedPath.value = { path: text, show: true };
-        setTimeout(() => { copiedPath.value = { path: null, show: false }; }, 1000);
-      }
-    } catch (err) {
-      console.error("Fallback copy failed:", err);
+      textarea.setSelectionRange(0, textarea.value.length);
+    } catch (e) {
+      // 일부 브라우저는 setSelectionRange 미지원
     }
+
+    let successful = false;
+    try {
+      successful = document.execCommand('copy');
+    } catch (err) {
+      successful = false;
+      console.error('Fallback copy failed:', err);
+    }
+
     document.body.removeChild(textarea);
+
+    if (successful) {
+      copiedPath.value = { path: text, show: true };
+      setTimeout(() => { copiedPath.value = { path: null, show: false }; }, 1000);
+    }
   };
 
   /**
@@ -79,7 +130,7 @@ export function useAttachments() {
           navigator.clipboard.writeText(path).then(() => {
             copiedPath.value = { path: path, show: true };
             setTimeout(() => { copiedPath.value = { path: null, show: false }; }, 1000);
-          }).catch(err => fallbackCopyToClipboard(path));
+          }).catch(() => fallbackCopyToClipboard(path));
         } else {
           fallbackCopyToClipboard(path);
         }

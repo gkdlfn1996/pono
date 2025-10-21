@@ -12,6 +12,17 @@
         @click="showAttachmentModal = true"
         density="compact"
       ></v-btn>
+      <!-- icon="mdi-cloud-upload-outline" -->
+      <!-- icon="mdi-open-in-app" -->
+      <!-- icon="mdi-publish" -->
+      <!-- icon="mdi-send-variant-outline" -->
+      <v-btn
+        icon="mdi-tray-arrow-up"
+        variant="text"
+        size="small"
+        @click="showPublishModal = true"
+        density="compact"
+      ></v-btn>
     </div>
     <div class="note-input-container flex-grow-1" style="height: 150px;">
       <v-textarea
@@ -36,6 +47,16 @@
     <AttachmentModal
       v-model="showAttachmentModal"
       @upload="handleUploadFiles"
+    />
+
+    <!-- 퍼블리쉬 모달 컴포넌트 -->
+    <PublishNoteModal
+      v-model="showPublishModal"
+      :version="props.version"
+      :note-content="localContent"
+      :attachments="myNoteAttachments"
+      :delete-attachment-fn="handleDeleteAttachment"
+      @update:note-content="value => { localContent = value; onBlur(); }"
     />
 
     <!-- Other's Draft Notes 섹션 -->
@@ -92,6 +113,7 @@
 import { ref, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue';
 import AttachmentHandler from './draftnote_attachments/AttachmentHandler.vue';
 import AttachmentModal from './draftnote_attachments/AttachmentModal.vue';
+import PublishNoteModal from './PublishNoteModal.vue';
 import { useAttachments } from '@/composables/useAttachments.js';
 
 /**
@@ -124,6 +146,9 @@ const { getIconForFile, handleAttachmentClick } = useAttachments();
 
 // 첨부파일 모달의 표시 여부를 제어하는 상태.
 const showAttachmentModal = ref(false);
+
+// 퍼블리쉬 모달의 표시 여부를 제어하는 상태.
+const showPublishModal = ref(false);
 
 /**
  * 내 노트에 속한 첨부파일 목록을 계산하는 속성.
