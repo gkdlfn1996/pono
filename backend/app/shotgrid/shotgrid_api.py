@@ -52,7 +52,7 @@ def get_projects(sg):
         [["archived", "is", False],
          ["sg_restricted_user", "is", False],
          ["is_template", "is", False]], 
-        ["name", "id"]
+        ["name", "id", "sg_sup", "sg_cg_sup", "sg_pd", "sg_pm", "sg_pa"]
     )
     print(f"Successfully fetched {len(result)} projects.")
     return result
@@ -199,6 +199,115 @@ def get_linked_entity_notes(sg, entity_type: str, entity_id: int):
     print(f"Found {len(entity_notes)} open notes for {entity_type} ID {entity_id}")
     return entity_notes
 
+@timing
+def get_group_leaders_for_artists(sg, artist_id_list: List[int]):
+    """
+    주어진 아티스트 ID 목록에 대해, 각 아티스트가 속한 그룹의 리더들을 조회합니다.
+
+    반환값 설명:
+      - key: 아티스트의 ID (int)
+      - value: 해당 아티스트가 속한 그룹에 포함된 'leader' 권한 유저들의 정보 리스트
+
+    반환 형식 예시:
+      {
+        101: [{'id': 5, 'name': 'Leader_A'}],
+        102: [{'id': 6, 'name': 'Leader_B'}]
+      }
+    """
+    # 0) 입력 검증
+    if not artist_id_list:
+        return {}
+
+    # 1) Group.users 필드에 artist_id가 포함된 Group 엔티티를 조회하기 위한 엔티티 리스트 구성
+    artist_entities = []
+    for artist_id in artist_id_list:
+        artist_entities.append({'type': 'HumanUser', 'id': artist_id})
+
+
+    # 2) Group 조회 (users 필드 포함)
+    groups = sg.find(
+        "Group",
+        [['users', 'in', artist_entities]],    # 'in' 연산자의 값은 리스트 하나여야 함
+        ['users']
+    )
+
+
+    # 3) 결과 구조, 중복 방지 구조, 아티스트 집합을 "한 번의 루프"로 초기화 (중복 루프 결합)
+    result = {}
+    added_leader_ids_by_artist = {}
+    artist_id_set = set()
+    for artist_id in artist_id_list:
+        result[artist_id] = []
+        added_leader_ids_by_artist[artist_id] = set()
+        artist_id_set.add(artist_id)
+ 
+
+    # 4) 모든 그룹의 users에서 user_id만 수집 (그룹 루프 1회차)
+    all_user_ids = set()
+    for group in groups:
+        user_list = group.get('users', [])
+        for user in user_list:
+            user_id = user.get('id')
+            if isinstance(user_id, int):
+                all_user_ids.add(user_id)
+
+
+    # 5) 그룹에 유저가 전혀 없으면 조기 반환
+    if not all_user_ids:
+        return result
+
+
+    # 6) 'leader' 권한 유저 조회 (PermissionRuleSet.code 기준)
+    leaders = sg.find(
+        "HumanUser",
+        [
+            ['id', 'in', list(all_user_ids)],
+            ['permission_rule_set.PermissionRuleSet.code', 'is', 'leader']
+        ],
+        ['id', 'name']
+    )
+
+
+    # 7) leader_id → leader dict 매핑 (빠른 조회용)
+    leader_by_id = {}
+    for leader in leaders:
+        leader_id = leader.get('id')
+        if isinstance(leader_id, int):
+            leader_by_id[leader_id] = leader
+
+
+    # 8) 그룹을 돌며 "해당 그룹의 리더"와 "해당 그룹의 아티스트"를 동시에 판별하여 매핑 (그룹 루프 2회차)
+    #    - 중복 제거는 added_leader_ids_by_artist로 처리
+    for group in groups:
+        user_list = group.get('users', [])
+
+        group_leaders = []       # 이 그룹에 속한 리더 dict들의 리스트
+        group_artist_ids = set() # 이 그룹에 속한 아티스트 id들의 집합
+
+        for user in user_list:
+            user_id = user.get('id')
+            if not isinstance(user_id, int):
+                continue
+
+            # 리더 판별
+            if user_id in leader_by_id:
+                group_leaders.append(leader_by_id[user_id])
+
+            # 아티스트 판별
+            if user_id in artist_id_set:
+                group_artist_ids.add(user_id)
+
+        # 이 그룹에 속한 각 아티스트에게 이 그룹의 리더들을 매핑(중복 방지)
+        for artist_id in group_artist_ids:
+            for leader in group_leaders:
+                leader_id = leader.get('id')
+                if isinstance(leader_id, int):
+                    if leader_id not in added_leader_ids_by_artist[artist_id]:
+                        result[artist_id].append(leader)
+                        added_leader_ids_by_artist[artist_id].add(leader_id)
+
+    return result
+
 
 
 # ===================================================================
@@ -230,36 +339,28 @@ for name, func in _current_module_namespace.items():
         setattr(async_api, name, async_version)
 
 
+
+
+
 if __name__ == "__main__":
     import sys
     sys.path.append("/netapp/INHouse/sg")
     from shotgrid_authenticator import UserSG, SessionTokenSG
     from pprint import pprint
     
-    session_token = 'b296d032a4036940dddb2f0e7f26205a'
+    session_token = '80f4b2b334bf8f2bc65b65488258b83b'
     project_id = 848
     pipeline_step_name = 'All'
     
     token_sg = SessionTokenSG(session_token).sg
- 
-    @timing
-    def test():
-        p = {"type": "Project", "id": project_id}
+    
 
-        schema = token_sg.schema_field_read("Shot", project_entity=p)
+    versions = get_lightweight_versions(token_sg, project_id, pipeline_step_name)
+    artist_id_set = set()
+    for version in versions:
+        if version.get('user') and version['user'].get('id'):
+            artist_id_set.add(version['user']['id'])
+    artist_ids = list(artist_id_set)
 
-        steps = []
-        for key, meta in schema.items():
-            if key.startswith("step_"):
-                name = meta["name"]["value"]
-                visible = meta["visible"]["value"]
-                if not visible or name == 'ALL TASKS':
-                    continue
-                steps.append(name)
-                steps.sort()
-        return steps
-
-    # steps = get_pipeline_steps_for_project(token_sg, 815)
-
-    # print(steps)
-
+    leaders_by_artist = get_group_leaders_for_artists(token_sg, artist_ids)
+    pprint(leaders_by_artist)

@@ -54,6 +54,7 @@
       v-model="showPublishModal"
       :version="props.version"
       :note-content="localContent"
+      :selected-project="selectedProject"
       :attachments="myNoteAttachments"
       :delete-attachment-fn="handleDeleteAttachment"
       @update:note-content="value => { localContent = value; onBlur(); }"
@@ -115,6 +116,7 @@ import AttachmentHandler from './draftnote_attachments/AttachmentHandler.vue';
 import AttachmentModal from './draftnote_attachments/AttachmentModal.vue';
 import PublishNoteModal from './PublishNoteModal.vue';
 import { useAttachments } from '@/composables/useAttachments.js';
+import { useShotGridData } from '@/composables/useShotGridData';
 
 /**
  * @props {Object} version - 현재 버전 정보.
@@ -143,6 +145,7 @@ const props = defineProps({
 
 // 첨부파일 관련 로직과 상태를 가져옵니다.
 const { getIconForFile, handleAttachmentClick } = useAttachments();
+const { selectedProject } = useShotGridData();
 
 // 첨부파일 모달의 표시 여부를 제어하는 상태.
 const showAttachmentModal = ref(false);

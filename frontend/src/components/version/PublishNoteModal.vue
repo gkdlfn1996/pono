@@ -16,6 +16,29 @@
           이 노트는 ShotGrid에 게시(Publish)될 최종본입니다. 내용을 마지막으로 확인하고 정리해 주세요.
         </p>
 
+        <!-- To / CC 필드 -->
+        <div class="mb-4">
+          <div class="d-flex align-center mb-2">
+            <div class="text-body-2 font-weight-bold" style="width: 50px;">To:</div>
+            <v-chip v-if="props.version.user" size="small" color="primary" variant="tonal">
+              {{ props.version.user.name }}
+            </v-chip>
+          </div>
+          <div class="d-flex">
+            <div class="text-body-2 font-weight-bold" style="width: 50px;">CC:</div>
+            <v-chip-group class="flex-wrap">
+              <v-chip
+                v-for="user in ccList"
+                :key="user.id"
+                size="small"
+                variant="tonal"
+              >
+                {{ user.name }}
+              </v-chip>
+            </v-chip-group>
+          </div>
+        </div>
+
         <!-- 
           가짜 입력창 (Fake Textarea) 구현부.
           실제로는 div이지만, CSS를 통해 textarea처럼 보이게 만듭니다.
@@ -86,6 +109,7 @@ const props = defineProps({
   modelValue: Boolean,
   noteContent: String,
   version: Object,
+  selectedProject: Object,
   attachments: Array,
   deleteAttachmentFn: Function,
 });
@@ -152,8 +176,44 @@ const formattedHeader = computed(() => {
   return currentHeaderNote.value;
 });
 
+// CC 목록을 계산하는 computed 속성
+const ccList = computed(() => {
+  const ccUsers = new Map();
 
-// 컴포넌트가 처음 마운트될 때, 그리고 다른 곳에서 헤더가 수정되었을 때 데이터를 불러옵니다.
+  // 1. 그룹 리더 추가
+  if (props.version && props.version.group_leaders) {
+    for (const leader of props.version.group_leaders) {
+      if (leader && leader.id) {
+        ccUsers.set(leader.id, leader);
+      }
+    }
+  }
+
+  // 2. 프로젝트 담당자 추가
+  if (props.selectedProject) {
+    const supervisorFields = ['sg_sup', 'sg_cg_sup', 'sg_pd', 'sg_pm', 'sg_pa'];
+    for (const field of supervisorFields) {
+      const supervisorArray = props.selectedProject[field];
+      // 필드가 존재하고, 배열이며, 비어있지 않은지 확인
+      if (supervisorArray && supervisorArray.length > 0) {
+        const supervisor = supervisorArray[0]; // 배열의 첫 번째 요소를 사용
+        if (supervisor && supervisor.id) {
+          ccUsers.set(supervisor.id, supervisor);
+        }
+      }
+    }
+  }
+
+  // 3. 'To'에 있는 아티스트 본인 제외
+  if (props.version && props.version.user && props.version.user.id) {
+    ccUsers.delete(props.version.user.id);
+  }
+
+  return Array.from(ccUsers.values());
+});
+
+
+// 컴포넌트가 처음 마운트될 때, 그리고 다른 곳에서 헤더가 수정되었을 때 데이터를 불러옵니다。
 onMounted(() => {
   loadHeaderData();
   window.addEventListener('pono-header-updated', loadHeaderData);

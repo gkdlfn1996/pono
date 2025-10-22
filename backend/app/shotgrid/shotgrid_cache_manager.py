@@ -33,6 +33,29 @@ async def get_or_create_versions_cache(
     lightweight_versions = await shotgrid_api_module.get_lightweight_versions(
         sg, project_id, pipeline_step
     )
+
+    # 그룹 리더 정보를 가져와서 버전에 추가하는 로직
+    if lightweight_versions:
+       # 1. 버전 목록에서 아티스트 ID 목록을 중복 없이 추출
+       artist_id_set = set()
+       for v in lightweight_versions:
+           if v.get('user') and v['user'].get('id'):
+               artist_id_set.add(v['user']['id'])
+       artist_ids = list(artist_id_set)
+
+       if artist_ids:
+           # 2. 아티스트 ID 목록으로 그룹 리더 정보를 한 번에 조회
+           leaders_by_artist = await shotgrid_api_module.get_group_leaders_for_artists(sg, artist_ids)
+
+           # 3. 각 버전에 해당 아티스트의 그룹 리더 정보를 추가
+           for version in lightweight_versions:
+                artist_id = None
+                user_info = version.get('user')
+                if user_info:
+                    artist_id = user_info.get('id')
+                
+                version['group_leaders'] = leaders_by_artist.get(artist_id, [])
+
     
     # 클라이언트 연결이 끊겼는지 확인
     if await request.is_disconnected():
