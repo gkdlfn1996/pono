@@ -57,6 +57,7 @@
       :selected-project="selectedProject"
       :attachments="myNoteAttachments"
       :delete-attachment-fn="handleDeleteAttachment"
+      :draft-note-id="props.myNote?.id"
       @update:note-content="value => { localContent = value; onBlur(); }"
     />
 

@@ -85,7 +85,7 @@ def get_notes_by_step(db: Session, project_id: int, step_name: str):
 
     return query.all()
 
-def delete_note_if_exists(db: Session, version_id: int, owner_id: int):
+def delete_note_by_versionid_ownerid(db: Session, version_id: int, owner_id: int):
     """
     주어진 version_id와 owner_id에 해당하는 노트가 있으면 삭제합니다.
     """
@@ -98,3 +98,16 @@ def delete_note_if_exists(db: Session, version_id: int, owner_id: int):
         db.delete(note_to_delete)
         return note_to_delete # 삭제 성공 시 Note 객체 반환
     return None # 삭제할 노트 없음
+
+def delete_note_by_id(db: Session, note_id: int):
+    """
+    노트의 기본 키(id)를 기준으로 노트를 찾아 세션에서 삭제 대상으로 표시합니다.
+    실제 삭제는 commit이 호출될 때 이루어집니다.
+    """
+    note_to_delete = db.query(models.Note).filter(models.Note.id == note_id).first()
+    if note_to_delete:
+        db.delete(note_to_delete)
+        db.commit()
+        return note_to_delete
+    return None
+

@@ -69,7 +69,7 @@ async def save_note_logic(note_data: schemas.NoteCreate, db: Session):
                     return note_to_process
                 else:
                     # 첨부파일이 없으면 노트 전체 삭제
-                    deleted_note = database.delete_note_if_exists(db, note_data.version_id, note_data.owner_id)
+                    deleted_note = database.delete_note_by_versionid_ownerid(db, note_data.version_id, note_data.owner_id)
                     if deleted_note:
                         await _delete_attachments_folder(deleted_note.id, deleted_note.owner_id)
                         db.commit()
@@ -176,9 +176,40 @@ async def delete_attachment_by_id(db: Session, attachment_id: int, owner_id: int
         db.commit()
 
         await _broadcast_note_deletion(version_id_for_signal, owner_id, db)
-        
         return Response(status_code=status.HTTP_204_NO_CONTENT)
     else:
         # 노트가 비어있지 않다면, 그냥 업데이트된 노트 정보를 방송
         await _broadcast_note_update(note, db)
-        return note
+        return note 
+
+async def delete_draftnote_by_id(db: Session, note_id: int, owner_id: int):
+    """
+    ID를 기준으로 임시 노트를 찾아서, 노트와 모든 종속 항목(첨부파일 폴더)을 삭제하고,
+    웹소켓으로 삭제 신호를 전파합니다.
+    - Args:
+        - db (Session): 데이터베이스 세션.
+        - note_id (int): 삭제할 노트의 ID.
+        - owner_id (int): API를 요청한 사용자의 ID (권한 확인용).
+    """
+    # 1. 노트 조회 및 소유권 확인
+    print('------------------')
+    print(f'note_id:{note_id}, owner_id:{owner_id}')
+    note_to_delete = db.query(models.Note).filter(models.Note.id == note_id).first()
+    if not note_to_delete:
+        # 노트가 이미 다른 프로세스에 의해 삭제되었을 수 있으므로, 오류 대신 조용히 종료합니다.
+        print(f"Note with id {note_id} not found. It might have been already deleted.")
+        return
+    if note_to_delete.owner_id != owner_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to delete this note")
+
+    version_id_for_signal = note_to_delete.version_id
+
+    # 2. DB 삭제 로직을 database.py에 위임 (내부에서 commit 및 print 실행)
+    deleted_note_from_db = database.delete_note_by_id(db, note_id)
+
+    # 3. DB 삭제가 성공적으로 이루어졌다면 후속 작업 진행
+    if deleted_note_from_db:
+        # 4. 물리적 첨부파일 폴더 삭제
+        await _delete_attachments_folder(note_id, owner_id)
+        # 5. 웹소켓으로 삭제 신호 전파
+        await _broadcast_note_deletion(version_id_for_signal, owner_id, db)

@@ -310,6 +310,67 @@ def get_group_leaders_for_artists(sg, artist_id_list: List[int]):
 
 
 
+def create_shotgrid_note_with_attachments(sg, payload: dict, author_user: dict):
+    """
+    프론트엔드 payload를 받아 ShotGrid에 노트를 생성하고,
+    첨부파일(file/path/url)을 노트에 연결합니다.
+    """
+    try:
+        # 1. 기본 정보 구성
+        project = {"type": "Project", "id": payload["project_id"]}
+        version = {"type": "Version", "id": payload["version_id"]}
+        task = payload.get("task")
+
+        # 2. 노트 생성 페이로드 구성
+        note_payload = {
+            "project": project,
+            "user": author_user,
+            "subject": payload.get("subject", ""),
+            "content": payload.get("content", ""),
+            "note_links": [version],
+            "addressings_to": payload.get("to_users", []),
+            "addressings_cc": payload.get("cc_users", []),
+        }
+
+        # Task 객체가 있으면, 그대로 'tasks' 필드에 리스트로 감싸서 추가
+        if task:
+            note_payload["tasks"] = [task]
+
+        # 3. ShotGrid에 노트 생성
+        created_note = sg.create("Note", note_payload)
+        if not created_note:
+            print("Failed to create note in ShotGrid.")
+            return None
+
+        # 4. 첨부파일 처리
+        for attachment in payload.get("attachments", []):
+            file_type = attachment.get("file_type")
+            path_or_url = attachment.get("path_or_url")
+
+            if not path_or_url:
+                continue
+
+            # Case 1: 실제 파일 업로드 (file_type: 'file')
+            if file_type == "file":
+                display_name = attachment.get("file_name")
+                sg.upload("Note", created_note["id"], path_or_url, display_name=display_name)
+            
+            # Case 2: URL 또는 파일 시스템 경로(Path) 링크 첨부
+            else: # (file_type: 'url' or 'path')
+                if path_or_url.startswith("http://") or path_or_url.startswith("https://"):
+                    link_data = {"link_type": "url", "url": path_or_url}
+                else:
+                    link_data = {"link_type": "local", "local_path": path_or_url}
+                
+                sg.create("Attachment", {"project": project, "this_file": link_data, "attachment_links": [created_note]})
+
+        return created_note
+    except Exception as e:
+        print(f"Error in create_shotgrid_note_with_attachments: {e}")
+        return None
+
+
+
 # ===================================================================
 # Part 2: 비동기 API 자동 생성 영역
 # ===================================================================

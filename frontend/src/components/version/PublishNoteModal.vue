@@ -2,14 +2,20 @@
   <!-- 
     v-dialog: Vuetify의 모달 컴포넌트. 
     v-model 바인딩을 통해 부모 컴포넌트에서 모달의 표시 여부를 제어합니다.
+    :persistent="isLoading"을 추가하여 API 요청 중에는 모달이 닫히지 않도록 합니다.
   -->
-  <v-dialog :model-value="modelValue" @update:model-value="close" max-width="800px">
+  <v-dialog :model-value="modelValue" @update:model-value="close" max-width="800px" :persistent="isLoading">
     <v-card>
       <v-card-title class="d-flex justify-space-between align-center">
         <span>Publish Note</span>
         <v-btn icon="mdi-close" variant="text" @click="close"></v-btn>
       </v-card-title>
       <v-divider></v-divider>
+
+      <!-- 퍼블리쉬 실패 시 에러 메시지 표시 -->
+      <v-alert v-if="error" type="error" density="compact" class="ma-4" closable @click:close="error = null">
+        {{ error }}
+      </v-alert>
 
       <v-card-text>
         <p class="text-caption text-medium-emphasis mb-4">
@@ -87,10 +93,25 @@
 
       <v-card-actions class="pa-4">
         <v-spacer></v-spacer>
-        <v-btn @click="close" variant="text">Cancel</v-btn>
-        <v-btn color="primary" variant="flat">PUBLISH</v-btn>
+        <v-btn @click="close" variant="text" :disabled="isLoading">Cancel</v-btn>
+        <v-btn color="primary" variant="flat" @click="handlePublish" :loading="isLoading">
+          PUBLISH
+          <template v-slot:loader>
+            <v-progress-circular indeterminate size="20" width="2"></v-progress-circular>
+          </template>
+        </v-btn>
       </v-card-actions>
     </v-card>
+
+    <!-- 성공 알림용 로컬 스낵바 -->
+    <v-snackbar
+      v-model="showSuccessSnackbar"
+      color="success"
+      :timeout="2000"
+      location="top"
+    >
+      {{ snackbarText }}
+    </v-snackbar>
   </v-dialog>
 </template>
 
@@ -102,6 +123,7 @@
 import { ref, watch, onMounted, onBeforeUnmount, computed } from 'vue';
 import { useAuth } from '@/composables/useAuth.js';
 import AttachmentHandler from './draftnote_attachments/AttachmentHandler.vue';
+import { useShotGridPublish } from '@/composables/useShotGridPublish.js';
 
 // modelValue: v-model을 통해 모달의 열림/닫힘 상태를 제어.
 // noteContent: 부모 컴포넌트의 노트 내용을 표시하고 동기화.
@@ -112,11 +134,12 @@ const props = defineProps({
   selectedProject: Object,
   attachments: Array,
   deleteAttachmentFn: Function,
+  draftNoteId: Number, // 임시 노트 ID
 });
 
 // 'update:modelValue': 모달을 닫을 때 부모의 v-model 상태를 업데이트.
-// 'update:noteContent': 노트 내용이 변경될 때 부모의 상태를 업데이트.
-const emit = defineEmits(['update:modelValue', 'update:noteContent']);
+// 'publish-success': 퍼블리쉬 성공 시 부모에게 알림.
+const emit = defineEmits(['update:modelValue', 'update:noteContent', 'publish-success']);
 
 // --- 상태 변수 (State Variables) ---
 const isFocused = ref(false); // '가짜 입력창'의 포커스 상태 (테두리 색상 변경용)
@@ -124,11 +147,16 @@ const textareaRef = ref(null); // 실제 v-textarea 엘리먼트를 참조하기
 const currentSubject = ref(''); // localStorage에서 불러온 서브젝트.
 const currentHeaderNote = ref(''); // localStorage에서 불러온 헤더 노트.
 const internalContent = ref(''); // 커서 점프 버그 방지를 위한 내부 컨텐츠 상태
+const { isLoading, error, publishNote } = useShotGridPublish();
+const showSuccessSnackbar = ref(false); // 스낵바 표시 여부
+const snackbarText = ref(''); // 스낵바 메시지
 
 // --- 함수 (Functions) ---
 
 // 모달을 닫는 함수.
 const close = () => {
+  // 로딩 중에는 닫기 방지
+  if (isLoading.value) return;
   emit('update:noteContent', internalContent.value); // 닫힐 때 최종 컨텐츠를 전달
   emit('update:modelValue', false);
 };
@@ -136,6 +164,40 @@ const close = () => {
 // '가짜 입력창' 컨테이너를 클릭했을 때, 실제 textarea에 포커스를 주는 함수.
 const focusTextarea = () => {
   textareaRef.value?.focus();
+};
+
+// 'PUBLISH' 버튼 클릭 시 실행되는 핸들러
+const handlePublish = async () => {
+  const toUser = props.version.user;
+  if (!toUser) {
+    error.value = "Cannot publish: Version artist (To:) is not defined.";
+    return;
+  }
+
+  // 헤더와 본문을 합쳐 최종 컨텐츠 생성
+  const finalContent = `${formattedHeader.value}${internalContent.value}`;
+
+  const publishData = {
+    version: props.version,
+    selectedProject: props.selectedProject,
+    subject: currentSubject.value,
+    content: finalContent,
+    to_users: [toUser],
+    cc_users: ccList.value,
+    attachments: props.attachments,
+    draft_note_id: props.draftNoteId,
+    task: props.version.sg_task, // Task 정보 추가
+  };
+
+  const success = await publishNote(publishData);
+  if (success) {
+    snackbarText.value = '성공적으로 Publish 되었습니다.';
+    showSuccessSnackbar.value = true;
+    // 콘텐츠 비우기
+    internalContent.value = '';
+    // 스낵바가 잠시 표시된 후 모달을 닫습니다.
+    setTimeout(() => { close(); emit('publish-success'); }, 1500);
+  }
 };
 
 // --- 데이터 로딩 및 생명주기 (Data Loading & Lifecycle) ---
