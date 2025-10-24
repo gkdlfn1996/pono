@@ -292,6 +292,12 @@ watch(() => props.modelValue, (newValue) => {
   if (newValue) {
     internalContent.value = props.noteContent || ''; // 모달이 열릴 때 부모 컨텐츠로 초기화
     loadHeaderData();
+
+    // 모달이 열릴 때마다 스내바와 에러 상태를 초기화합니다.
+    showSuccessSnackbar.value = false;
+    snackbarText.value = '';
+    error.value = null;
+
     setTimeout(() => textareaRef.value?.focus(), 100); // DOM 렌더링 후 포커스
   }
 });

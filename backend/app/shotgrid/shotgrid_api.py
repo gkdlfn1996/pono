@@ -357,10 +357,13 @@ def create_shotgrid_note_with_attachments(sg, payload: dict, author_user: dict):
             
             # Case 2: URL 또는 파일 시스템 경로(Path) 링크 첨부
             else: # (file_type: 'url' or 'path')
+                # http(s) URL은 그대로 'url' 타입으로 처리
                 if path_or_url.startswith("http://") or path_or_url.startswith("https://"):
                     link_data = {"link_type": "url", "url": path_or_url}
+                # 그 외의 모든 경로는 'dilink://'를 붙여 'url' 타입으로 처리
                 else:
-                    link_data = {"link_type": "local", "local_path": path_or_url}
+                    dilink_url = f"dilink://{path_or_url}"
+                    link_data = {"link_type": "url", "url": dilink_url}
                 
                 sg.create("Attachment", {"project": project, "this_file": link_data, "attachment_links": [created_note]})
 
