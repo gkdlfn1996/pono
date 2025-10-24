@@ -11,8 +11,7 @@
         single-line
         prepend-inner-icon="mdi-magnify"
         clearable
-        @keydown.enter="applySearch"
-        @click:clear="clearSearch"
+        @keydown.enter="applySearch" @click:clear="clearSearch"
       ></v-text-field>
     </div>
     <v-card variant="outlined" class="flex-grow-1 d-flex flex-column" style="min-height: 0;">
@@ -22,8 +21,8 @@
           <v-progress-circular indeterminate color="grey-lighten-1"></v-progress-circular>
         </div>
         <!-- 데이터가 있을 때만 노트를 렌더링 -->
-        <template v-else-if="filteredNotes && filteredNotes.length > 0">
-          <div v-for="(note, index) in filteredNotes" :key="index">
+        <template v-else-if="appsettingFilteredNotes && appsettingFilteredNotes.length > 0">
+          <div v-for="(note, index) in appsettingFilteredNotes" :key="index">
             <div class="d-flex justify-space-between align-center px-3 pt-2 pb-1">
               <span class="text-subtitle-2 font-weight-bold">{{ note.user.name }}</span>
               <span class="text-caption text-grey">{{ formatDateTime(note.created_at) }}</span>
@@ -32,7 +31,7 @@
               {{ note.subject }}
             </div>
             <div class="text-body-2 pt-0 pb-2 px-3" style="white-space: pre-wrap; word-wrap: break-word;">{{ note.content }}</div>
-            <v-divider v-if="index < filteredNotes.length - 1"></v-divider>
+            <v-divider v-if="index < appsettingFilteredNotes.length - 1"></v-divider>
           </div>
         </template>
         <!-- 데이터가 없을 때 메시지 표시 -->
@@ -48,6 +47,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue';
+import { useAppSettings } from '../../composables/useAppSettings'; // useAppSettings 임포트
 
 const props = defineProps({
   entity: {
@@ -89,6 +89,18 @@ const filteredNotes = computed(() => {
     (note.subject && note.subject.toLowerCase().includes(lowerCaseQuery)) ||
     (note.content && note.content.toLowerCase().includes(lowerCaseQuery))
   );
+});
+
+// useAppSettings에서 showPublishedNotes 상태와 filterPublishedNotes 함수를 가져옵니다.
+const { showPublishedNotes, filterPublishedNotes } = useAppSettings();
+
+// 최종적으로 화면에 표시될 노트를 결정하는 computed 속성 (검색 필터 + Publish 노트 필터)
+const appsettingFilteredNotes = computed(() => {
+  // 1차 필터: 검색어를 반영한 노트 목록
+  let notesAfterSearch = filteredNotes.value;
+
+  // 2차 필터: Publish 노트 가시성을 반영
+  return filterPublishedNotes(notesAfterSearch, showPublishedNotes.value);
 });
 
 const formatDateTime = (isoString) => {

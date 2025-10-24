@@ -70,9 +70,22 @@
                 hide-details
                 prepend-icon="mdi-white-balance-sunny"
                 append-icon="mdi-weather-night"
-                @update:modelValue="toggleTheme"
+                @update:modelValue="toggleDarkTheme"
                 @click.stop
               ></v-switch>
+            </v-list-item-title>
+          </v-list-item>
+          <v-divider></v-divider>
+          <v-list-item>
+            <v-list-item-title>
+              <v-btn
+                variant="text"
+                block
+                justify="start"
+                @click="togglePublishedNotes"
+              >
+                {{ showPublishedNotes ? 'Hide Publish Notes' : 'Show Publish Notes' }}
+              </v-btn>
             </v-list-item-title>
           </v-list-item>
           <v-divider></v-divider>
@@ -90,10 +103,11 @@
 </template>
 
 <script setup>
-import { onMounted, computed } from 'vue';
+import { onMounted, computed, watch } from 'vue';
 import { useShotGridData } from '../../composables/useShotGridData';
 import { useTheme } from 'vuetify';
 import SearchBar from './SearchBar.vue';
+import { useAppSettings } from '../../composables/useAppSettings'; // useAppSettings 임포트
 
 const {
   projects,
@@ -106,6 +120,7 @@ const {
   isVersionsLoading,
   applyFilters,
 } = useShotGridData();
+const { isDarkTheme, showPublishedNotes, toggleDarkTheme, togglePublishedNotes } = useAppSettings(); // useAppSettings 사용
 
 const props = defineProps({
   username: String,
@@ -118,11 +133,9 @@ onMounted(async () => {
 });
 
 const theme = useTheme();
-const isDarkTheme = computed(() => theme.global.current.value.dark);
-
-function toggleTheme() {
-  theme.global.name.value = isDarkTheme.value ? 'light' : 'dark';
-}
+watch(isDarkTheme, (newValue) => {
+  theme.global.name.value = newValue ? 'dark' : 'light';
+});
 
 // 검색창 활성화/비활성화 여부를 결정하는 computed 속성
 const isSearchBarDisabled = computed(() => {

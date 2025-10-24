@@ -8,14 +8,14 @@
         <v-progress-circular color="grey-lighten-4" indeterminate></v-progress-circular>
       </div>
       <!-- Notes Not Available State -->
-      <div v-else-if="!version.notes || version.notes.length === 0" class="d-flex align-center justify-center fill-height">
+      <div v-else-if="!appsettingFilteredNotes || appsettingFilteredNotes.length === 0" class="d-flex align-center justify-center fill-height">
         <p class="text-grey text-center">
           버전 노트가 없습니다.
         </p>
       </div>
       <!-- Notes Available State -->
-      <template v-if="version.notes && version.notes.length > 0">
-        <div v-for="(note, index) in version.notes" :key="note.id">
+      <template v-else>
+        <div v-for="(note, index) in appsettingFilteredNotes" :key="note.id">
           <div class="d-flex justify-space-between align-center px-3 pt-2 pb-1">
             <span class="text-subtitle-2 font-weight-bold">{{ note.user.name }}</span>
             <span class="text-caption text-grey">{{ formatDateTime(note.created_at) }}</span>
@@ -24,7 +24,7 @@
             {{ note.subject }}
           </div>
           <div class="text-body-2 pt-0 pb-2 px-3" style="white-space: pre-wrap; word-wrap: break-word;">{{ note.content }}</div>
-          <v-divider v-if="index < version.notes.length - 1"></v-divider>
+          <v-divider v-if="index < appsettingFilteredNotes.length - 1"></v-divider>
         </div>
       </template>
     </v-card-text>
@@ -38,6 +38,15 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+});
+
+import { computed } from 'vue';
+import { useAppSettings } from '../../composables/useAppSettings';
+
+const { showPublishedNotes, filterPublishedNotes } = useAppSettings();
+
+const appsettingFilteredNotes = computed(() => {
+  return filterPublishedNotes(props.version.notes, showPublishedNotes.value);
 });
 
 const formatDateTime = (isoString) => {
