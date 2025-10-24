@@ -59,6 +59,7 @@
       :delete-attachment-fn="handleDeleteAttachment"
       :draft-note-id="props.myNote?.id"
       @update:note-content="value => { localContent = value; onBlur(); }"
+      @publish-success="handlePublishSuccess"
     />
 
     <!-- Other's Draft Notes 섹션 -->
@@ -146,7 +147,7 @@ const props = defineProps({
 
 // 첨부파일 관련 로직과 상태를 가져옵니다.
 const { getIconForFile, handleAttachmentClick } = useAttachments();
-const { selectedProject } = useShotGridData();
+const { selectedProject, loadVersions } = useShotGridData(); // loadVersions 함수 추가
 
 // 첨부파일 모달의 표시 여부를 제어하는 상태.
 const showAttachmentModal = ref(false);
@@ -174,6 +175,12 @@ const handleUploadFiles = (uploadData) => {
  */
 const handleDeleteAttachment = (attachmentId) => {
   props.deleteAttachment(attachmentId);
+};
+
+// Publish 성공 시 호출될 핸들러
+const handlePublishSuccess = () => {
+  // 버전 리스트를 새로고침합니다.
+  loadVersions(false); // 캐시를 사용하지 않고 새로 불러옵니다.
 };
 
 // 내 노트 입력창의 내부 콘텐츠 상태.
