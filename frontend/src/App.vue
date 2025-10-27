@@ -9,7 +9,7 @@
     />
 
     <!-- AppSidebar는 로그인 상태일 때만 표시됩니다. -->
-    <AppSidebar v-if="isAuthenticated" v-model="drawer" />
+    <AppSidebar v-if="isAuthenticated" v-model="drawer" @open-publish-all-modal="showPublishAllModal = true" />
 
     <v-main style="min-height: 100vh;">
       <!-- 로그인 섹션 (로그인되지 않았을 때만 표시) -->
@@ -67,52 +67,58 @@
 
     <!-- 다른 UI 요소들 (로그인 상태일 때만 표시) -->
     <ShotDetailPanel v-if="isAuthenticated" v-model="showShotDetailPanel" />
-
-    <!-- 최상단으로 스크롤하는 플로팅 버튼 -->
-    <div class="scroll-to-top">
-      <v-btn
-        icon="mdi-arrow-collapse-up"
-        variant="tonal"
-        size="small"
-        @click="scrollToTop"
-      ></v-btn>
-    </div>
-  </v-app>
-</template>
-
-<script setup>
-import { ref, onMounted, onErrorCaptured, watch, onUnmounted } from 'vue';
-import { useAuth } from './composables/useAuth';
-import { useDraftNotes } from './composables/useDraftNotes';
-import { useShotGridData } from './composables/useShotGridData';
-
-// 컴포넌트 임포트
-import LoginSection from './components/layout/LoginSection.vue';
-import AppHeader from './components/layout/AppHeader.vue';
-import AppSidebar from './components/layout/AppSidebar.vue';
-import ShotDetailPanel from './components/layout/ShotDetailPanel.vue';
-import VersionList from './components/layout/VersionList.vue';
-
-// --- 인증 관련 상태 및 함수 ---
-const { isAuthenticated, user, loginError, login, logout, checkAuthStatus } = useAuth();
-const isAuthCheckComplete = ref(false);
-
-// --- ShotGrid 데이터 중앙 상태 ---
-const {
-  displayVersions,
-  isVersionsLoading,
-  currentPage,
-  totalPages,
-  selectedProject,
-  selectedPipelineStep,
-  sortBy,
-  sortOrder,
-  presentEntityTypes,
-  loadVersions,
-  changePage,
-  setSort,
-  clearShotGridDataState,
-} = useShotGridData();
+        <PublishAllNotesModal
+          v-if="isAuthenticated"
+          v-model="showPublishAllModal"
+          :my-notes="myNotes"
+        />
+    
+        <!-- 최상단으로 스크롤하는 플로팅 버튼 -->
+        <div class="scroll-to-top">
+          <v-btn
+            icon="mdi-arrow-collapse-up"
+            variant="tonal"
+            size="small"
+            @click="scrollToTop"
+          ></v-btn>
+        </div>
+      </v-app>
+    </template>
+    
+    <script setup>
+    import { ref, onMounted, onErrorCaptured, watch, onUnmounted } from 'vue';
+    import { useAuth } from './composables/useAuth';
+    import { useDraftNotes } from './composables/useDraftNotes';
+    import { useShotGridData } from './composables/useShotGridData';
+    
+    // 컴포넌트 임포트
+    import LoginSection from './components/layout/LoginSection.vue';
+    import AppHeader from './components/layout/AppHeader.vue';
+    import AppSidebar from './components/layout/AppSidebar.vue';
+    import ShotDetailPanel from './components/layout/ShotDetailPanel.vue';
+    import PublishAllNotesModal from './components/sidebar/PublishAllNotesModal.vue';
+    import VersionList from './components/layout/VersionList.vue';
+    
+    // --- 인증 관련 상태 및 함수 ---
+    const { isAuthenticated, user, loginError, login, logout, checkAuthStatus } = useAuth();
+    const isAuthCheckComplete = ref(false);
+    
+    // --- ShotGrid 데이터 중앙 상태 ---
+    const {
+      displayVersions,
+      isVersionsLoading,
+      currentPage,
+      totalPages,
+      selectedProject,
+      selectedPipelineStep,
+      sortBy,
+      sortOrder,
+      presentEntityTypes,
+      loadVersions,
+      changePage,
+      setSort,
+      clearShotGridDataState,
+    } = useShotGridData();
 
 // --- Draft Notes & WebSocket 중앙 상태 ---
 const { 
@@ -145,6 +151,7 @@ onErrorCaptured((err) => {
 // --- UI 상태 ---
 const drawer = ref(false);
 const showShotDetailPanel = ref(false);
+const showPublishAllModal = ref(false);
 
 // --- 이벤트 핸들러 ---
 const handleLogin = async (credentials) => {

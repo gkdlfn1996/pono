@@ -127,6 +127,7 @@ def get_lightweight_versions(sg, project_id, pipeline_step_name):
     print(f"Successfully fetched {len(versions)} versions.")
     return versions
 
+@timing
 def get_thumbnails_by_ids(sg, version_ids: List[int]):
     """
     주어진 버전 ID 목록에 해당하는 썸네일을 한 번에 조회합니다.
@@ -138,6 +139,7 @@ def get_thumbnails_by_ids(sg, version_ids: List[int]):
     fields = ['id', 'image']
     return sg.find("Version", filters, fields)
 
+@timing
 def get_notes_by_ids(sg, version_ids: List[int]):
     """
     주어진 버전 ID 목록에 연결된 모든 노트를 조회하고,
@@ -412,19 +414,12 @@ if __name__ == "__main__":
     from shotgrid_authenticator import UserSG, SessionTokenSG
     from pprint import pprint
     
-    session_token = '80f4b2b334bf8f2bc65b65488258b83b'
+    session_token = '0dde9ec2cd79f9912229c6996272a35a'
     project_id = 848
     pipeline_step_name = 'All'
     
     token_sg = SessionTokenSG(session_token).sg
     
 
-    versions = get_lightweight_versions(token_sg, project_id, pipeline_step_name)
-    artist_id_set = set()
-    for version in versions:
-        if version.get('user') and version['user'].get('id'):
-            artist_id_set.add(version['user']['id'])
-    artist_ids = list(artist_id_set)
-
-    leaders_by_artist = get_group_leaders_for_artists(token_sg, artist_ids)
-    pprint(leaders_by_artist)
+    get_thumbnails_by_ids(token_sg, [188650])
+    get_notes_by_ids(token_sg,[188650])

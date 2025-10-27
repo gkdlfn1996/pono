@@ -19,7 +19,7 @@
         <HeaderSubjectEditor :username="user?.name" />
       </v-list-group>
 
-      <v-list-item link title="Publish All Notes"></v-list-item>
+      <v-list-item link title="Publish All Notes" @click="emit('open-publish-all-modal')"></v-list-item>
     </v-list>
   </v-navigation-drawer>
 </template>
@@ -32,7 +32,7 @@ const props = defineProps({
   modelValue: Boolean,
 });
 
-const emit = defineEmits(["update:modelValue"]);
+const emit = defineEmits(["update:modelValue", "open-publish-all-modal"]);
 
 const { user } = useAuth();
 </script>

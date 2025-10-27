@@ -50,6 +50,26 @@ async def get_versions_view(
     )
     return view_data
 
+@router.get("/all-cached-versions")
+async def get_all_cached_versions(
+    request: Request,
+    project_id: int,
+    pipeline_step: str,
+    sort_by: str = 'created_at',
+    sort_order: str = 'desc',
+    filters: str = None,
+    use_cache: bool = True,
+    sg=Depends(get_shotgrid_instance)
+):
+    """
+    Publish All Notes 모달용: 필터링과 정렬이 적용된 '가벼운' 전체 버전 목록을 캐시에서 가져옵니다.
+    페이지네이션 관련 로직(process_view_data)을 생략하여 성능을 최적화합니다.
+    """
+    all_versions = await shotgrid_cache_manager.get_or_create_versions_cache(
+        sg, project_id, pipeline_step, async_api, use_cache, request
+    )
+    return all_versions or []
+
 @router.post("/heavy-version-data")
 async def get_heavyweight_data(
     version_ids: List[int],

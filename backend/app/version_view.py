@@ -207,6 +207,7 @@ def process_view_data(
     # 6. 최종 데이터 반환
     return {
         "versions": paginated_versions,
+        "all_versions": sorted_versions, # 페이지네이션 전, 정렬된 전체 목록 추가
         "presentEntityTypes": present_types,
         "suggestions": suggestions,
         "total_pages": total_pages,

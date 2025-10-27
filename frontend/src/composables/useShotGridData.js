@@ -169,6 +169,74 @@ export function useShotGridData() {
     };
 
     /**
+     * publish all notes 모달용: 필터링/정렬된 전체 버전 목록과 모든 썸네일을 가져와 반환합니다.
+     */
+    const getCachedVersionsForPub = async () => {
+        if (!selectedProject.value || !selectedPipelineStep.value) return [];
+
+        try {
+            const response = await apiClient.get('/api/data/all-cached-versions', {
+                params: {
+                    project_id: selectedProject.value.id,
+                    pipeline_step: selectedPipelineStep.value,
+                    sort_by: sortBy.value,
+                    sort_order: sortOrder.value,
+                    filters: JSON.stringify(activeFilters.value),
+                    use_cache: true, // 최신 캐시를 우선적으로 활용
+                }
+            });
+            return response.data || [];
+        } catch (error) {
+            console.error("Failed to get cached versions for Pub modal:", error);
+            return [];
+        }
+    };
+
+    /**
+     * Publish All Notes 모달용 2단계: 버전 목록을 받아, 누락된 썸네일을 추가로 요청하여 채워넣습니다.
+     * @param {Array} versions - 썸네일을 채워넣을 버전 객체 배열
+     */
+    const fetchThumbnailsForPub = async (versions) => {
+        console.log('%c[fetchThumbnailsForPub] 함수 시작', 'color: #4CAF50; font-weight: bold;');
+        console.log('1. 입력받은 `versions` 데이터:', versions);
+
+        if (!versions || versions.length === 0) {
+            console.log('%c[fetchThumbnailsForPub] `versions`가 비어있어 함수를 종료합니다.', 'color: #EF5350;');
+            return;
+        }
+
+        const versionMap = new Map(versions.map(v => [v.id, v]));
+        console.log('2. 생성된 `versionMap`:', versionMap);
+
+        const idsToFetch = versions.filter(v => v.image === undefined).map(v => v.id);
+        console.log('3. 썸네일이 없어 요청이 필요한 ID 목록 (`idsToFetch`):', idsToFetch);
+
+        if (idsToFetch.length === 0) {
+            console.log('%c[fetchThumbnailsForPub] 추가로 요청할 썸네일이 없어 함수를 종료합니다.', 'color: #66BB6A;');
+            return;
+        }
+        
+        try {
+            console.log(`%c[fetchThumbnailsForPub] API 요청 시작: /api/data/heavy-version-data, IDs: [${idsToFetch.join(', ')}]`, 'color: #29B6F6;');
+            const response = await apiClient.post('/api/data/heavy-version-data', idsToFetch, {
+                params: { project_id: selectedProject.value.id, pipeline_step: selectedPipelineStep.value }
+            });
+            console.log('4. API 응답 데이터 (`response`):', response);
+
+            response.data.thumbnails.forEach(thumb => {
+                if (versionMap.has(thumb.id)) {
+                    versionMap.get(thumb.id).image = thumb.image;
+                }
+            });
+            console.log('5. 썸네일 정보가 업데이트된 후의 `versionMap`:', versionMap);
+
+        } catch (error) {
+            console.error("Failed to fetch thumbnails for Pub modal:", error);
+        }
+        console.log('%c[fetchThumbnailsForPub] 함수 종료', 'color: #4CAF50; font-weight: bold;');
+    };
+
+    /**
      * 연결된 엔티티(샷/에셋)의 노트를 불러옵니다.
      * 한 번 불러온 노트는 linkedNotesCache에 저장하여 재사용합니다.
      * @param {object} entity - {id, type} 정보를 가진 엔티티 객체
@@ -348,6 +416,8 @@ export function useShotGridData() {
         loadProjects,
         loadPipelineSteps,
         loadLinkedNotes,
+        getCachedVersionsForPub,
+        fetchThumbnailsForPub,
         loadVersions,
         changePage,
         selectProject,
