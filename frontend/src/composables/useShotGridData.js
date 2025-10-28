@@ -197,43 +197,32 @@ export function useShotGridData() {
      * @param {Array} versions - 썸네일을 채워넣을 버전 객체 배열
      */
     const fetchThumbnailsForPub = async (versions) => {
-        console.log('%c[fetchThumbnailsForPub] 함수 시작', 'color: #4CAF50; font-weight: bold;');
-        console.log('1. 입력받은 `versions` 데이터:', versions);
 
         if (!versions || versions.length === 0) {
-            console.log('%c[fetchThumbnailsForPub] `versions`가 비어있어 함수를 종료합니다.', 'color: #EF5350;');
             return;
         }
 
         const versionMap = new Map(versions.map(v => [v.id, v]));
-        console.log('2. 생성된 `versionMap`:', versionMap);
-
         const idsToFetch = versions.filter(v => v.image === undefined).map(v => v.id);
-        console.log('3. 썸네일이 없어 요청이 필요한 ID 목록 (`idsToFetch`):', idsToFetch);
 
         if (idsToFetch.length === 0) {
-            console.log('%c[fetchThumbnailsForPub] 추가로 요청할 썸네일이 없어 함수를 종료합니다.', 'color: #66BB6A;');
             return;
         }
         
         try {
-            console.log(`%c[fetchThumbnailsForPub] API 요청 시작: /api/data/heavy-version-data, IDs: [${idsToFetch.join(', ')}]`, 'color: #29B6F6;');
             const response = await apiClient.post('/api/data/heavy-version-data', idsToFetch, {
                 params: { project_id: selectedProject.value.id, pipeline_step: selectedPipelineStep.value }
             });
-            console.log('4. API 응답 데이터 (`response`):', response);
 
             response.data.thumbnails.forEach(thumb => {
                 if (versionMap.has(thumb.id)) {
                     versionMap.get(thumb.id).image = thumb.image;
                 }
             });
-            console.log('5. 썸네일 정보가 업데이트된 후의 `versionMap`:', versionMap);
 
         } catch (error) {
             console.error("Failed to fetch thumbnails for Pub modal:", error);
         }
-        console.log('%c[fetchThumbnailsForPub] 함수 종료', 'color: #4CAF50; font-weight: bold;');
     };
 
     /**

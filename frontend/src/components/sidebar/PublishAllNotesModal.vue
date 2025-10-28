@@ -28,9 +28,9 @@
         <div class="global-header-section pa-4 mb-4">
           <!-- <h3 class="text-h6 mb-4">Global Settings</h3> -->
           <div class="text-body-1">
-            <p><span class="font-weight-bold" style="width: 120px; display: inline-block;">Author :</span> {{ currentUser?.name }}</p>
-            <p><span class="font-weight-bold" style="width: 120px; display: inline-block;">Subject :</span> {{ currentSubject }}</p>
-            <p><span class="font-weight-bold" style="width: 120px; display: inline-block;">Header Note :</span> {{ currentHeaderNote }}</p>
+            <p><span class="font-weight-bold" style="width: 120px; display: inline-block; text-align:right; margin-right: 8px;">Author :</span> {{ currentUser?.name }}</p>
+            <p><span class="font-weight-bold" style="width: 120px; display: inline-block; text-align:right; margin-right: 8px;">Subject :</span> {{ currentSubject }}</p>
+            <p><span class="font-weight-bold" style="width: 120px; display: inline-block; text-align:right; margin-right: 8px;">Header Note :</span> {{ currentHeaderNote }}</p>
           </div>
         </div>
 
@@ -41,7 +41,7 @@
           <v-card v-for="note in notesToPublish" :key="note.version.id" class="mb-4" variant="outlined">
             <v-card-text>
               <v-row no-gutters>
-                <!-- 1. 정보 영역 (버전, 썸네일, To/CC, 첨부파일) -->
+                <!-- 1. 정보 영역 (버전, 썸네일, To/CC) -->
                 <v-col cols="12" md="4" class="pa-2">
                   <div class="text-subtitle-2 font-weight-bold mb-2">{{ note.version.code }}</div>
                   <v-img
@@ -73,36 +73,30 @@
                       </v-chip-group>
                     </div>
                   </div>
-                  <div class="mt-2">
-                    <!-- AttachmentHandler 컴포넌트가 위치할 자리 -->
-                    <div v-if="note.attachments && note.attachments.length > 0">
-                      <v-divider class="my-2"></v-divider>
-                      <div class="text-caption font-weight-bold mb-1">Attachments</div>
-                      <div v-for="att in note.attachments" :key="att.id" class="d-flex align-center text-caption">
-                        <v-icon size="small" class="mr-1">mdi-attachment</v-icon>
-                        <a href="#" class="text-decoration-none text-blue-lighten-2">{{ att.file_name || att.path_or_url }}</a>
-                      </div>
-                    </div>
-                  </div>
                 </v-col>
 
                 <!-- 2. 노트 내용 -->
-                <v-col cols="12" md="8" class="pa-2">
-                  <v-textarea
-                    label="Final Note Content"
-                    readonly
-                    variant="outlined"
-                    rows="10"
-                    no-resize
-                    hide-details
-                    :model-value="note.formattedContent"
-                  ></v-textarea>
+                <v-col cols="12" md="8" class="pa-2 pl-6 d-flex flex-column">
+                  <div class="text-subtitle-2 font-weight-bold mb-1">Note Content</div>
+                  <div class="text-body-2" style="white-space: pre-wrap; word-wrap: break-word; flex-grow: 1; min-height: 100px;">{{ note.formattedContent }}</div>
+
+                  <!-- Attachments section: Only render if attachments exist -->
+                  <template v-if="note.attachments && note.attachments.length > 0">
+                    <v-divider class="my-2"></v-divider>
+                    <div class="text-subtitle-2 font-weight-bold mb-2">Attachments</div>
+                    <div v-for="att in note.attachments" :key="att.id" class="d-flex align-center text-caption mb-1">
+                      <v-icon size="small" class="mr-1">{{ getIconForFile(att) }}</v-icon>
+                      <a href="#" @click.prevent="handleAttachmentClick(att)" class="text-decoration-none text-blue-lighten-2">{{ att.file_name || att.path_or_url }}</a>
+                    </div>
+                  </template>
+                  
                   <v-btn
                     icon="mdi-close"
                     variant="text"
                     size="small"
                     class="position-absolute"
                     style="top: 8px; right: 8px;"
+                    @click="removeNoteFromList(note.version.id)"
                   ></v-btn>
                 </v-col>
               </v-row>
@@ -124,6 +118,22 @@
           Publish All ({{ notesToPublish.length }})
         </v-btn>
       </v-card-actions>
+
+      <!-- "Copied!" 알림용 다이얼로그 -->
+      <v-dialog
+        :model-value="copiedPath.show"
+        width="auto"
+        hide-overlay
+        persistent
+        :scrim="false"
+      >
+        <v-card color="rgba(0, 0, 0, 0.7)" elevation="8" class="pa-2 rounded-lg">
+          <v-card-text class="text-center d-flex align-center">
+            <v-icon color="white" class="mr-2">mdi-clipboard-check-outline</v-icon>
+            <span style="color: white;">Copied to clipboard!</span>
+          </v-card-text>
+        </v-card>
+      </v-dialog>
     </v-card>
   </v-dialog>
 </template>
@@ -137,6 +147,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useAuth } from '@/composables/useAuth.js';
 import { useShotGridData } from '@/composables/useShotGridData.js';
+import { useAttachments } from '@/composables/useAttachments.js';
 
 /**
  * @props {Boolean} modelValue - v-model을 통해 모달의 열림/닫힘 상태를 제어.
@@ -154,6 +165,7 @@ const emit = defineEmits(['update:modelValue']);
 
 const { getCachedVersionsForPub, fetchThumbnailsForPub } = useShotGridData();
 const isLoading = ref(false); // 모달 내부 데이터 로딩 상태
+const { getIconForFile, handleAttachmentClick, copiedPath } = useAttachments();
 const modalVersions = ref([]); // 모달 전용 버전 목록
 const { user: currentUser } = useAuth();
 const currentSubject = ref('');
@@ -204,6 +216,17 @@ onBeforeUnmount(() => {
  */
 const close = () => {
   emit('update:modelValue', false);
+};
+
+/**
+ * 'x' 버튼을 누르면 해당 노트를 게시 목록에서 제거합니다.
+ * @param {number} versionId - 제거할 버전의 ID.
+ */
+const removeNoteFromList = (versionId) => {
+  const index = modalVersions.value.findIndex(v => v.id === versionId);
+  if (index > -1) {
+    modalVersions.value.splice(index, 1);
+  }
 };
 
 /**
