@@ -26,15 +26,15 @@
         <div class="mb-4">
           <div class="d-flex align-center mb-2">
             <div class="text-body-2 font-weight-bold" style="width: 50px;">To:</div>
-            <v-chip v-if="props.version.user" size="small" color="primary" variant="tonal">
-              {{ props.version.user.name }}
+            <v-chip v-if="toUsers && toUsers.length > 0" size="small" color="primary" variant="tonal">
+              {{ toUsers[0].name }}
             </v-chip>
           </div>
           <div class="d-flex">
             <div class="text-body-2 font-weight-bold" style="width: 50px;">CC:</div>
             <v-chip-group class="flex-wrap">
               <v-chip
-                v-for="user in ccList"
+                v-for="user in ccUsers"
                 :key="user.id"
                 size="small"
                 variant="tonal"
@@ -147,7 +147,7 @@ const textareaRef = ref(null); // 실제 v-textarea 엘리먼트를 참조하기
 const currentSubject = ref(''); // localStorage에서 불러온 서브젝트.
 const currentHeaderNote = ref(''); // localStorage에서 불러온 헤더 노트.
 const internalContent = ref(''); // 커서 점프 버그 방지를 위한 내부 컨텐츠 상태
-const { isLoading, error, publishNote } = useShotGridPublish();
+const { isLoading, error, publishNote, getPublishUsers } = useShotGridPublish();
 const showSuccessSnackbar = ref(false); // 스낵바 표시 여부
 const snackbarText = ref(''); // 스낵바 메시지
 
@@ -168,9 +168,9 @@ const focusTextarea = () => {
 
 // 'PUBLISH' 버튼 클릭 시 실행되는 핸들러
 const handlePublish = async () => {
-  const toUser = props.version.user;
-  if (!toUser) {
-    error.value = "Cannot publish: Version artist (To:) is not defined.";
+  const { toUsers, ccUsers } = getPublishUsers(props.version, props.selectedProject);
+  if (!toUsers || toUsers.length === 0) {
+    error.value = "Cannot publish: Version artist (To:) is not defined or could not be determined.";
     return;
   }
 
@@ -178,12 +178,12 @@ const handlePublish = async () => {
   const finalContent = `${formattedHeader.value}${internalContent.value}`;
 
   const publishData = {
-    version: props.version,
-    selectedProject: props.selectedProject,
+    version: props.version, // 버전 정보
+    selectedProject: props.selectedProject, // 선택된 프로젝트 정보
     subject: currentSubject.value,
     content: finalContent,
-    to_users: [toUser],
-    cc_users: ccList.value,
+    to_users: toUsers, // 'To' 사용자 목록
+    cc_users: ccUsers, // 'CC' 사용자 목록
     attachments: props.attachments,
     draft_note_id: props.draftNoteId,
     task: props.version.sg_task, // Task 정보 추가
@@ -238,41 +238,9 @@ const formattedHeader = computed(() => {
   return currentHeaderNote.value;
 });
 
-// CC 목록을 계산하는 computed 속성
-const ccList = computed(() => {
-  const ccUsers = new Map();
-
-  // 1. 그룹 리더 추가
-  if (props.version && props.version.group_leaders) {
-    for (const leader of props.version.group_leaders) {
-      if (leader && leader.id) {
-        ccUsers.set(leader.id, leader);
-      }
-    }
-  }
-
-  // 2. 프로젝트 담당자 추가
-  if (props.selectedProject) {
-    const supervisorFields = ['sg_sup', 'sg_cg_sup', 'sg_pd', 'sg_pm', 'sg_pa'];
-    for (const field of supervisorFields) {
-      const supervisorArray = props.selectedProject[field];
-      // 필드가 존재하고, 배열이며, 비어있지 않은지 확인
-      if (supervisorArray && supervisorArray.length > 0) {
-        const supervisor = supervisorArray[0]; // 배열의 첫 번째 요소를 사용
-        if (supervisor && supervisor.id) {
-          ccUsers.set(supervisor.id, supervisor);
-        }
-      }
-    }
-  }
-
-  // 3. 'To'에 있는 아티스트 본인 제외
-  if (props.version && props.version.user && props.version.user.id) {
-    ccUsers.delete(props.version.user.id);
-  }
-
-  return Array.from(ccUsers.values());
-});
+const { toUsers, ccUsers } = computed(() => 
+  getPublishUsers(props.version, props.selectedProject)
+).value; // 컴포넌트 로드 시 To/CC 사용자를 계산합니다.
 
 
 // 컴포넌트가 처음 마운트될 때, 그리고 다른 곳에서 헤더가 수정되었을 때 데이터를 불러옵니다。
@@ -339,7 +307,7 @@ watch(() => props.modelValue, (newValue) => {
 
 /* 
   헤더/서브젝트를 표시하는 오버레이 스타일.
-  - pointer-events: none -> 이 div가 마우스 이벤트를 가로채지 않아, 사용자가 이 위를 클릭해도 뒷쪽의 textarea가 클릭된 것처럼 동작하게 함.
+  - pointer-events: none -> 이 div가 마우스 이벤트를 가로채지 않아, 사용자가 이 위를 클릭해도 뒷쪽의 textarea가 클릭된 것처럼 동작하게 함. 
   - white-space, word-wrap -> 원본 텍스트의 줄바꿈과 긴 단어를 올바르게 표시.
 */
 .overlay-content {
@@ -371,3 +339,4 @@ watch(() => props.modelValue, (newValue) => {
   height: 100%;
 }
 </style>
+

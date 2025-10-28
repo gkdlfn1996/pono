@@ -73,10 +73,10 @@
                       <v-chip v-if="note.to" size="small" color="primary" variant="tonal">{{ note.to.name }}</v-chip>
                     </div>
                     <div class="d-flex">
-                      <div class="text-body-2 font-weight-bold" style="width: 40px;">CC:</div>
-                      <v-chip-group class="flex-wrap">
-                        <v-chip v-for="user in note.cc" :key="user.id" size="small" variant="tonal">{{ user.name }}</v-chip>
-                      </v-chip-group>
+                      <div class="text-body-2 font-weight-bold mr-3" style="width: 40px;">CC:</div>
+                      <div class="d-flex flex-wrap" v-if="note.cc && note.cc.length > 0">
+                        <v-chip v-for="user in note.cc" :key="user.id" size="small" variant="tonal" class="ma-1">{{ user.name }}</v-chip>
+                      </div>
                     </div>
                   </div>
                 </v-col>
@@ -154,6 +154,7 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useAuth } from '@/composables/useAuth.js';
 import { useShotGridData } from '@/composables/useShotGridData.js';
 import { useAttachments } from '@/composables/useAttachments.js';
+import { useShotGridPublish } from '@/composables/useShotGridPublish.js'; // Missing import added
 
 /**
  * @props {Boolean} modelValue - v-model을 통해 모달의 열림/닫힘 상태를 제어.
@@ -169,8 +170,9 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue']);
 
-const { getCachedVersionsForPub, fetchThumbnailsForPub } = useShotGridData();
+const { getCachedVersionsForPub, fetchThumbnailsForPub, selectedProject } = useShotGridData(); // selectedProject 추가
 const isLoading = ref(false); // 모달 내부 데이터 로딩 상태
+const { getPublishUsers } = useShotGridPublish(); // getPublishUsers 함수 가져오기
 const { getIconForFile, handleAttachmentClick, copiedPath } = useAttachments();
 const modalVersions = ref([]); // 모달 전용 버전 목록
 const { user: currentUser } = useAuth();
@@ -249,21 +251,7 @@ const notesToPublish = computed(() => {
     .filter(version => props.myNotes[version.id] && (props.myNotes[version.id].content || props.myNotes[version.id].attachments?.length > 0))
     .map(version => {
       const note = props.myNotes[version.id];
-      const toUser = version.user;
-      
-      const ccUsers = new Map();
-      if (version.group_leaders) {
-        for (const leader of version.group_leaders) {
-          if (leader && leader.id) {
-            ccUsers.set(leader.id, leader);
-          }
-        }
-      }
-      if (toUser && toUser.id) {
-        ccUsers.delete(toUser.id);
-      }
-
-      // 포맷된 컨텐츠 생성
+      const { toUsers, ccUsers } = getPublishUsers(version, selectedProject.value); // getPublishUsers 사용
       let formattedContent = note.content;
       if (currentHeaderNote.value) {
         const parts = version.code?.split('_');
@@ -281,8 +269,8 @@ const notesToPublish = computed(() => {
         content: note.content,
         formattedContent: formattedContent,
         attachments: note.attachments || [],
-        to: toUser,
-        cc: Array.from(ccUsers.values()),
+        to: toUsers[0], // 'To'는 배열의 첫 번째 사용자
+        cc: ccUsers, // 'CC'는 배열
       };
     });
 });
