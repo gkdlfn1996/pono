@@ -12,10 +12,6 @@
         @click="showAttachmentModal = true"
         density="compact"
       ></v-btn>
-      <!-- icon="mdi-cloud-upload-outline" -->
-      <!-- icon="mdi-open-in-app" -->
-      <!-- icon="mdi-publish" -->
-      <!-- icon="mdi-send-variant-outline" -->
       <v-btn
         icon="mdi-tray-arrow-up"
         variant="text"

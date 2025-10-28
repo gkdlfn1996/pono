@@ -97,10 +97,13 @@ async def save_note_logic(note_data: schemas.NoteCreate, db: Session):
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-async def create_attachments_for_version(db: Session, version_id: int, files: List[UploadFile], urls: List[str], owner_id: int):
+async def create_attachments_for_version(db: Session, version_id: int, files: List[UploadFile], urls: List[str], owner_id: int, version_meta: dict):
     """
     version_id를 기준으로 노트를 찾거나 생성한 후, 파일을 첨부합니다.
     """
+    # 0. 버전 정보가 DB에 있는지 확인하고, 없으면 생성 (핵심 수정)
+    database.upsert_versions(db, [version_meta])
+
     # 1. version_id와 owner_id로 기존 노트가 있는지 확인
     note = db.query(models.Note).filter(
         models.Note.version_id == version_id,
@@ -166,7 +169,8 @@ async def delete_attachment_by_id(db: Session, attachment_id: int, owner_id: int
     db.commit()
 
     # 첨부파일 삭제 후 노트 상태를 다시 읽어옴
-    db.refresh(note)
+    db.expire(note) # Note 객체를 만료시켜 관계형 데이터를 강제로 다시 로드하도록 지시
+    db.refresh(note) # 최신 상태로 Note 객체를 갱신
 
     # 이제 노트가 비었는지 (내용도, 첨부파일도 없는지) 확인
     if not note.content.strip() and not note.attachments:

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Form
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session # type: ignore
+import json
 from typing import List # type: ignore
 import os
 import mimetypes
@@ -19,12 +20,15 @@ async def upload_attachments_for_version(
     urls: List[str] = Form([]),
     owner_id: int = Form(...),
     db: Session = Depends(database.get_db),
+    version_meta_json: str = Form(...) # 추가: 버전 메타데이터 JSON 문자열
 ):
     """
     특정 버전에 하나 이상의 파일을 첨부합니다. 노트가 없으면 자동 생성됩니다.
     """
+    version_meta = json.loads(version_meta_json) # JSON 문자열 파싱
+
     updated_note = await draftnote_api.create_attachments_for_version(
-        db=db, version_id=version_id, files=files, urls=urls, owner_id=owner_id
+        db=db, version_id=version_id, files=files, urls=urls, owner_id=owner_id, version_meta=version_meta # 전달
     )
     return updated_note
 

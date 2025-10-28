@@ -154,8 +154,17 @@ export function useDraftNotes() {
         uploadData.files.forEach(file => formData.append('files', file));
         uploadData.urls.forEach(url => formData.append('urls', url));
         formData.append('owner_id', user.value.id);
+      
+        // 버전 메타데이터 추가 (백엔드에서 version_id의 존재를 확인/생성하기 위함)
+        const versionMeta = {
+            id: version.id,
+            name: version.code,
+            step_name: version['sg_task.Task.step']?.name, 
+            project_id: selectedProject.value.id
+        };
+        formData.append('version_meta_json', JSON.stringify(versionMeta));
 
-        // 새로운 백엔드 API 호출
+        // 백엔드 API 호출
         try {
             await apiClient.post(`/api/versions/${version.id}/attachments`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
