@@ -44,23 +44,29 @@
                 <!-- 1. 정보 영역 (버전, 썸네일, To/CC) -->
                 <v-col cols="12" md="4" class="pa-2">
                   <div class="text-subtitle-2 font-weight-bold mb-2">{{ note.version.code }}</div>
-                  <v-img
-                    :aspect-ratio="16/9"
-                    :src="note.version.image"
-                    class="rounded"
-                    cover
-                  >
-                    <template v-slot:placeholder>
-                      <div class="d-flex align-center justify-center fill-height bg-grey-darken-1">
-                        <v-progress-circular color="grey-lighten-4" indeterminate></v-progress-circular>
-                      </div>
-                    </template>
-                    <template v-slot:error>
-                      <div class="d-flex align-center justify-center fill-height bg-grey-darken-1">
-                        <v-icon size="48" color="grey-lighten-1">mdi-image-off</v-icon>
-                      </div>
-                    </template>
-                  </v-img>
+                  <v-responsive :aspect-ratio="16/9" class="rounded mb-2">
+                    <!-- 썸네일 로딩 중 -->
+                    <div v-if="note.version.image === undefined" class="d-flex align-center justify-center fill-height bg-grey-darken-1">
+                      <v-progress-circular color="grey-lighten-4" indeterminate></v-progress-circular>
+                    </div>
+                    <!-- 썸네일 없음 -->
+                    <div v-else-if="note.version.image === null" class="d-flex align-center justify-center fill-height bg-grey-darken-1">
+                      <v-icon size="48" color="grey-lighten-1">mdi-image-off</v-icon>
+                    </div>
+                    <!-- 썸네일 있음 -->
+                    <v-img v-else :src="note.version.image" cover class="fill-height">
+                      <template v-slot:placeholder>
+                        <div class="d-flex align-center justify-center fill-height">
+                          <v-progress-circular color="grey-lighten-4" indeterminate></v-progress-circular>
+                        </div>
+                      </template>
+                      <template v-slot:error>
+                        <div class="d-flex align-center justify-center fill-height text-center pa-2 bg-grey-darken-1">
+                          <span style="color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.7);">Error loading thumbnail.</span>
+                        </div>
+                      </template>
+                    </v-img>
+                  </v-responsive>
                   <div class="mt-2">
                     <div class="d-flex align-center mb-2">
                       <div class="text-body-2 font-weight-bold" style="width: 40px;">To:</div>
