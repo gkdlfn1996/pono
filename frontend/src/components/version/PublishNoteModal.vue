@@ -169,10 +169,7 @@ const focusTextarea = () => {
 // 'PUBLISH' 버튼 클릭 시 실행되는 핸들러
 const handlePublish = async () => {
   const { toUsers, ccUsers } = getPublishUsers(props.version, props.selectedProject);
-  if (!toUsers || toUsers.length === 0) {
-    error.value = "Cannot publish: Version artist (To:) is not defined or could not be determined.";
-    return;
-  }
+
 
   // 헤더와 본문을 합쳐 최종 컨텐츠 생성
   const finalContent = `${formattedHeader.value}${internalContent.value}`;

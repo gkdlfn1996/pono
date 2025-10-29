@@ -1,23 +1,30 @@
 <template>
   <v-dialog :model-value="modelValue" @update:model-value="close" max-width="1200px" persistent>
     <v-card>
-      <v-overlay
-        :model-value="isLoading"
-        class="align-center justify-center"
-        persistent
-      >
-        <v-progress-circular
-          color="primary"
-          indeterminate
-          size="64"
-        ></v-progress-circular>
-      </v-overlay>
-
       <v-card-title class="d-flex justify-space-between align-center">
         <span>Publish All Notes</span>
         <v-btn icon="mdi-close" variant="text" @click="close"></v-btn>
       </v-card-title>
       <v-divider></v-divider>
+
+      <!-- 최종 결과 알림창 -->
+      <v-alert
+        v-if="publishCompleted"
+        :type="failedNotes.length === 0 ? 'success' : 'warning'"
+        class="ma-4"
+        variant="tonal"
+      >
+        <div class="d-flex justify-space-between align-center">
+          <span>{{ summaryMessage }}</span>
+        </div>
+        <v-list v-if="failedNotes.length > 0" density="compact" class="bg-transparent">
+          <v-list-item v-for="(item, i) in failedNotes" :key="i" class="pa-0">
+            <v-list-item-title class="text-caption">
+              <strong>{{ item.version.code }}:</strong> {{ item.error }}
+            </v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-alert>
 
       <v-card-text style="max-height: 80vh; overflow-y: auto;">
         <p class="text-caption text-medium-emphasis mb-4">
@@ -36,9 +43,14 @@
 
         <v-divider class="mb-4"></v-divider>
 
-        <!-- 노트 리스트 -->
-        <div v-if="notesToPublish.length > 0" class="notes-list">
-          <v-card v-for="note in notesToPublish" :key="note.version.id" class="mb-4" variant="outlined">
+        <!-- 노트 리스트 (로컬 사본 사용) -->
+        <div v-if="notesInModal.length > 0" class="notes-list">
+          <v-card 
+            v-for="note in notesInModal" 
+            :key="note.draft_note_id" 
+            class="mb-4" 
+            variant="outlined"
+            :class="{ 'failed-note-card': failedNotes.some(f => f.draft_note_id === note.draft_note_id) }">
             <v-card-text>
               <v-row no-gutters>
                 <!-- 1. 정보 영역 (버전, 썸네일, To/CC) -->
@@ -102,7 +114,7 @@
                     size="small"
                     class="position-absolute"
                     style="top: 8px; right: 8px;"
-                    @click="removeNoteFromList(note.version.id)"
+                    @click="removeNoteFromList(note.draft_note_id)"
                   ></v-btn>
                 </v-col>
               </v-row>
@@ -111,17 +123,23 @@
         </div>
         <!-- 데이터 없는 경우 -->
         <div v-else class="text-center py-10 text-grey">
-          <v-icon size="64">mdi-note-off-outline</v-icon>
-          <p class="mt-4">게시할 임시 노트가 없습니다.</p>
+          <v-icon size="64">{{ publishCompleted ? 'mdi-check-all' : 'mdi-note-off-outline' }}</v-icon>
+          <p class="mt-4">{{ publishCompleted ? '모든 노트가 성공적으로 게시되었습니다.' : '게시할 임시 노트가 없습니다.' }}</p>
         </div>
       </v-card-text>
 
       <v-divider></v-divider>
       <v-card-actions class="pa-4">
         <v-spacer></v-spacer>
-        <v-btn @click="close" variant="text">Cancel</v-btn>
-        <v-btn color="primary" variant="flat" :disabled="notesToPublish.length === 0">
-          Publish All ({{ notesToPublish.length }})
+        <v-btn @click="close" variant="text" :disabled="isPublishing">Cancel</v-btn>
+        <v-btn 
+          color="primary" 
+          variant="flat" 
+          :disabled="notesInModal.length === 0 || isPublishing"
+          :loading="isPublishing"
+          @click="handlePublishAll"
+        >
+          Publish All ({{ notesInModal.length }})
         </v-btn>
       </v-card-actions>
 
@@ -151,10 +169,10 @@
  *              모달이 열릴 때, 필요한 모든 데이터를(버전, 썸네일, 노트) 비동기적으로 로드합니다.
  */
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
-import { useAuth } from '@/composables/useAuth.js';
-import { useShotGridData } from '@/composables/useShotGridData.js';
-import { useAttachments } from '@/composables/useAttachments.js';
-import { useShotGridPublish } from '@/composables/useShotGridPublish.js'; // Missing import added
+import { useAuth } from '@/composables/useAuth';
+import { useShotGridData } from '@/composables/useShotGridData';
+import { useAttachments } from '@/composables/useAttachments';
+import { useShotGridPublish } from '@/composables/useShotGridPublish';
 
 /**
  * @props {Boolean} modelValue - v-model을 통해 모달의 열림/닫힘 상태를 제어.
@@ -170,14 +188,22 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue']);
 
-const { getCachedVersionsForPub, fetchThumbnailsForPub, selectedProject } = useShotGridData(); // selectedProject 추가
-const isLoading = ref(false); // 모달 내부 데이터 로딩 상태
-const { getPublishUsers } = useShotGridPublish(); // getPublishUsers 함수 가져오기
+const { getCachedVersionsForPub, fetchThumbnailsForPub, selectedProject, loadVersions } = useShotGridData();
+const { publishAllNotes, getPublishUsers } = useShotGridPublish();
 const { getIconForFile, handleAttachmentClick, copiedPath } = useAttachments();
-const modalVersions = ref([]); // 모달 전용 버전 목록
 const { user: currentUser } = useAuth();
+
+// --- Global Header State ---
 const currentSubject = ref('');
 const currentHeaderNote = ref('');
+
+// --- Modal-specific State ---
+const initialLoading = ref(false); // 모달 최초 데이터 로딩 상태
+const isPublishing = ref(false); // 게시 진행 중 상태
+const publishCompleted = ref(false); // 게시 작업 완료 여부
+const notesInModal = ref([]); // 모달 내에서 관리될 로컬 노트 목록
+const successfulNotes = ref([]);
+const failedNotes = ref([]);
 
 /**
  * 현재 로그인한 사용자의 고유 키를 생성하여 localStorage에서 개인화된 설정을 불러옵니다.
@@ -222,77 +248,104 @@ onBeforeUnmount(() => {
 /**
  * 모달을 닫고, 부모 컴포넌트에 상태 변경을 알립니다.
  */
-const close = () => {
+const close = () => {  
+  if (isPublishing.value) return;
+  // 성공적으로 게시된 노트가 하나라도 있으면, 메인 뷰를 새로고침합니다.
+  if (successfulNotes.value.length > 0) {
+    loadVersions(false);
+  }
   emit('update:modelValue', false);
 };
 
 /**
  * 'x' 버튼을 누르면 해당 노트를 게시 목록에서 제거합니다.
- * @param {number} versionId - 제거할 버전의 ID.
+ * @param {number} draftNoteId - 제거할 임시 노트의 ID.
  */
-const removeNoteFromList = (versionId) => {
-  const index = modalVersions.value.findIndex(v => v.id === versionId);
+const removeNoteFromList = (draftNoteId) => {
+  const index = notesInModal.value.findIndex(n => n.draft_note_id === draftNoteId);
   if (index > -1) {
-    modalVersions.value.splice(index, 1);
+    notesInModal.value.splice(index, 1);
   }
 };
 
-/**
- * props로 받은 myNotes와 내부 modalVersions를 기반으로, 실제로 게시될 노트 목록을 동적으로 계산합니다.
- * 내용이나 첨부파일이 있는 노트만 필터링하고, UI에 필요한 모든 정보(To, CC, 포맷된 컨텐츠 등)를 포함하여 반환합니다.
- * @returns {Array} 게시될 노트 정보 객체의 배열.
- */
-const notesToPublish = computed(() => {
-  if (modalVersions.value.length === 0 || !props.myNotes) {
-    return [];
-  }
-
-  return modalVersions.value
-    .filter(version => props.myNotes[version.id] && (props.myNotes[version.id].content || props.myNotes[version.id].attachments?.length > 0))
-    .map(version => {
-      const note = props.myNotes[version.id];
-      const { toUsers, ccUsers } = getPublishUsers(version, selectedProject.value); // getPublishUsers 사용
-      let formattedContent = note.content;
-      if (currentHeaderNote.value) {
-        const parts = version.code?.split('_');
-        if (parts && parts.length >= 4) {
-          const task = parts[2];
-          const verNum = parts[3];
-          formattedContent = `${currentHeaderNote.value}_${task}_${verNum}_${note.content}`;
-        } else {
-          formattedContent = `${currentHeaderNote.value}_${note.content}`;
-        }
-      }
-
-      return {
-        version: version,
-        content: note.content,
-        formattedContent: formattedContent,
-        attachments: note.attachments || [],
-        to: toUsers[0], // 'To'는 배열의 첫 번째 사용자
-        cc: ccUsers, // 'CC'는 배열
-      };
-    });
+const summaryMessage = computed(() => {
+  const total = successfulNotes.value.length + failedNotes.value.length;
+  return `Publish complete. Success: ${successfulNotes.value.length}, Failed: ${failedNotes.value.length}`;
 });
+
+const onNoteProcessed = (result) => {
+  if (result.status === 'success') {
+    // 성공 목록에 추가
+    successfulNotes.value.push(result.noteId);
+    // 모달 내 목록에서 제거
+    const index = notesInModal.value.findIndex(n => n.draft_note_id === result.noteId);
+    if (index > -1) {
+      notesInModal.value.splice(index, 1);
+    }
+  } else {
+    // 실패 시: 모달에 남아있는 노트 목록에서 원본 노트를 찾아 실패 목록에 추가
+    const failedNote = notesInModal.value.find(n => n.draft_note_id === result.noteId);
+    if (failedNote) {
+      failedNotes.value.push({ ...failedNote, error: result.error });
+    }
+  }
+};
+
+const handlePublishAll = async () => {
+  isPublishing.value = true;
+  publishCompleted.value = false;
+  successfulNotes.value = [];
+  failedNotes.value = [];
+
+  // notesInModal에 있는 각 노트 객체에 selectedProject.value를 추가합니다.
+  const notesToPublish = notesInModal.value.map(note => ({
+    version: note.version,
+    selectedProject: selectedProject.value,
+    subject: currentSubject.value,
+    content: note.formattedContent,
+    to_users: note.to ? [note.to] : [],
+    cc_users: note.cc || [],
+    attachments: note.attachments,
+    draft_note_id: note.draft_note_id,
+    task: note.version.sg_task,
+  }));
+
+  await publishAllNotes(notesToPublish, onNoteProcessed);
+
+  isPublishing.value = false;
+  publishCompleted.value = true;
+};
 
 // 모달이 열리는 시점(modelValue가 true가 될 때)을 감지하여,
 // 모달에 표시될 모든 데이터를 준비하는 오케스트레이션 함수.
 watch(() => props.modelValue, async (newValue) => {
   if (newValue) {
-    isLoading.value = true;
+    // 상태 초기화
+    initialLoading.value = true;
+    isPublishing.value = false;
+    publishCompleted.value = false;
+    notesInModal.value = [];
+    successfulNotes.value = [];
+    failedNotes.value = [];
+
     const allCachedVersions = await getCachedVersionsForPub();
+    const versionMap = new Map(allCachedVersions.map(v => [v.id, v]));
 
-    // myNotes에 있는 버전 ID 목록을 기반으로 필터링합니다.
-    const noteVersionIds = Object.keys(props.myNotes).map(id => parseInt(id, 10));
-    const filteredVersions = allCachedVersions.filter(version => noteVersionIds.includes(version.id));
+    const notesWithFullData = Object.values(props.myNotes)
+      .filter(note => (note.content || note.attachments?.length > 0) && versionMap.has(note.version_id))
+      .map(note => {
+        const version = versionMap.get(note.version_id);
+        const { toUsers, ccUsers } = getPublishUsers(version, selectedProject.value);
+        const headerNoteText = currentHeaderNote.value ? `${currentHeaderNote.value}_${version.code.split('_')[2]}_${version.code.split('_')[3]}_` : '';
+        const formattedContent = `${headerNoteText}${note.content}`;
+        return { draft_note_id: note.id, version, content: note.content, formattedContent, attachments: note.attachments || [], to: toUsers[0], cc: ccUsers };
+      });
 
-    modalVersions.value = filteredVersions;
-    isLoading.value = false;
-
-    // 필터링된 버전에 대해서만 썸네일을 가져옵니다.
-    fetchThumbnailsForPub(modalVersions.value);
+    notesInModal.value = notesWithFullData;
+    initialLoading.value = false;
+    fetchThumbnailsForPub(notesInModal.value.map(n => n.version));
   } else {
-    modalVersions.value = []; // 모달이 닫히면 데이터 초기화
+    notesInModal.value = []; // 모달이 닫히면 데이터 초기화
   }
 });
 </script>
@@ -300,5 +353,9 @@ watch(() => props.modelValue, async (newValue) => {
 <style scoped>
 .position-absolute {
   position: absolute;
+}
+.failed-note-card {
+  border-color: #B71C1C; /* Vuetify's error color */
+  border-width: 2px;
 }
 </style>
