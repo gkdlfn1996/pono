@@ -1,5 +1,5 @@
 <template>
-  <v-dialog :model-value="modelValue" @update:model-value="close" max-width="1200px" persistent>
+  <v-dialog :model-value="modelValue" @update:model-value="close" max-width="1200px" :persistent="isProcessing">
     <v-card>
       <v-card-title class="d-flex justify-space-between align-center">
         <span>Publish All Notes</span>
@@ -9,7 +9,7 @@
 
       <!-- 최종 결과 알림창 -->
       <v-alert
-        v-if="publishCompleted"
+        v-if="publishResults.length > 0"
         :type="failedNotes.length === 0 ? 'success' : 'warning'"
         class="ma-4"
         variant="tonal"
@@ -17,7 +17,7 @@
         <div class="d-flex justify-space-between align-center">
           <span>{{ summaryMessage }}</span>
         </div>
-        <v-list v-if="failedNotes.length > 0" density="compact" class="bg-transparent">
+        <v-list v-if="failedNotes.length > 0" density="compact" class="bg-transparent mt-2">
           <v-list-item v-for="(item, i) in failedNotes" :key="i" class="pa-0">
             <v-list-item-title class="text-caption">
               <strong>{{ item.version.code }}:</strong> {{ item.error }}
@@ -36,21 +36,21 @@
           <!-- <h3 class="text-h6 mb-4">Global Settings</h3> -->
           <div class="text-body-1">
             <p><span class="font-weight-bold" style="width: 120px; display: inline-block; text-align:right; margin-right: 8px;">Author :</span> {{ currentUser?.name }}</p>
-            <p><span class="font-weight-bold" style="width: 120px; display: inline-block; text-align:right; margin-right: 8px;">Subject :</span> {{ currentSubject }}</p>
-            <p><span class="font-weight-bold" style="width: 120px; display: inline-block; text-align:right; margin-right: 8px;">Header Note :</span> {{ currentHeaderNote }}</p>
+            <p><span class="font-weight-bold" style="width: 120px; display: inline-block; text-align:right; margin-right: 8px;">Subject :</span> {{ globalNotes.subject }}</p>
+            <p><span class="font-weight-bold" style="width: 120px; display: inline-block; text-align:right; margin-right: 8px;">Header Note :</span> {{ globalNotes.headerNote }}</p>
           </div>
         </div>
 
         <v-divider class="mb-4"></v-divider>
 
         <!-- 노트 리스트 (로컬 사본 사용) -->
-        <div v-if="notesInModal.length > 0" class="notes-list">
+        <div v-if="notesToDisplay.length > 0" class="notes-list">
           <v-card 
-            v-for="note in notesInModal" 
+            v-for="note in notesToDisplay" 
             :key="note.draft_note_id" 
             class="mb-4" 
             variant="outlined"
-            :class="{ 'failed-note-card': failedNotes.some(f => f.draft_note_id === note.draft_note_id) }">
+            :class="{ 'failed-note-card': failedNotes.some(f => f.noteId === note.draft_note_id) }">
             <v-card-text>
               <v-row no-gutters>
                 <!-- 1. 정보 영역 (버전, 썸네일, To/CC) -->
@@ -123,23 +123,23 @@
         </div>
         <!-- 데이터 없는 경우 -->
         <div v-else class="text-center py-10 text-grey">
-          <v-icon size="64">{{ publishCompleted ? 'mdi-check-all' : 'mdi-note-off-outline' }}</v-icon>
-          <p class="mt-4">{{ publishCompleted ? '모든 노트가 성공적으로 게시되었습니다.' : '게시할 임시 노트가 없습니다.' }}</p>
+          <v-icon size="64">{{ publishResults.length > 0 && successfulNotes.length > 0 ? 'mdi-check-all' : 'mdi-note-off-outline' }}</v-icon>
+          <p class="mt-4">{{ publishResults.length > 0 && successfulNotes.length > 0 ? '모든 노트가 성공적으로 게시되었습니다.' : '게시할 임시 노트가 없습니다.' }}</p>
         </div>
       </v-card-text>
 
       <v-divider></v-divider>
       <v-card-actions class="pa-4">
         <v-spacer></v-spacer>
-        <v-btn @click="close" variant="text" :disabled="isPublishing">Cancel</v-btn>
+        <v-btn @click="close" variant="text" :disabled="isProcessing">Cancel</v-btn>
         <v-btn 
           color="primary" 
           variant="flat" 
-          :disabled="notesInModal.length === 0 || isPublishing"
-          :loading="isPublishing"
+          :disabled="notesToDisplay.length === 0 || isProcessing"
+          :loading="isProcessing"
           @click="handlePublishAll"
         >
-          Publish All ({{ notesInModal.length }})
+          Publish All ({{ notesToDisplay.length }})
         </v-btn>
       </v-card-actions>
 
@@ -189,72 +189,47 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue']);
 
 const { getCachedVersionsForPub, fetchThumbnailsForPub, selectedProject, loadVersions } = useShotGridData();
-const { publishAllNotes, getPublishUsers } = useShotGridPublish();
+const { 
+  isProcessing,
+  publishResults,
+  summaryMessage,
+  failedNotes,
+  successfulNotes,
+  clearPublishResults,
+  publishNotes,
+  getPublishUsers, getGlobalNotes
+} = useShotGridPublish();
 const { getIconForFile, handleAttachmentClick, copiedPath } = useAttachments();
 const { user: currentUser } = useAuth();
 
-// --- Global Header State ---
-const currentSubject = ref('');
-const currentHeaderNote = ref('');
-
 // --- Modal-specific State ---
-const initialLoading = ref(false); // 모달 최초 데이터 로딩 상태
-const isPublishing = ref(false); // 게시 진행 중 상태
-const publishCompleted = ref(false); // 게시 작업 완료 여부
 const notesInModal = ref([]); // 모달 내에서 관리될 로컬 노트 목록
-const successfulNotes = ref([]);
-const failedNotes = ref([]);
+//  UI 표시에 필요한 글로벌 서브젝트와 원본 헤더를 계산합니다.
+const globalNotes = computed(() => getGlobalNotes()); 
 
 /**
- * 현재 로그인한 사용자의 고유 키를 생성하여 localStorage에서 개인화된 설정을 불러옵니다.
+ * 게시 중 실시간으로 화면에 표시될 노트 목록을 계산합니다.
+ * 성공한 노트는 목록에서 제외됩니다.
  */
-const userSpecificStorageKey = computed(() => {
-  return currentUser.value?.login ? `pono-header-${currentUser.value.login}` : null;
-});
-
-/**
- * 현재 로그인된 사용자에 맞는 Global Subject와 Header Note를 localStorage에서 불러옵니다.
- */
-const loadHeaderData = () => {
-  if (!userSpecificStorageKey.value) return;
-  const savedData = localStorage.getItem(userSpecificStorageKey.value);
-  if (savedData) {
-    const { subject, headerNote } = JSON.parse(savedData);
-    currentSubject.value = subject || '';
-    currentHeaderNote.value = headerNote || '';
-  } else {
-    currentSubject.value = '';
-    currentHeaderNote.value = '';
+const notesToDisplay = computed(() => {
+  if (isProcessing.value || publishResults.value.length > 0) {
+    const successfulIds = new Set(successfulNotes.value.map(n => n.noteId));
+    return notesInModal.value.filter(note => !successfulIds.has(note.draft_note_id));
   }
-};
-
-/**
- * 컴포넌트 마운트 시, 다른 곳에서 헤더/서브젝트가 수정되었을 때 동기화하기 위해
- * window 전역 이벤트 리스너를 등록합니다.
- */
-onMounted(() => {
-  loadHeaderData();
-  window.addEventListener('pono-header-updated', loadHeaderData);
-});
-
-/**
- * 컴포넌트 언마운트 시, 메모리 누수 방지를 위해 등록했던
- * window 전역 이벤트 리스너를 제거합니다.
- */
-onBeforeUnmount(() => {
-  window.removeEventListener('pono-header-updated', loadHeaderData);
+  return notesInModal.value;
 });
 
 /**
  * 모달을 닫고, 부모 컴포넌트에 상태 변경을 알립니다.
  */
 const close = () => {  
-  if (isPublishing.value) return;
+  if (isProcessing.value) return;
   // 성공적으로 게시된 노트가 하나라도 있으면, 메인 뷰를 새로고침합니다.
   if (successfulNotes.value.length > 0) {
     loadVersions(false);
   }
   emit('update:modelValue', false);
+  setTimeout(clearPublishResults, 300);
 };
 
 /**
@@ -262,58 +237,28 @@ const close = () => {
  * @param {number} draftNoteId - 제거할 임시 노트의 ID.
  */
 const removeNoteFromList = (draftNoteId) => {
+  if (isProcessing.value) return; // 처리 중에는 제거 비활성화
   const index = notesInModal.value.findIndex(n => n.draft_note_id === draftNoteId);
   if (index > -1) {
     notesInModal.value.splice(index, 1);
   }
 };
 
-const summaryMessage = computed(() => {
-  const total = successfulNotes.value.length + failedNotes.value.length;
-  return `Publish complete. Success: ${successfulNotes.value.length}, Failed: ${failedNotes.value.length}`;
-});
-
-const onNoteProcessed = (result) => {
-  if (result.status === 'success') {
-    // 성공 목록에 추가
-    successfulNotes.value.push(result.noteId);
-    // 모달 내 목록에서 제거
-    const index = notesInModal.value.findIndex(n => n.draft_note_id === result.noteId);
-    if (index > -1) {
-      notesInModal.value.splice(index, 1);
-    }
-  } else {
-    // 실패 시: 모달에 남아있는 노트 목록에서 원본 노트를 찾아 실패 목록에 추가
-    const failedNote = notesInModal.value.find(n => n.draft_note_id === result.noteId);
-    if (failedNote) {
-      failedNotes.value.push({ ...failedNote, error: result.error });
-    }
-  }
-};
-
 const handlePublishAll = async () => {
-  isPublishing.value = true;
-  publishCompleted.value = false;
-  successfulNotes.value = [];
-  failedNotes.value = [];
-
-  // notesInModal에 있는 각 노트 객체에 selectedProject.value를 추가합니다.
   const notesToPublish = notesInModal.value.map(note => ({
     version: note.version,
-    selectedProject: selectedProject.value,
-    subject: currentSubject.value,
-    content: note.formattedContent,
-    to_users: note.to ? [note.to] : [],
-    cc_users: note.cc || [],
+    noteContent: note.content,
     attachments: note.attachments,
-    draft_note_id: note.draft_note_id,
-    task: note.version.sg_task,
+    draftNoteId: note.draft_note_id,
   }));
 
-  await publishAllNotes(notesToPublish, onNoteProcessed);
+  await publishNotes(notesToPublish);
 
-  isPublishing.value = false;
-  publishCompleted.value = true;
+    // 게시 성공 시 (실패한 노트가 없을 경우)
+  if (failedNotes.value.length === 0) {
+    // 잠시 후 모달을 닫고 성공 이벤트를 전달합니다.
+    setTimeout(() => { close(); }, 1500);
+  }
 };
 
 // 모달이 열리는 시점(modelValue가 true가 될 때)을 감지하여,
@@ -321,12 +266,8 @@ const handlePublishAll = async () => {
 watch(() => props.modelValue, async (newValue) => {
   if (newValue) {
     // 상태 초기화
-    initialLoading.value = true;
-    isPublishing.value = false;
-    publishCompleted.value = false;
+    clearPublishResults();
     notesInModal.value = [];
-    successfulNotes.value = [];
-    failedNotes.value = [];
 
     const allCachedVersions = await getCachedVersionsForPub();
     const versionMap = new Map(allCachedVersions.map(v => [v.id, v]));
@@ -336,13 +277,13 @@ watch(() => props.modelValue, async (newValue) => {
       .map(note => {
         const version = versionMap.get(note.version_id);
         const { toUsers, ccUsers } = getPublishUsers(version, selectedProject.value);
-        const headerNoteText = currentHeaderNote.value ? `${currentHeaderNote.value}_${version.code.split('_')[2]}_${version.code.split('_')[3]}_` : '';
-        const formattedContent = `${headerNoteText}${note.content}`;
+        const { formattedHeader } = getGlobalNotes(version);
+        const formattedContent = `${formattedHeader}${note.content}`;
+        // to, cc, formattedContent는 UI 표시용. content는 게시 재료용.
         return { draft_note_id: note.id, version, content: note.content, formattedContent, attachments: note.attachments || [], to: toUsers[0], cc: ccUsers };
       });
 
     notesInModal.value = notesWithFullData;
-    initialLoading.value = false;
     fetchThumbnailsForPub(notesInModal.value.map(n => n.version));
   } else {
     notesInModal.value = []; // 모달이 닫히면 데이터 초기화

@@ -4,17 +4,24 @@
     v-model 바인딩을 통해 부모 컴포넌트에서 모달의 표시 여부를 제어합니다.
     :persistent="isLoading"을 추가하여 API 요청 중에는 모달이 닫히지 않도록 합니다.
   -->
-  <v-dialog :model-value="modelValue" @update:model-value="close" max-width="800px" :persistent="isLoading">
+  <v-dialog :model-value="modelValue" @update:model-value="close" max-width="800px" :persistent="isProcessing">
     <v-card>
       <v-card-title class="d-flex justify-space-between align-center">
         <span>Publish Note</span>
         <v-btn icon="mdi-close" variant="text" @click="close"></v-btn>
       </v-card-title>
       <v-divider></v-divider>
-
-      <!-- 퍼블리쉬 실패 시 에러 메시지 표시 -->
-      <v-alert v-if="error" type="error" density="compact" class="ma-4" closable @click:close="error = null">
-        {{ error }}
+      
+      <!-- 최종 결과 알림창 -->
+      <v-alert
+        v-if="publishResults.length > 0"
+        :type="failedNotes.length === 0 ? 'success' : 'warning'"
+        class="ma-4"
+        variant="tonal"
+      >
+        <div class="d-flex justify-space-between align-center">
+          <span>{{ summaryMessage }}</span>
+        </div>
       </v-alert>
 
       <v-card-text>
@@ -60,9 +67,9 @@
             localStorage에서 읽어온 헤더/서브젝트 텍스트를 표시하는 읽기 전용 영역.
             v-if를 통해 내용이 있을 때만 렌더링됩니다.
           -->
-          <div v-if="currentSubject || currentHeaderNote" class="overlay-content">
-            <p v-if="currentSubject" class="font-weight-bold ma-0">{{ currentSubject }}</p>
-            <p v-if="formattedHeader" class="ma-0">{{ formattedHeader }}</p>
+          <div v-if="globalNotes.subject || globalNotes.formattedHeader" class="overlay-content">
+            <p v-if="globalNotes.subject" class="font-weight-bold ma-0">{{ globalNotes.subject }}</p>
+            <p v-if="globalNotes.formattedHeader" class="ma-0">{{ globalNotes.formattedHeader }}</p>
           </div>
 
           <!-- 2. 투명한 실제 입력창 -->
@@ -93,8 +100,8 @@
 
       <v-card-actions class="pa-4">
         <v-spacer></v-spacer>
-        <v-btn @click="close" variant="text" :disabled="isLoading">Cancel</v-btn>
-        <v-btn color="primary" variant="flat" @click="handlePublish" :loading="isLoading">
+        <v-btn @click="close" variant="text" :disabled="isProcessing">Cancel</v-btn>
+        <v-btn color="primary" variant="flat" @click="handlePublish" :loading="isProcessing">
           PUBLISH
           <template v-slot:loader>
             <v-progress-circular indeterminate size="20" width="2"></v-progress-circular>
@@ -102,16 +109,6 @@
         </v-btn>
       </v-card-actions>
     </v-card>
-
-    <!-- 성공 알림용 로컬 스낵바 -->
-    <v-snackbar
-      v-model="showSuccessSnackbar"
-      color="success"
-      :timeout="2000"
-      location="top"
-    >
-      {{ snackbarText }}
-    </v-snackbar>
   </v-dialog>
 </template>
 
@@ -121,7 +118,6 @@
  * @description 개별 노트를 ShotGrid에 게시하기 전, 최종 내용을 확인하고 편집하는 모달.
  */
 import { ref, watch, onMounted, onBeforeUnmount, computed } from 'vue';
-import { useAuth } from '@/composables/useAuth.js';
 import AttachmentHandler from './draftnote_attachments/AttachmentHandler.vue';
 import { useShotGridPublish } from '@/composables/useShotGridPublish.js';
 
@@ -144,21 +140,27 @@ const emit = defineEmits(['update:modelValue', 'update:noteContent', 'publish-su
 // --- 상태 변수 (State Variables) ---
 const isFocused = ref(false); // '가짜 입력창'의 포커스 상태 (테두리 색상 변경용)
 const textareaRef = ref(null); // 실제 v-textarea 엘리먼트를 참조하기 위함.
-const currentSubject = ref(''); // localStorage에서 불러온 서브젝트.
-const currentHeaderNote = ref(''); // localStorage에서 불러온 헤더 노트.
 const internalContent = ref(''); // 커서 점프 버그 방지를 위한 내부 컨텐츠 상태
-const { isLoading, error, publishNote, getPublishUsers } = useShotGridPublish();
-const showSuccessSnackbar = ref(false); // 스낵바 표시 여부
-const snackbarText = ref(''); // 스낵바 메시지
+const { 
+  isProcessing, 
+  publishResults,
+  summaryMessage,
+  failedNotes,
+  clearPublishResults,
+  publishNotes,
+  getPublishUsers,
+  getGlobalNotes,
+} = useShotGridPublish();
 
 // --- 함수 (Functions) ---
 
 // 모달을 닫는 함수.
 const close = () => {
   // 로딩 중에는 닫기 방지
-  if (isLoading.value) return;
+  if (isProcessing.value) return;
   emit('update:noteContent', internalContent.value); // 닫힐 때 최종 컨텐츠를 전달
   emit('update:modelValue', false);
+  setTimeout(clearPublishResults, 300); // 모달 닫기 애니메이션 후 상태 초기화
 };
 
 // '가짜 입력창' 컨테이너를 클릭했을 때, 실제 textarea에 포커스를 주는 함수.
@@ -168,100 +170,41 @@ const focusTextarea = () => {
 
 // 'PUBLISH' 버튼 클릭 시 실행되는 핸들러
 const handlePublish = async () => {
-  const { toUsers, ccUsers } = getPublishUsers(props.version, props.selectedProject);
-
-
-  // 헤더와 본문을 합쳐 최종 컨텐츠 생성
-  const finalContent = `${formattedHeader.value}${internalContent.value}`;
-
-  const publishData = {
+  const rawNoteData = {
     version: props.version, // 버전 정보
-    selectedProject: props.selectedProject, // 선택된 프로젝트 정보
-    subject: currentSubject.value,
-    content: finalContent,
-    to_users: toUsers, // 'To' 사용자 목록
-    cc_users: ccUsers, // 'CC' 사용자 목록
+    noteContent: internalContent.value,
     attachments: props.attachments,
-    draft_note_id: props.draftNoteId,
-    task: props.version.sg_task, // Task 정보 추가
+    draftNoteId: props.draftNoteId,
   };
 
-  const success = await publishNote(publishData);
-  if (success) {
-    snackbarText.value = '성공적으로 Publish 되었습니다.';
-    showSuccessSnackbar.value = true;
+  await publishNotes([rawNoteData]);
+
+  // 게시 성공 시 (실패한 노트가 없을 경우)
+  if (failedNotes.value.length === 0) {
     // 콘텐츠 비우기
     internalContent.value = '';
-    // 스낵바가 잠시 표시된 후 모달을 닫습니다.
+    // 잠시 후 모달을 닫고 성공 이벤트를 전달합니다.
     setTimeout(() => { close(); emit('publish-success'); }, 1500);
   }
 };
 
 // --- 데이터 로딩 및 생명주기 (Data Loading & Lifecycle) ---
 
-// 이 컴포넌트가 자체적으로 헤더/서브젝트 데이터를 관리하기 위한 로직.
-const { user } = useAuth();
-const userSpecificStorageKey = computed(() => {
-  return user.value?.login ? `pono-header-${user.value.login}` : null;
-});
-
-// localStorage에서 데이터를 읽어와 상태 변수를 업데이트하는 함수.
-const loadHeaderData = () => {
-  if (!userSpecificStorageKey.value) return;
-  const savedData = localStorage.getItem(userSpecificStorageKey.value);
-  if (savedData) {
-    const { subject, headerNote } = JSON.parse(savedData);
-    currentSubject.value = subject || '';
-    currentHeaderNote.value = headerNote || '';
-  } else {
-    currentSubject.value = '';
-    currentHeaderNote.value = '';
-  }
-};
-
-// 헤더 포맷을 동적으로 생성하는 computed 속성
-const formattedHeader = computed(() => {
-  if (!currentHeaderNote.value) return '';
-
-  const parts = props.version?.code?.split('_');
-  if (parts && parts.length >= 4) {
-    const task = parts[2];
-    const verNum = parts[3];
-    // headerNote가 비어있지 않을 때만 포맷을 적용
-    return `${currentHeaderNote.value}_${task}_${verNum}_`;
-  }
-
-  // 버전 이름 포맷이 맞지 않으면 그냥 헤더 노트만 반환
-  return currentHeaderNote.value;
-});
+// UI 표시에 필요한 글로벌 서브젝트와 포매팅된 헤더를 계산합니다.
+const globalNotes = computed(() => getGlobalNotes(props.version));
 
 const { toUsers, ccUsers } = computed(() => 
   getPublishUsers(props.version, props.selectedProject)
 ).value; // 컴포넌트 로드 시 To/CC 사용자를 계산합니다.
 
-
-// 컴포넌트가 처음 마운트될 때, 그리고 다른 곳에서 헤더가 수정되었을 때 데이터를 불러옵니다。
-onMounted(() => {
-  loadHeaderData();
-  window.addEventListener('pono-header-updated', loadHeaderData);
-});
-
-// 컴포넌트가 파괴될 때 이벤트 리스너를 정리하여 메모리 누수를 방지합니다.
-onBeforeUnmount(() => {
-  window.removeEventListener('pono-header-updated', loadHeaderData);
-});
 // ---
 
 // 모달이 열릴 때마다 최신 데이터를 다시 로드하고, textarea에 자동으로 포커스를 줍니다.
 watch(() => props.modelValue, (newValue) => {
   if (newValue) {
     internalContent.value = props.noteContent || ''; // 모달이 열릴 때 부모 컨텐츠로 초기화
-    loadHeaderData();
-
-    // 모달이 열릴 때마다 스내바와 에러 상태를 초기화합니다.
-    showSuccessSnackbar.value = false;
-    snackbarText.value = '';
-    error.value = null;
+    // 모달이 열릴 때마다 이전 게시 결과를 초기화합니다.
+    clearPublishResults();
 
     setTimeout(() => textareaRef.value?.focus(), 100); // DOM 렌더링 후 포커스
   }
