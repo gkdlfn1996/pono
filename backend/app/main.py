@@ -35,9 +35,9 @@ Base.metadata.create_all(bind=engine)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://30.0.1.141:8081", 
-        "http://10.0.1.110:8081",
-        "http://localhost:8081",
+        "http://30.0.1.141:8080", 
+        "http://10.0.1.110:8080",
+        "http://localhost:8080",
     ],
     allow_credentials=True,
     allow_methods=["*"],

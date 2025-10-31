@@ -8,7 +8,7 @@ ShotGrid의 샷 및 버전 정보를 활용하여, 사용자들이 특정 버전
 
 ```bash
 source .venv/bin/activate
-# uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
+# uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 python run.py
 ```
 필요시 라이브러리 재설치(가상 환경이 활성화된 상태에서 실행)
@@ -29,12 +29,12 @@ npm run serve
 
 ## IP
 ### 개발 서버
-- Backend : 30.0.1.141:8001
-- Frontend : 30.0.1.141:8081
+- Backend : 30.0.1.141:8000
+- Frontend : 30.0.1.141:8080
 
 ### PONO 서버
-- Backend : 10.0.1.110:8001
-- Frontend : 10.0.1.110:8081
+- Backend : 10.0.1.110:8000
+- Frontend : 10.0.1.110:8080
 
 <br><br>
 

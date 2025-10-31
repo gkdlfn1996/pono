@@ -63,7 +63,6 @@ async def download_attachment(
 @router.get("/attachments/{attachment_id}/{filename_for_browser}")
 async def preview_attachment(
     attachment_id: int,
-    filename_for_browser: str, # URL에 파일 이름을 포함시키기 위한 파라미터 (실제 로직에서는 사용되지 않음)
     db: Session = Depends(database.get_db),
 ):
     """

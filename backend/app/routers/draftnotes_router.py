@@ -41,7 +41,6 @@ async def create_or_update_note(
     db: Session = Depends(database.get_db)
 ):
     """새로운 임시 노트를 생성/업데이트/삭제합니다."""
-    # 실제 로직은 draftnote_api.py의 함수에 위임합니다.
     return await draftnote_api.save_note_logic(note_data, db)
 
 @router.get("/by_step", response_model=List[schemas.NoteInfo])
