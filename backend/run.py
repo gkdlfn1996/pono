@@ -1,7 +1,12 @@
 import uvicorn
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 from log_config import LOGGING_CONFIG
+
+# .env 파일 로드
+load_dotenv()
+BACKEND_PORT=int(os.getenv("BACKEND_PORT"))
 
 if __name__ == "__main__":
     # 홈 디렉토리를 기준으로 첨부파일 '기본' 저장 경로를 정의
@@ -13,7 +18,7 @@ if __name__ == "__main__":
     uvicorn.run(
         "app.main:app",          # 실행할 FastAPI 앱
         host="0.0.0.0",          # 호스트
-        port=8000,               # 포트
+        port=BACKEND_PORT,               # 포트
         reload=True,             # 코드 변경 시 자동 재시작
         log_config=LOGGING_CONFIG  # 우리가 만든 커스텀 로그 설정을 직접 전달
     )

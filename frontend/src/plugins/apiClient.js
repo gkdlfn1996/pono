@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // 1. 동적 API 주소 설정
 const hostname = window.location.hostname;
-const baseURL = `http://${hostname}:8000`;
+const baseURL = `http://${hostname}:${process.env.VUE_APP_BACKEND_PORT}`;
 
 // 2. 프로젝트 전체에서 단 하나만 존재할 apiClient 인스턴스 생성
 const apiClient = axios.create({

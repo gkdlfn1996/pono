@@ -2,7 +2,8 @@
 PONO Backend Main Application File.
 이 파일은 FastAPI 애플리케이션을 생성하고, 미들웨어와 API 라우터들을 연결합니다.
 """
-
+import os
+from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from sqlalchemy import text
 from .draftnote.database import engine
@@ -10,6 +11,10 @@ from .draftnote.database_models import Base
 from fastapi.middleware.cors import CORSMiddleware
 from shotgun_api3.shotgun import AuthenticationFault
 from .shotgrid.shotgrid_authenticator import authentication_fault_handler
+
+# .env 파일 로드
+load_dotenv()
+FRONTEND_PORT=int(os.getenv('FRONTEND_PORT'))
 
 # routers 폴더에서 각 기능별 라우터를 가져옵니다.
 from .routers import auth_router, draftnotes_router, shotgrid_data_router, draftnotes_attachments_router
@@ -35,9 +40,9 @@ Base.metadata.create_all(bind=engine)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://30.0.1.141:8080", 
-        "http://10.0.1.110:8080",
-        "http://localhost:8080",
+        f"http://30.0.1.141:{FRONTEND_PORT}", 
+        f"http://10.0.1.110:{FRONTEND_PORT}",
+        f"http://localhost:{FRONTEND_PORT}",
     ],
     allow_credentials=True,
     allow_methods=["*"],

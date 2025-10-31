@@ -119,7 +119,7 @@ export function useAttachments() {
     const hostname = window.location.hostname;
     if (attachment.file_type === 'file' && attachment.file_name) {
       const safeFileName = encodeURIComponent(attachment.file_name.replace(/ /g, '_'));
-      const previewUrl = `http://${hostname}:8000/api/attachments/${attachment.id}/${safeFileName}`;
+      const previewUrl = `http://${hostname}:${process.env.VUE_APP_BACKEND_PORT}/api/attachments/${attachment.id}/${safeFileName}`;
       window.open(previewUrl, '_blank');
     } else if (attachment.file_type === 'url') {
       const path = attachment.path_or_url;

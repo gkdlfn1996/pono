@@ -281,7 +281,7 @@ export function useDraftNotes() {
         // 새로 추가된 버전에 대해 연결 생성
         if (versionsToConnect.length > 0) {
             const connectionPromises = versionsToConnect.map(version => {
-                const wsUrl = `ws://${window.location.hostname}:8000/api/notes/ws/${version.id}`;
+                const wsUrl = `ws://${window.location.hostname}:${process.env.VUE_APP_BACKEND_PORT}/api/notes/ws/${version.id}`;
                 return ws.connect(version.id, wsUrl, handleIncomingNote)
                          .then(() => ({ status: 'fulfilled', id: version.id }))
                          .catch(() => ({ status: 'rejected', id: version.id }));
