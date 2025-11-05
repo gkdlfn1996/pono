@@ -11,8 +11,14 @@ from .draftnote.database_models import Base
 from fastapi.middleware.cors import CORSMiddleware
 from shotgun_api3.shotgun import AuthenticationFault
 from .shotgrid.shotgrid_authenticator import authentication_fault_handler
+import logging
+import logging.config
+from log_config import LOGGING_CONFIG
 
 FRONTEND_PORT=int(os.getenv('FRONTEND_PORT'))
+
+# 커스텀 로그 설정
+logging.config.dictConfig(LOGGING_CONFIG)
 
 # routers 폴더에서 각 기능별 라우터를 가져옵니다.
 from .routers import auth_router, draftnotes_router, shotgrid_data_router, draftnotes_attachments_router

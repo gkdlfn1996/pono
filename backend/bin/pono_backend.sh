@@ -10,6 +10,7 @@ PROJECT_ROOT="$( cd "$SCRIPT_DIR/../.." &> /dev/null && pwd )"
 source "$PROJECT_ROOT/config.sh"
 # shellcheck disable=SC1090
 source "$BACKEND_DIR/bin/common_screen.sh"
+echo "[config.sh, common_screen.sh] 환경에 등록 완료"
 
 # 내부 파이썬 확보
 SETUP_PY="$BACKEND_DIR/bin/setup_local_python.sh"

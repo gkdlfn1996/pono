@@ -18,7 +18,9 @@ if [ -x "$PY_BIN" ]; then
   exit 0
 fi
 
-# 1) 소스 아카이브 준비 (curl만 사용)
+echo "파이썬 $PY_VER 설치를 시작합니다."
+
+# 1) 소스 아카이브 준비
 mkdir -p "$SRC_DIR"
 if [ ! -f "$TGZ_PATH" ]; then
   curl -fL "$TGZ_URL" -o "$TGZ_PATH"
@@ -34,9 +36,14 @@ else
   exit 1
 fi
 
+echo "파이썬 소스 tgz 다운로드 및 압축 해제 완료"
+
 # 3) 빌드/설치
 mkdir -p "$PY_PREFIX"
 ./configure --prefix="$PY_PREFIX"
+
+echo "---------------파이썬 빌드를 시작합니다.-------------------"
+
 make -j"$(nproc)"
 make install
 
@@ -51,6 +58,8 @@ if [ "$MAJ_MIN" != "3.10" ]; then
   echo "설치된 Python 버전이 3.10이 아닙니다: $MAJ_MIN" 1>&2
   exit 1
 fi
+
+echo "---------------파이썬 빌드가 완료되었습니다.-------------------"
 
 echo "$PY_BIN"
 
