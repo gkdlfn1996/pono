@@ -10,7 +10,7 @@ PROJECT_ROOT="$( cd "$SCRIPT_DIR/../.." &> /dev/null && pwd )"
 source "$PROJECT_ROOT/config.sh"
 # shellcheck disable=SC1090
 source "$BACKEND_DIR/bin/common_screen.sh"
-echo "[config.sh, common_screen.sh] 환경에 등록 완료"
+echo "[config.sh, common_screen.sh] 환경 등록 완료"
 
 # 내부 파이썬 확보
 SETUP_PY="$BACKEND_DIR/bin/setup_local_python.sh"
@@ -18,12 +18,12 @@ if [ ! -x "$SETUP_PY" ]; then
     echo "내부 파이썬 설치 스크립트를 찾을 수 없습니다: $SETUP_PY" 1>&2
     exit 1
 fi
-PY_EXE="$("$SETUP_PY")"
+"$SETUP_PY"
 
 # venv 보장
 cd "$BACKEND_DIR"
 if [ ! -d "$VENV_PATH" ]; then
-    "$PY_EXE" -m venv "$VENV_PATH"
+    "$PY_BIN" -m venv "$VENV_PATH"
 fi
 # 의존성 설치 커맨드 구성
 PIP_INSTALL_CMD=""

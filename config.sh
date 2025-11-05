@@ -2,13 +2,20 @@
 
 # --- PONO 프로젝트 공통 환경 변수 ---
 
-# Python 실행 파일 경로. 필요에 따라 수정하세요.
-export PYTHON_EXECUTABLE="/netapp/INHouse/rnd/libs/install/python/python-3.10.13/bin/python3.10"
 
 # 프로젝트 루트 경로를 이 설정 파일이 위치한 디렉토리로 동적으로 설정
 # 이 파일이 start_dev.sh와 같은 디렉토리에 있다고 가정합니다.
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 export PROJECT_ROOT="$SCRIPT_DIR"
+
+# Python 설치 경로 및 버전
+PY_VER="3.10.13"                                    # Python 버전
+PY_PREFIX="$PROJECT_ROOT/.python/python-$PY_VER"    # 최종 설치 루트
+PY_BIN="$PY_PREFIX/bin/python3.10"                  # 최종 실행 파일
+SRC_DIR="$PROJECT_ROOT/.python/src"                 # 소스/빌드 위치
+TGZ_PATH="$SRC_DIR/Python-$PY_VER.tgz"              # 내려받을 아카이브
+TGZ_URL="https://www.python.org/ftp/python/$PY_VER/Python-$PY_VER.tgz"
+
 
 # 프로젝트 하위 디렉토리 경로
 export BACKEND_DIR="$PROJECT_ROOT/backend"
