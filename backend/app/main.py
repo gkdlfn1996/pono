@@ -3,7 +3,7 @@ PONO Backend Main Application File.
 이 파일은 FastAPI 애플리케이션을 생성하고, 미들웨어와 API 라우터들을 연결합니다.
 """
 import os
-from dotenv import load_dotenv
+from pathlib import Path
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from sqlalchemy import text
 from .draftnote.database import engine
@@ -12,8 +12,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from shotgun_api3.shotgun import AuthenticationFault
 from .shotgrid.shotgrid_authenticator import authentication_fault_handler
 
-# .env 파일 로드
-load_dotenv()
 FRONTEND_PORT=int(os.getenv('FRONTEND_PORT'))
 
 # routers 폴더에서 각 기능별 라우터를 가져옵니다.
@@ -31,10 +29,7 @@ app = FastAPI(
 app.add_exception_handler(AuthenticationFault, authentication_fault_handler)
 
 # 데이터베이스 테이블 생성
-# 애플리케이션 시작 시 draftnote/models.py에 정의된 모든 테이블을 데이터베이스에 생성합니다.
-# 개발 단계에서 테이블 스키마 변경 시 유용하며, 운영 환경에서는 마이그레이션 도구를 사용하는 것이 일반적입니다.
 Base.metadata.create_all(bind=engine)
-
 
 # CORS(Cross-Origin Resource Sharing) 설정
 app.add_middleware(
@@ -55,3 +50,11 @@ app.include_router(draftnotes_router.router)
 app.include_router(shotgrid_data_router.router)
 app.include_router(draftnotes_attachments_router.router)
 app.include_router(shotgrid_publish_router.router)
+
+# 서버 시작 시 첨부파일 기본 디렉토리 보장
+@app.on_event("startup")
+def ensure_attachment_dir():
+    """서버 시작 시 사용자 홈 디렉토리에 첨부파일 기본 저장 폴더를 자동 생성합니다."""
+    attachment_base_path = Path.home() / "pono_attachments"
+    os.makedirs(attachment_base_path, exist_ok=True)
+    print(f"[startup] Ensured attachment base directory: {attachment_base_path}")

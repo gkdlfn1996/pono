@@ -1,11 +1,9 @@
+#!/bin/bash 
 import uvicorn
 import os
 from pathlib import Path
-from dotenv import load_dotenv
 from log_config import LOGGING_CONFIG
 
-# .env 파일 로드
-load_dotenv()
 BACKEND_PORT=int(os.getenv("BACKEND_PORT"))
 
 if __name__ == "__main__":
