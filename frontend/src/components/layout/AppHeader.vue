@@ -1,13 +1,12 @@
 <template>
   <v-app-bar app>
     <v-row class="flex-grow-1 align-center">
-      <v-col cols="3" class="d-flex align-center pl-4 justify-space-between">
+      <v-col cols="4" class="d-flex align-center pl-4 justify-space-between">
         <!-- 1. 좌측 그룹 -->
         <v-app-bar-nav-icon @click="emit('toggle-drawer')"></v-app-bar-nav-icon>
         <v-col cols="auto" class="pa-0 flex-shrink-0">
-          <v-toolbar-title class="font-weight-black text-blue-lighten-2 pl-4 mr-2 d-none d-md-flex">PONO</v-toolbar-title>
+          <v-toolbar-title class="font-weight-black text-blue-lighten-2 pl-4 mr-10 d-none d-md-flex">PONO</v-toolbar-title>
         </v-col>
-        <v-spacer></v-spacer>
         <!-- 프로젝트 & 파이프라인스텝 -->
         <v-autocomplete
           label="Project"
@@ -42,10 +41,11 @@
             </div>
           </template>
         </v-autocomplete>
+        <v-spacer></v-spacer>
       </v-col>
       
       <!-- 2. 중앙 요소 : 검색창 -->
-      <v-col cols="6" class="d-flex align-center pa-0 justify-center">
+      <v-col cols="4" class="d-flex align-center pa-0 justify-center">
         <SearchBar 
           :disabled="isSearchBarDisabled"
           @filters-complete="handleFiltersComplete" 
@@ -53,7 +53,7 @@
       </v-col>
 
     <!-- 6. 우측 그룹 -->
-    <v-col cols="3" class="d-flex align-center pr-4 justify-end">
+    <v-col cols="4" class="d-flex align-center pr-4 justify-end">
       <v-icon color="grey-lighten-1" class="mr-2">mdi-account-circle</v-icon>
       <span class="text-subtitle-1 mr-4" style="color: #BDBDBD;">{{ username }}</span>
       <v-menu>
