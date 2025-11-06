@@ -23,7 +23,7 @@
 ### 2. 첨부파일 저장 방식
 * 사용자가 업로드하는 첨부파일은 config.sh의 `ATTACHMENT_BASE_DIR` 변수를 루트로 합니다.  
 - 업로드된 파일들은 홈 디렉토리 아래의 `pono_attachments/{note_id}/{owner_id}/` 구조로 저장됩니다.   
-- 최상위 `pono_attachments` 디렉토리는 `python run.py` 실행 시 자동으로 생성되며, 하위 디렉토리는 파일 업로드 시 동적으로 생성됩니다.
+- 최상위 `pono_attachments` 디렉토리는 `backend/app/main.py` 실행 시 자동으로 생성되며, 하위 디렉토리는 파일 업로드 시 동적으로 생성됩니다.
 
 ### 3. 실시간 노트 동기화
 * 노트 내용은 WebSocket을 통해 클라이언트 간에 실시간으로 동기화됩니다.

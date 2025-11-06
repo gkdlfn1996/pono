@@ -5,7 +5,7 @@
         <!-- 1. 좌측 그룹 -->
         <v-app-bar-nav-icon @click="emit('toggle-drawer')"></v-app-bar-nav-icon>
         <v-col cols="auto" class="pa-0 flex-shrink-0">
-          <v-toolbar-title class="font-weight-black text-blue-lighten-2 pl-4 mr-2 d-none d-xl-flex">PONO</v-toolbar-title>
+          <v-toolbar-title class="font-weight-black text-blue-lighten-2 pl-4 mr-2 d-none d-md-flex">PONO</v-toolbar-title>
         </v-col>
         <v-spacer></v-spacer>
         <!-- 프로젝트 & 파이프라인스텝 -->

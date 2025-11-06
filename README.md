@@ -32,7 +32,7 @@ FastAPI 백엔드와 Vue 3 프론트엔드를 결합해 임시노트 작성, 빠
 | 구분 | 기술 |
 |------|------|
 | Backend | Python 3.10 / FastAPI / SQLAlchemy / Alembic |
-| Frontend | Vue 3 / Vuetify 3 / Vite |
+| Frontend | Vue 3 / Vuetify 3 / Vue CLI |
 | Database | PostgreSQL 15 |
 | Infra | Rocky Linux 9.5 / Screen / Nginx |
 
@@ -40,15 +40,6 @@ FastAPI 백엔드와 Vue 3 프론트엔드를 결합해 임시노트 작성, 빠
 
 ## 설치 및 시작
 > 자세한 설치 명령은 [`Getting_Started.md`](./docs/Getting_Started.md),[`/backend/README.md`](./backend/README.md) 참고  
-
-
-```bash
-git clone https://github.com/gkdlfn1996/pono
-cd pono
-source ./config.sh
-./bin/pono_backend.sh
-./bin/pono_frontend.sh
-```
 
 <br>
 

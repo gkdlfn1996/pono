@@ -8,9 +8,6 @@ alembic/versions/*.pyc
 alembic/__pycache__/
 alembic/versions/__pycache__/
 
-# 환경파일
-.env   # 환경 변수 파일만 제외 (config.sh는 추적함)
-
 # 파이썬 내부 빌드 (setup_local_python.sh 설치용)
 .python/
 *.tgz
@@ -37,8 +34,6 @@ __pycache__/
 # Frontend
 /frontend/node_modules/
 /frontend/dist/
-/frontend/.env.development
-frontend/.env.local
 frontend/.cache/
 npm-debug.log*
 yarn-debug.log*
