@@ -31,7 +31,7 @@
           <!-- 4. 현재 스크립트 구조와 연동 -->
           <v-row class="mt-3" justify="end">
             <v-col cols="auto">
-              <v-btn color="secondary" @click="developerLogin">개발자용</v-btn>
+              <!-- <v-btn color="secondary" @click="developerLogin">개발자용</v-btn> -->
             </v-col>
             <v-col cols="auto">
               <v-btn color="primary" @click="submitLogin">Login</v-btn>

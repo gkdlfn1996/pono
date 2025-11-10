@@ -53,6 +53,7 @@
       </v-col>
 
     <!-- 6. 우측 그룹 -->
+     <!-- 유저정보 -->
     <v-col cols="4" class="d-flex align-center pr-4 justify-end">
       <v-icon color="grey-lighten-1" class="mr-2">mdi-account-circle</v-icon>
       <span class="text-subtitle-1 mr-4" style="color: #BDBDBD;">{{ username }}</span>
@@ -62,20 +63,9 @@
             <v-icon>mdi-dots-vertical</v-icon>
           </v-btn>
         </template>
+        <!-- 글로벌 옵션창 -->
         <v-list>
-          <v-list-item>
-            <v-list-item-title>
-              <v-switch
-                v-model="isDarkTheme"
-                hide-details
-                prepend-icon="mdi-white-balance-sunny"
-                append-icon="mdi-weather-night"
-                @update:modelValue="toggleDarkTheme"
-                @click.stop
-              ></v-switch>
-            </v-list-item-title>
-          </v-list-item>
-          <v-divider></v-divider>
+          <!-- 퍼블리시 노트 필터 -->
           <v-list-item>
             <v-list-item-title>
               <v-btn
@@ -89,6 +79,21 @@
             </v-list-item-title>
           </v-list-item>
           <v-divider></v-divider>
+          <!-- 다크/라이트 모드 토글 -->
+          <v-list-item>
+            <v-list-item-title class="d-flex justify-start">
+              <v-switch
+                v-model="isDarkTheme"
+                hide-details
+                prepend-icon="mdi-white-balance-sunny"
+                append-icon="mdi-weather-night"
+                @update:modelValue="toggleDarkTheme"
+                @click.stop
+              ></v-switch>
+            </v-list-item-title>
+          </v-list-item>
+          <v-divider></v-divider>
+          <!-- 로그아웃 -->
           <v-list-item @click="emit('logout')">
             <v-list-item-title class="d-flex align-center">
               <v-icon class="mr-2">mdi-logout</v-icon>
