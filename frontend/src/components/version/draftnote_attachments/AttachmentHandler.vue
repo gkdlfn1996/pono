@@ -9,7 +9,7 @@
           {{ attachment.file_name || attachment.path_or_url }}
         </a>
         <v-spacer></v-spacer>
-        <v-btn icon variant="text" size="x-small" color="grey" @click="emit('delete-attachment', attachment.id)">
+        <v-btn v-if="!readonly" icon variant="text" size="x-small" color="grey" @click="emit('delete-attachment', attachment.id)">
           <v-icon>mdi-close-circle</v-icon>
         </v-btn>
       </div>
@@ -42,12 +42,17 @@ import { useAttachments } from '@/composables/useAttachments.js';
 
 /**
  * @props {Array} attachments - 표시할 첨부파일 객체의 배열.
+ * @props {Boolean} readonly - true일 경우, 삭제 버튼을 숨깁니다.
  */
 const props = defineProps({
   attachments: {
     type: Array,
     default: () => []
-  }
+  },
+  readonly: {
+    type: Boolean,
+    default: false
+  },
 });
 
 /**
