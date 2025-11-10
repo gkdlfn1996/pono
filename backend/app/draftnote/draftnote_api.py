@@ -18,7 +18,7 @@ async def _delete_attachments_folder(note_id: int, owner_id: int):
     """
     특정 노트와 소유자에 해당하는 첨부파일 폴더를 재귀적으로 삭제합니다.
     """
-    folder_path = Path.home() / 'pono_attachments' / str(note_id) / str(owner_id)
+    folder_path = Path.home() / os.getenv("ATTACHMENT_BASE_DIR") / str(note_id) / str(owner_id)
     if folder_path.exists() and folder_path.is_dir():
         try:
             shutil.rmtree(folder_path)
@@ -118,7 +118,7 @@ async def create_attachments_for_version(db: Session, version_id: int, files: Li
         db.refresh(note)
 
     # 3. 기존 첨부파일 추가 로직 실행
-    save_dir = Path.home() / 'pono_attachments' / str(note.id) / str(owner_id)
+    save_dir = Path.home() / os.getenv("ATTACHMENT_BASE_DIR") / str(note.id) / str(owner_id)
     os.makedirs(save_dir, exist_ok=True)
 
     for file in files:

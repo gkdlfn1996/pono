@@ -6,7 +6,7 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 
 
-SG_SERVER_URL = "https://idea.shotgrid.autodesk.com"
+SG_SERVER_URL = os.getenv("SHOTGRID_SERVER_URL")
 
 
 class SetSG:
@@ -101,7 +101,7 @@ async def authentication_fault_handler(request: Request, exc):
     )
 
 if __name__ == "__main__":
-    SERVER_URL = "https://idea.shotgrid.autodesk.com"
+    SERVER_URL = os.getenv("SHOTGRID_SERVER_URL")
     GOOD_TOKEN = "151694bc8447e762f8c9e82610b32ed2"
     BAD_TOKEN  = "wrongtoken"
 

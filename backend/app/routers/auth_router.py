@@ -5,8 +5,9 @@ from sqlalchemy.orm import Session
 from ..draftnote import database_models as models
 from ..draftnote.database import get_db
 from ..shotgrid import shotgrid_authenticator
+import os
 
-SERVER_URL = "https://idea.shotgrid.autodesk.com"
+SERVER_URL = os.getenv("SHOTGRID_SERVER_URL")
 
 router = APIRouter(
     prefix="/api/auth",

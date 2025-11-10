@@ -67,6 +67,6 @@ app.include_router(utils_router.router, prefix="/api/utils", tags=["utils"])
 @app.on_event("startup")
 def ensure_attachment_dir():
     """서버 시작 시 사용자 홈 디렉토리에 첨부파일 기본 저장 폴더를 자동 생성합니다."""
-    attachment_base_path = Path.home() / "pono_attachments"
+    attachment_base_path = Path.home() / os.getenv("ATTACHMENT_BASE_DIR")
     os.makedirs(attachment_base_path, exist_ok=True)
     print(f"[startup] Ensured attachment base directory: {attachment_base_path}")
