@@ -7,7 +7,6 @@ screen -r pono_backend
 
 ```bash
 source .venv/bin/activate
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 라이브러리 설치(가상 환경이 활성화된 상태에서 실행)
@@ -15,6 +14,11 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```bash
 python -m pip install --no-user -r requirements.txt
 ```
+app 수동실행
+```bash
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
 스크린 세션에서 지나간 로그 스크롤해서 보기
 ```bash
 ctrl+A [

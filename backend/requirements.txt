@@ -12,3 +12,6 @@ python-multipart==0.0.20
 requests==2.32.4
 shotgun_api3==3.8.5
 alembic==1.17.1
+markdown-it-py==3.0.0
+beautifulsoup4==4.12.3
+mdit_py_plugins==0.4.0

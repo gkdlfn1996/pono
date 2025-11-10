@@ -41,7 +41,15 @@ fi
 UVICORN_CMD="uvicorn app.main:app --host 0.0.0.0 --port \"$BACKEND_PORT\" --reload"
 
 # screen 내에서 실행할 전체 명령
-BACKEND_SETUP_AND_RUN_COMMAND="source \"$VENV_PATH/bin/activate\" && $PIP_INSTALL_CMD && $ALEMBIC_CMD && $UVICORN_CMD"
+# BACKEND_SETUP_AND_RUN_COMMAND="source \"$VENV_PATH/bin/activate\" && $PIP_INSTALL_CMD && $ALEMBIC_CMD && $UVICORN_CMD"
+BACKEND_SETUP_AND_RUN_COMMAND="source \"$VENV_PATH/bin/activate\" && \
+    echo '[Backend Setup] Python 가상 환경 활성화 완료.' && \
+    echo '[Backend Setup] 실행: $PIP_INSTALL_CMD' && $PIP_INSTALL_CMD && \
+    echo '[Backend Setup] Python 의존성 설치 완료.' && \
+    echo '[Backend Setup] 실행: $ALEMBIC_CMD' && $ALEMBIC_CMD && \
+    echo '[Backend Setup] Alembic 마이그레이션 적용 완료.' && \
+    echo '[Backend Setup] 실행: $UVICORN_CMD' && $UVICORN_CMD"
+
 
 # screen으로 실행/재시작
 start_or_restart_in_screen "$BACKEND_SCREEN_NAME" "$BACKEND_DIR" "$BACKEND_SETUP_AND_RUN_COMMAND"

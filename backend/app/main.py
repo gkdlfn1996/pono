@@ -4,6 +4,7 @@ PONO Backend Main Application File.
 """
 import os
 from pathlib import Path
+from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from sqlalchemy import text
 from .draftnote.database import engine
@@ -21,8 +22,7 @@ FRONTEND_PORT=int(os.getenv('FRONTEND_PORT'))
 logging.config.dictConfig(LOGGING_CONFIG)
 
 # routers 폴더에서 각 기능별 라우터를 가져옵니다.
-from .routers import auth_router, draftnotes_router, shotgrid_data_router, draftnotes_attachments_router
-from .routers import shotgrid_publish_router
+from .routers import auth_router, draftnotes_router, shotgrid_data_router, draftnotes_attachments_router, shotgrid_publish_router, utils_router
 
 # FastAPI 애플리케이션 인스턴스 생성
 app = FastAPI(
@@ -50,12 +50,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 정적 파일 경로 마운트 (이미지 등)
+# /static/docs URL을 docs 디렉토리에 연결
+app.mount("/static/docs", StaticFiles(directory="../docs"), name="static_docs")
+
+
 # API 라우터 연결
 app.include_router(auth_router.router)
 app.include_router(draftnotes_router.router)
 app.include_router(shotgrid_data_router.router)
 app.include_router(draftnotes_attachments_router.router)
 app.include_router(shotgrid_publish_router.router)
+app.include_router(utils_router.router, prefix="/api/utils", tags=["utils"])
 
 # 서버 시작 시 첨부파일 기본 디렉토리 보장
 @app.on_event("startup")
