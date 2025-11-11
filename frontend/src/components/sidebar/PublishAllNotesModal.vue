@@ -43,8 +43,12 @@
 
         <v-divider class="mb-4"></v-divider>
 
+        <!-- 로딩 중 -->
+        <div v-if="isLoadingNotes" class="d-flex justify-center align-center" style="height:200px;">
+          <v-progress-circular indeterminate size="32" />
+        </div>
         <!-- 노트 리스트 (로컬 사본 사용) -->
-        <div v-if="notesToDisplay.length > 0" class="notes-list">
+        <div v-else-if="notesToDisplay.length > 0" class="notes-list">
           <v-card 
             v-for="note in notesToDisplay" 
             :key="note.draft_note_id" 
@@ -204,6 +208,7 @@ const { getIconForFile, handleAttachmentClick, copiedPath } = useAttachments();
 const { user: currentUser } = useAuth();
 
 // --- Modal-specific State ---
+const isLoadingNotes = ref(false);
 const notesInModal = ref([]); // 모달 내에서 관리될 로컬 노트 목록
 //  UI 표시에 필요한 글로벌 서브젝트와 원본 헤더를 계산합니다.
 const globalNotes = computed(() => getGlobalNotes()); 
@@ -267,6 +272,7 @@ const handlePublishAll = async () => {
 watch(() => props.modelValue, async (newValue) => {
   if (newValue) {
     // 상태 초기화
+    isLoadingNotes.value = true;
     clearPublishResults();
     notesInModal.value = [];
 
@@ -286,6 +292,7 @@ watch(() => props.modelValue, async (newValue) => {
 
     notesInModal.value = notesWithFullData;
     fetchThumbnailsForPub(notesInModal.value.map(n => n.version));
+    isLoadingNotes.value = false;
   } else {
     notesInModal.value = []; // 모달이 닫히면 데이터 초기화
   }
