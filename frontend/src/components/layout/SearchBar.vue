@@ -273,6 +273,21 @@ const onValueInputBlur = () => {
   }, 200);
 };
 
+// 외부에서 호출 가능한 초기화 함수
+const clearAllFilters = () => {
+  searchLabels.value = [];
+  activeType.value = null;
+  typeSearchQuery.value = '';
+  valueSearchQuery.value = '';
+  emit('filters-complete', []); // 필터가 초기화되었음을 알림
+};
+
+// 외부에서 clearAllFilters 함수를 호출할 수 있도록 노출
+defineExpose({
+  clearAllFilters
+});
+
+
 // typeSearchQuery의 변화를 감지하여 모든 필터가 선택된 경우 초기화
 watch(typeSearchQuery, (newValue) => {
   if (allFilterTypes.length === searchLabels.value.length && newValue !== '') {

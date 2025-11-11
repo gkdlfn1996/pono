@@ -52,7 +52,8 @@
       
       <!-- 2. 중앙 요소 : 검색창 -->
       <v-col cols="4" class="d-flex align-center pa-0 justify-center">
-        <SearchBar 
+        <SearchBar
+          ref="searchBarRef"
           :disabled="isSearchBarDisabled"
           @filters-complete="handleFiltersComplete" 
         />
@@ -114,7 +115,7 @@
 </template>
 
 <script setup>
-import { onMounted, computed, watch } from 'vue';
+import { onMounted, computed, watch, ref } from 'vue';
 import { useShotGridData } from '../../composables/useShotGridData';
 import { useTheme } from 'vuetify';
 import SearchBar from './SearchBar.vue';
@@ -141,6 +142,8 @@ const emit = defineEmits(['toggle-drawer']);
 
 onMounted(async () => {
   await loadProjects();
+  // 컴포넌트 마운트 시 SearchBar 초기화
+  if (searchBarRef.value) searchBarRef.value.clearAllFilters();
 });
 
 const theme = useTheme();
@@ -158,6 +161,21 @@ function handleFiltersComplete(filters) {
   console.log('SearchBar로부터 필터 신호를 받았습니다. 적용될 필터:', filters);
   applyFilters(filters);
 }
+
+
+// SearchBar 컴포넌트 참조
+const searchBarRef = ref(null);
+
+// 프로젝트 또는 파이프라인 스텝 변경 감지 및 SearchBar 초기화
+watch([selectedProject, selectedPipelineStep], ([newProject, newStep], [oldProject, oldStep]) => {
+  // 프로젝트 또는 스텝이 변경되었을 때만 초기화
+  if (searchBarRef.value && (newProject !== oldProject || newStep !== oldStep)) {
+    console.log('프로젝트 또는 스텝 변경 감지. SearchBar 초기화.');
+    searchBarRef.value.clearAllFilters();
+  }
+});
+
+
 
 
 // 페이지 새로고침 함수

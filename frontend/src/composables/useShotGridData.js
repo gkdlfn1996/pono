@@ -281,6 +281,7 @@ export function useShotGridData() {
             selectedProject.value = project;
             console.log('선택된 project:', project);
             selectedPipelineStep.value = null; // 프로젝트 변경 시 스탭 초기화
+            activeFilters.value = []; // 프로젝트 변경 시 필터 초기화
             await loadPipelineSteps(projectId);
         }
     };
@@ -305,6 +306,7 @@ export function useShotGridData() {
             currentPage.value = 1;
             sortBy.value = 'created_at';
             sortOrder.value = 'desc';
+            activeFilters.value = []; // 스텝 변경 시 필터 초기화
             await loadVersions(false); // 태스크 선택 시에는 새로고침 (캐시 미사용)
         }
     };
