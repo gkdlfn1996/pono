@@ -5,7 +5,13 @@
         <!-- 1. 좌측 그룹 -->
         <v-app-bar-nav-icon @click="emit('toggle-drawer')"></v-app-bar-nav-icon>
         <v-col cols="auto" class="pa-0 flex-shrink-0">
-          <v-toolbar-title class="font-weight-black text-blue-lighten-2 pl-4 mr-10 d-none d-md-flex">PONO</v-toolbar-title>
+          <v-toolbar-title 
+          class="font-weight-black text-blue-lighten-2 pl-4 mr-10 d-none d-md-flex"
+          @click="reloadPage"
+          style="cursor: pointer;"
+          >
+            PONO
+          </v-toolbar-title>
         </v-col>
         <!-- 프로젝트 & 파이프라인스텝 -->
         <v-autocomplete
@@ -151,6 +157,12 @@ const isSearchBarDisabled = computed(() => {
 function handleFiltersComplete(filters) {
   console.log('SearchBar로부터 필터 신호를 받았습니다. 적용될 필터:', filters);
   applyFilters(filters);
+}
+
+
+// 페이지 새로고침 함수
+function reloadPage() {
+  window.location.reload();
 }
 
 </script>
