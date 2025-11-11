@@ -65,7 +65,7 @@
       </div>
       <v-card
         variant="outlined"
-        class="notes-container flex-grow-1"
+        class="notes-container flex-grow-1 no-hover-overlay"
         style="height: 150px; overflow-y: auto;"
         @click="handleInteraction"
         @scroll.passive="handleInteraction"
@@ -319,6 +319,15 @@ const formatDateTime = (isoString) => {
   word-wrap: break-word;
   line-height: 1.4;
 }
+
+/* Vuetify 3 hover overlay 제거 (해당 카드 한정) */
+:deep(.no-hover-overlay) {
+  /* Vuetify가 hover 시 얹는 overlay 투명화 */
+  --v-hover-opacity: 0;
+  /* 일부 환경에서 잔여 감쇠가 보이면 multiplier도 0으로 */
+  --v-theme-overlay-multiplier: 0;
+}
+
 
 /* My Draft Note 변경사항 저장 시각 피드백  */
 :deep(.v-textarea .v-field__field) {
