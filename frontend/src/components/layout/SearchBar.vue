@@ -315,10 +315,6 @@ watch(typeSearchQuery, (newValue) => {
   pointer-events: none;
 }
 
-:deep(.v-field__overlay) {
-    background: transparent;
-}
-
 :deep(.v-field__input) {
   padding-top: 0;
   padding-bottom: 0;

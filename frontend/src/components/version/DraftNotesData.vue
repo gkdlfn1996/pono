@@ -319,17 +319,23 @@ const formatDateTime = (isoString) => {
   word-wrap: break-word;
   line-height: 1.4;
 }
+
+/* My Draft Note 변경사항 저장 시각 피드백  */
+:deep(.v-textarea .v-field__field) {
+  transition: background-color 0.3s ease-in-out;
+}
+:deep(.v-textarea.saved-note .v-field__field) {
+  /* background-color: #E3F2FD; */
+  background-color: rgb(var(--v-theme-info), 0.3);
+}
+
+/* Others Draft Note 새노트 업데이트 시각 피드백  */
 .note-item {
   background-color: transparent;
   transition: background-color 0.3s ease-in-out;
 }
-
-/* My Draft Note 변경사항 저장 시각 피드백  */
-:deep(.v-textarea.saved-note .v-field__field) {
-  background-color: #E3F2FD;
-}
-
 .new-note-highlight {
-  background-color: #FFF9C4; /* 연한 노란색으로 새 노트 표시 */
+  /* background-color: #FFF9C4; 연한 노란색으로 새 노트 표시 */
+  background-color: rgb(var(--v-theme-warning), 0.3); /* 연한 노란색으로 새 노트 표시 */
 }
 </style>

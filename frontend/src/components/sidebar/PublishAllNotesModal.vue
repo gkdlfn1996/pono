@@ -79,6 +79,7 @@
                       </template>
                     </v-img>
                   </v-responsive>
+                  <!-- To/CC -->
                   <div class="mt-2">
                     <div class="d-flex align-center mb-2">
                       <div class="text-body-2 font-weight-bold" style="width: 40px;">To:</div>

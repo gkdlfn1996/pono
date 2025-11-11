@@ -220,7 +220,7 @@ watch(() => props.modelValue, (newValue) => {
   - cursor: text -> 사용자가 텍스트 입력 영역임을 인지하도록 함.
 */
 .fake-textarea-container {
-  border: 1px solid rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.22);
   border-radius: 4px;
   height: 300px;
   padding: 16px;
@@ -233,7 +233,8 @@ watch(() => props.modelValue, (newValue) => {
 
 /* 마우스를 올렸을 때 테두리 색상을 약간 진하게 변경 */
 .fake-textarea-container:hover {
-  border-color: rgba(0, 0, 0, 0.54);
+  border-color: rgba(var(--v-theme-on-surface), 0.54);
+  /* border-color: rgba(0, 0, 0, 0.54); */
 }
 
 /* 
@@ -251,7 +252,8 @@ watch(() => props.modelValue, (newValue) => {
   - white-space, word-wrap -> 원본 텍스트의 줄바꿈과 긴 단어를 올바르게 표시.
 */
 .overlay-content {
-  color: rgba(0, 0, 0, 0.54);
+  /* color: rgba(0, 0, 0, 0.54); */
+  color: rgba(var(--v-theme-on-surface), 0.54);
   pointer-events: none;
   white-space: pre-wrap;
   word-wrap: break-word;
@@ -263,7 +265,8 @@ watch(() => props.modelValue, (newValue) => {
 
 /* 실제 입력되는 텍스트의 커서 색상을 지정 */
 .real-textarea {
-  caret-color: rgba(0, 0, 0, 0.87);
+  /* caret-color: rgba(0, 0, 0, 0.87); */
+  caret-color: rgba(var(--v-theme-on-surface), 0.87);
   /* 남은 공간을 모두 채우도록 설정 */
   flex-grow: 1;
 }
