@@ -73,8 +73,8 @@ dnf -y install \
 ## 3) PostgreSQL 데이터베이스 초기화(최초 1회)
 
 
-**!!주의!! :   
-su - postgres로 직접 들어가지 말고, 현재 셸에서 변수 확장 + su -c로 실행. (su - 루트 권환)**
+> **⚠️ 주의 :  
+> su - postgres로 직접 들어가지 말고, 현재 셸에서 변수 확장 + su -c로 실행. (su - 루트 권환)**
 
 
 ```bash
@@ -204,23 +204,6 @@ Ctrl + A, D
 
 ## +@) 재시작·갱신
 
-```bash
-# 최신 코드 받기
-cd /home/idea/pono # 프로젝트 폴더
-git pull
-source ./config.sh
-```
-```bash
-# 백엔드/프론트엔드 재시작
-cd "$BACKEND_DIR" && ./bin/pono_launcher.sh
-```
-```bash
-# 백엔드만 재시작
-cd "$BACKEND_DIR" && ./bin/pono_backend.sh
-```
-```bash
-# 프론트엔드만 재시작
-cd "$BACKEND_DIR" && ./bin/pono_frontend.sh
-```
 
-<br>
+`git pull`로 최신 코드를 받은 후 서버를 재시작하는 방법은 프로젝트 루트의 **[`README.md`](../README.md#설치-및-자동-재시작)** 또는 **[`backend/README.md`](../backend/README.md#변경된-code-적용-및-서버-재시작권장)** 파일에 최신 정보가 유지됩니다. 해당 문서를 참고하여 재시작 스크립트를 실행해주세요.
+

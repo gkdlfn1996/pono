@@ -37,3 +37,13 @@
 * 데이터베이스 테이블 구조(테이블, 컬럼 등)는 `Alembic`을 통해 관리됩니다.
 * 데이터베이스 모델은 `app/draftnote/database_models.py`에서 구성됩니다.
 * 만약 데이터베이스의 모델을 변경했다면, 반드시 터미널에서 새로운 리비전 파일을 생성(alembic revision --autogenerate -m "변경 내용 요약")하고 데이터베이스에 적용(alembic upgrade head)해야 합니다.
+
+### 6. API 엔드포인트 문서
+
+PONO 백엔드는 FastAPI의 자동 문서 생성 기능을 지원합니다. 서버가 실행 중일 때 아래 URL로 접속하면, 모든 API 엔드포인트의 명세를 확인하고 직접 테스트해볼 수 있습니다.
+
+- **Swagger UI**: `http://localhost:<BACKEND_PORT>/docs`  
+    - 2025.11.6 기준 - **http://10.0.1.110:8000/docs**
+
+- **ReDoc**: `http://localhost:<BACKEND_PORT>/redoc`  
+    - 2025.11.6 기준 - **http://10.0.1.110:8000/redoc**

@@ -8,6 +8,8 @@
  
 ShotGrid의 샷 및 버전 정보를 활용하여, 사용자들이 특정 버전에 대한 임시 노트를 실시간으로 작성하고 관리할 수 있는 웹 싱글 페이지 애플리케이션  
 
+![](./docs/images/PONO_예시메인.png)
+
 <br>
 
 ## 목차
@@ -38,14 +40,41 @@ FastAPI 백엔드와 Vue 3 프론트엔드를 결합해 임시노트 작성, 빠
 
 <br>
 
-## 설치 및 시작
-> 자세한 설치 명령은 [`Getting_Started.md`](./docs/Getting_Started.md),[`/backend/README.md`](./backend/README.md) 참고  
+## 설치 및 자동 재시작
+> 최초 설치 방법은 [**`Getting_Started.md`**](./docs/Getting_Started.md)참고  
+> Backend, Frontend 수동 실행은 [**`./backend/README.md`**](./backend/README.md) 참고
+    
+### 변경된 Code 적용 및 서버 재시작
+1. PONO서버 접속
+2. pono프로젝트 경로 들어가기
+3. Git에서 변경사항 pull받기
+4. 아래 명령어 입력
+
+    ```bash
+    cd pono
+    source ./config.sh
+    cd "$BACKEND_DIR"
+    ./bin/pono_launcher.sh
+    ```
+### Backend만 재실행
+```bash
+cd pono
+source ./config.sh
+cd "$BACKEND_DIR"
+./bin/pono_backend.sh
+```
+### Frontend만 재실행
+```bash
+cd pono
+source ./config.sh
+cd "$BACKEND_DIR"
+./bin/pono_frontend.sh
+```
 
 <br>
 
 ## 사용법
->자세한 사항은 [`Development_Guide.md`](./docs/Development_Guide.md) 참고  >> 추후 북스택 연결
-
+>자세한 사항은 [**`User_Manual.md`**](./docs/User_Manual.md) 참고
 <br>
 
 ## IP
@@ -60,7 +89,7 @@ FastAPI 백엔드와 Vue 3 프론트엔드를 결합해 임시노트 작성, 빠
 <br>
 
 ## 개발자 참고사항
->자세한 사항은 [`Development_Guide.md`](./docs/Development_Guide.md) 참고  
+>자세한 사항은 [**`Development_Guide.md`**](./docs/Development_Guide.md) 참고  
 
 
 
