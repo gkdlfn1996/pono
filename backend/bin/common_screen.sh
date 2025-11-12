@@ -9,14 +9,17 @@ start_or_restart_in_screen() {
     echo "Screen 세션 관리: $name"
 
     if screen -list | grep -q "$name"; then
-        echo "Screen 세션 '$name' 존재 → 재시작"
-        screen -S "$name" -X stuff "^C^M"
-        sleep 2
-        screen -S "$name" -X stuff "cd $dir && $setup_and_run_cmd; exec bash^M"
-        echo "연결: screen -r $name"
-    else
-        echo "Screen 세션 '$name' 없음 → 생성/시작"
-        screen -dmS "$name" bash -c "cd $dir && $setup_and_run_cmd; exec bash"
-        echo "연결: screen -r $name"
+        echo "Screen 세션 '$name' 존재 → 종료 후 재시작"
+        # 세션을 완전히 종료합니다.
+        screen -S "$name" -X quit
+        # 세션이 완전히 종료될 때까지 잠시 기다립니다.
+        while screen -list | grep -q "$name"; do
+            sleep 1
+        done
+        echo "이전 세션 '$name' 종료 완료."
     fi
+
+    echo "Screen 세션 '$name' 생성/시작"
+    screen -dmS "$name" bash -c "cd \"$dir\" && $setup_and_run_cmd; exec bash"
+    echo "연결: screen -r $name"
 }
