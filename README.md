@@ -74,6 +74,7 @@ cd "$BACKEND_DIR"
 <br>
 
 ## 사용법
+웹 주소창에 10.0.1.110:8080 입력 후 접속
 >자세한 사항은 [**`User_Manual.md`**](./docs/User_Manual.md) 참고
 <br>
 

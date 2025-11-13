@@ -267,7 +267,7 @@ export function useShotGridData() {
       */
     const changePage = (page) => {
         currentPage.value = page;
-        loadVersions(true); // 페이지 이동 시에는 캐시 사용
+        // loadVersions(true); // 페이지 이동 시에는 캐시 사용
     };
 
     /**

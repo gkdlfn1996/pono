@@ -44,7 +44,7 @@
               <v-pagination
                 :model-value="currentPage"
                 :length="totalPages"
-                @update:model-value="changePage"
+                @update:model-value="handlePageChange"
               ></v-pagination>
             </div>
           </v-col>
@@ -166,9 +166,17 @@ const handleLogout = () => {
   clearDraftNotesState(); // useDraftNotes 상태 초기화
 };
 
+// 페이지 변경 시 버전 로드 및 노트업데이트
+const handlePageChange = (newPage) => {
+  changePage(newPage);
+  loadVersions(true);
+  fetchNotesByStep(selectedProject.value.id, selectedPipelineStep.value);
+}
+
 const scrollToTop = () => {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 };
+
 
 // --- 로직 통합 ---
 
