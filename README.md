@@ -92,6 +92,12 @@ cd "$BACKEND_DIR"
 ## 개발자 참고사항
 >자세한 사항은 [**`Development_Guide.md`**](./docs/Development_Guide.md) 참고  
 
+<br>
+
+## History
+2025.11.13 PONO 1차 기능 테스트 배포
+
+
 
 
 
