@@ -13,8 +13,6 @@
 su
 ```
 
-~~dnf -y update --security --exclude=kernel*~~
-시스템 설정 에러가 많아 제외. GUI가 없는 깨끗한 운용 서버에서는 해도 좋을듯.
 
 ```bash
 dnf -y install epel-release
