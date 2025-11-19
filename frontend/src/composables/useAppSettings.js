@@ -66,7 +66,7 @@ export function useAppSettings() {
   const filterPublishedNotes = (notes, showPublished) => {
     if (notes === null || notes === undefined) return []; // notes가 null 또는 undefined일 경우 빈 배열 반환
     if (showPublished) return notes;
-    return notes.filter(note => !note.subject || !note.subject.includes('Publish'));
+    return notes.filter(note => !note.subject || !note.subject.toLowerCase().includes('publish'));
   };
 
   // -----------------------------------------
