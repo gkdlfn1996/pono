@@ -91,10 +91,20 @@ export function useShotGridPublish() {
 
         let formattedHeader = '';
         if (currentHeaderNote) {
-            const parts = version?.code?.split('_');
-            if (parts && parts.length >= 4) {
-                formattedHeader = `${currentHeaderNote}_${parts[2]}_${parts[3]}_`;
+            // const parts = version?.code?.split('_');
+            // if (parts && parts.length >= 4) {
+            //     formattedHeader = `${currentHeaderNote}_${parts[2]}_${parts[3]}_`;
+            const versionName = version?.code
+            const entityName = version?.entity?.name;
+            const prefixToRemove = `${entityName}_`;
+
+            // 1. 버전 이름과 엔티티 이름이 모두 있고,
+            // 2. 버전 이름이 '엔티티이름_' 으로 시작하는 경우
+            if (versionName && entityName && versionName.startsWith(prefixToRemove)) {
+                const suffix = versionName.replace(prefixToRemove, '');
+                formattedHeader = `${currentHeaderNote}_${suffix}_`;
             } else {
+                // 그 외의 모든 경우에는 기존처럼 헤더노트 뒤에 _만 붙임
                 formattedHeader = `${currentHeaderNote}_`;
             }
         }
