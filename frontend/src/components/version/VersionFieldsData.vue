@@ -126,7 +126,18 @@ const statuses = computed(() => {
       color: statusMap[versionStatus.toLowerCase()] || 'grey-lighten-1'
     });
   }
-
+  
+  // Task Status
+  // 데이터 구조에 맞게 직접 접근
+  const taskStatus = props.version['sg_task.Task.sg_status_list'];
+  if (taskStatus) {
+    result.push({ 
+      label: 'Task',
+      value: taskStatus,
+      color: statusMap[taskStatus.toLowerCase()] || 'grey-lighten-1'
+    });
+  }
+  
   // Shot Status
   // 데이터 구조에 맞게 직접 접근
   const shotStatus = props.version['entity.Shot.sg_status_list'];
@@ -147,17 +158,6 @@ const statuses = computed(() => {
       value: assetStatus,
       color: statusMap[assetStatus.toLowerCase()] || 'grey-lighten-1'
     })
-  }
-
-  // Task Status
-  // 데이터 구조에 맞게 직접 접근
-  const taskStatus = props.version['sg_task.Task.sg_status_list'];
-  if (taskStatus) {
-    result.push({ 
-      label: 'Task',
-      value: taskStatus,
-      color: statusMap[taskStatus.toLowerCase()] || 'grey-lighten-1'
-    });
   }
 
   return result;
