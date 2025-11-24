@@ -18,6 +18,7 @@ const isVersionsLoading = ref(false); // 로딩 상태 변수 이름 변경
 let cancelTokenSource = null; // Axios 취소 토큰 소스를 저장할 변수
 const currentPage = ref(1);
 const totalPages = ref(1);
+const DisplayVersionCount = ref(0); // 표시될 버전의 총 개수
 const sortBy = ref('created_at'); // 정렬 기준
 const sortOrder = ref('desc'); // 정렬 순서 (asc, desc)
 const activeFilters = ref([]); // SearchBar로부터 받은 필터 조건
@@ -148,6 +149,7 @@ export function useShotGridData() {
             console.log("### Processed Data from Backend:", data); // 상세 로그 추가
             displayVersions.value = data.versions;
             totalPages.value = data.total_pages;
+            DisplayVersionCount.value = data.total_versions;
             presentEntityTypes.value = data.presentEntityTypes;
             suggestionSources.value = data.suggestions || {}; // 제안 목록 데이터 저장
             
@@ -381,6 +383,7 @@ export function useShotGridData() {
         isVersionsLoading.value = false;
         currentPage.value = 1;
         totalPages.value = 1;
+        DisplayVersionCount.value = 0;
         sortBy.value = 'created_at';
         sortOrder.value = 'desc';
         activeFilters.value = [];
@@ -402,6 +405,7 @@ export function useShotGridData() {
         isVersionsLoading: readonly(isVersionsLoading), // 변경된 이름으로 내보내기
         currentPage: readonly(currentPage),
         totalPages: readonly(totalPages),
+        DisplayVersionCount: readonly(DisplayVersionCount),
         sortBy: readonly(sortBy),
         sortOrder: readonly(sortOrder),
         loadProjects,

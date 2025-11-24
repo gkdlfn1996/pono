@@ -28,6 +28,7 @@
         <span>{{ selectedProject.name }}</span>
         <v-icon size="small" class="mx-1">mdi-chevron-right</v-icon>
         <span>{{ selectedPipelineStep }}</span>
+        <span class="text-body-1 text-grey-darken-1 ml-2"> ({{ DisplayVersionCount }} Versions)</span>
       </div>
       <v-spacer></v-spacer>
       <!-- 정렬 컨트롤 UI -->
@@ -184,7 +185,8 @@ const {
   selectedPipelineStep,
   loadLinkedNotes,
   isVersionsLoading,
-  cancelLoadVersions 
+  cancelLoadVersions, 
+  DisplayVersionCount,
 } = useShotGridData();
 
 const emit = defineEmits(['refresh-versions']);
