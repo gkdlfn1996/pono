@@ -17,7 +17,7 @@
       <template v-else>
         <div v-for="(note, index) in appsettingFilteredNotes" :key="note.id">
           <div class="d-flex justify-space-between align-center px-3 pt-2 pb-1">
-            <span class="text-subtitle-2 font-weight-bold">{{ note.user.name }}</span>
+            <span class="text-subtitle-2 font-weight-bold">{{ note.user?.name || 'Unknown' }}</span>
             <span class="text-caption text-grey">{{ formatDateTime(note.created_at) }}</span>
           </div>
           <div v-if="note.subject" class="text-subtitle-2 font-weight-bold px-3 pb-1 text-grey">
