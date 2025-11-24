@@ -107,7 +107,7 @@ def apply_search_filters(data: List[Dict], filters_str: str) -> List[Dict]:
                     match_all = False; break
             elif filter_type == 'Task':
                 task = item.get('sg_task')
-                if not (task and task.get('name', '').lower()):
+                if not (task and filter_value in task.get('name', '').lower()):
                     match_all = False; break
             # 다른 필터 타입에 대한 로직 추가 가능
 
