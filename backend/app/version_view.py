@@ -95,7 +95,7 @@ def apply_search_filters(data: List[Dict], filters_str: str) -> List[Dict]:
                     match_all = False; break
             elif filter_type == 'Playlist':
                 playlists = item.get('playlists', [])
-                if not any(filter_value in pl.get('name', '').lower() for pl in playlists):
+                if not any(filter_value == pl.get('name', '').lower() for pl in playlists):
                     match_all = False; break
             elif filter_type == 'Subject':
                 notes = item.get('notes') or []

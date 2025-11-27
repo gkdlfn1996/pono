@@ -36,7 +36,7 @@ FastAPI 백엔드와 Vue 3 프론트엔드를 결합해 임시노트 작성, 빠
 | Backend | Python 3.10 / FastAPI / SQLAlchemy / Alembic |
 | Frontend | Vue 3 / Vuetify 3 / Vue CLI |
 | Database | PostgreSQL 15 |
-| Infra | Rocky Linux 9.5 / Screen / Nginx |
+| Infra | Rocky Linux 9.5 / Screen |
 
 <br>
 
