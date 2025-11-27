@@ -36,8 +36,8 @@
           <!-- <h3 class="text-h6 mb-4">Global Settings</h3> -->
           <div class="text-body-1">
             <p><span class="font-weight-bold" style="width: 120px; display: inline-block; text-align:right; margin-right: 8px;">Author :</span> {{ currentUser?.name }}</p>
-            <p><span class="font-weight-bold" style="width: 120px; display: inline-block; text-align:right; margin-right: 8px;">Subject :</span> {{ globalNotes.subject }}</p>
-            <p><span class="font-weight-bold" style="width: 120px; display: inline-block; text-align:right; margin-right: 8px;">Header Note :</span> {{ globalNotes.headerNote }}</p>
+            <p><span class="font-weight-bold" style="width: 120px; display: inline-block; text-align:right; margin-right: 8px;">Subject :</span> {{ modalGlobalNotes.subject }}</p>
+            <p><span class="font-weight-bold" style="width: 120px; display: inline-block; text-align:right; margin-right: 8px;">Header Note :</span> {{ modalGlobalNotes.headerNote }}</p>
           </div>
         </div>
 
@@ -211,7 +211,7 @@ const { user: currentUser } = useAuth();
 const isLoadingNotes = ref(false);
 const notesInModal = ref([]); // 모달 내에서 관리될 로컬 노트 목록
 //  UI 표시에 필요한 글로벌 서브젝트와 원본 헤더를 계산합니다.
-const globalNotes = computed(() => getGlobalNotes()); 
+const modalGlobalNotes = ref({});
 
 /**
  * 게시 중 실시간으로 화면에 표시될 노트 목록을 계산합니다.
@@ -276,6 +276,7 @@ watch(() => props.modelValue, async (newValue) => {
     clearPublishResults();
     notesInModal.value = [];
 
+    modalGlobalNotes.value = getGlobalNotes();
     const allCachedVersions = await getCachedVersionsForPub();
     const versionMap = new Map(allCachedVersions.map(v => [v.id, v]));
 
