@@ -44,3 +44,7 @@ export DB_HOST="localhost"
 export DB_PORT="5432"
 export DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
 
+# 로그 설정
+export PONO_LOG_DIR="$HOME/pono_log"
+export PONO_LOG_RETENTION_DAYS=14
+

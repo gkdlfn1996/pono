@@ -16,7 +16,12 @@ import logging
 import logging.config
 from log_config import LOGGING_CONFIG
 
-FRONTEND_PORT=int(os.getenv('FRONTEND_PORT'))
+FRONTEND_PORT = int(os.getenv('FRONTEND_PORT'))
+PONO_LOG_DIR = os.getenv("PONO_LOG_DIR", str(Path.home() / "pono_log"))
+
+# 로그 디렉토리가 없으면 생성 (로깅 설정 전에)
+if not os.path.exists(PONO_LOG_DIR):
+    os.makedirs(PONO_LOG_DIR)
 
 # 커스텀 로그 설정
 logging.config.dictConfig(LOGGING_CONFIG)
