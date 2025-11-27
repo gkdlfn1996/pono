@@ -152,6 +152,7 @@ const allFilterTypes = [
   { name: 'Asset', key: 'Asset' },
   { name: 'Playlist', key: 'Playlist' },
   { name: 'Version', key: 'Version' },
+  { name: 'Version Status', key: 'Version Status' },
   { name: 'Subject', key: 'Subject' },
   { name: 'Tag', key: 'Tag' },
 ];

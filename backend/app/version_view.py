@@ -109,6 +109,10 @@ def apply_search_filters(data: List[Dict], filters_str: str) -> List[Dict]:
                 task = item.get('sg_task')
                 if not (task and filter_value in task.get('name', '').lower()):
                     match_all = False; break
+            elif filter_type == 'Version Status':
+                version_status = item.get('sg_status_list')
+                if not (version_status and filter_value == version_status.lower()):
+                    match_all = False; break
             # 다른 필터 타입에 대한 로직 추가 가능
 
         if match_all:
@@ -128,6 +132,7 @@ def extract_suggestions(data: List[Dict]) -> Dict[str, List[str]]:
         'Playlist': set(),
         'Subject': set(),
         'Version': set(),
+        'Version Status': set(),
     }
 
     for item in data:
@@ -149,6 +154,9 @@ def extract_suggestions(data: List[Dict]) -> Dict[str, List[str]]:
         # Task 이름 추가
         task = item.get('sg_task')
         if task and task.get('name'): suggestions['Task'].add(task['name'])
+        # Version Status 이름 추가
+        version_status = item.get('sg_status_list')
+        if version_status: suggestions['Version Status'].add(version_status)
 
     # 각 set을 정렬된 리스트로 변환
     return {key: sorted(list(value)) for key, value in suggestions.items()}

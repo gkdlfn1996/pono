@@ -158,7 +158,6 @@ const isSearchBarDisabled = computed(() => {
 
 // SearchBar로부터 필터 완료 이벤트를 받았을 때 실행되는 핸들러
 function handleFiltersComplete(filters) {
-  console.log('SearchBar로부터 필터 신호를 받았습니다. 적용될 필터:', filters);
   applyFilters(filters);
 }
 
@@ -170,7 +169,6 @@ const searchBarRef = ref(null);
 watch([selectedProject, selectedPipelineStep], ([newProject, newStep], [oldProject, oldStep]) => {
   // 프로젝트 또는 스텝이 변경되었을 때만 초기화
   if (searchBarRef.value && (newProject !== oldProject || newStep !== oldStep)) {
-    console.log('프로젝트 또는 스텝 변경 감지. SearchBar 초기화.');
     searchBarRef.value.clearAllFilters();
   }
 });
