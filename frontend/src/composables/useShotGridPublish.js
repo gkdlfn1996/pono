@@ -37,7 +37,7 @@ export function useShotGridPublish() {
      * @param {object} selectedProject - 현재 선택된 프로젝트 정보 객체.
      * @returns {{toUsers: Array, ccUsers: Array}} 'To' 및 'CC' 사용자 목록을 포함하는 객체.
      */
-    const getPublishUsers = (version, selectedProject) => {
+    const getInitialPublishUsers = (version, selectedProject) => {
         const toUsers = [];
         const ccUsers = new Map(); // 중복 제거를 위해 Map 사용
 
@@ -122,7 +122,7 @@ export function useShotGridPublish() {
         }
 
         const { subject, formattedHeader } = getGlobalNotes(rawNoteData.version);
-        const { toUsers, ccUsers } = getPublishUsers(rawNoteData.version, selectedProject.value);
+        // const { toUsers, ccUsers } = getPublishUsers(rawNoteData.version, selectedProject.value);
         const finalContent = `${formattedHeader}${rawNoteData.noteContent}`;
 
         // 4. 최종 Payload 조립
@@ -131,8 +131,10 @@ export function useShotGridPublish() {
             project_id: selectedProject.value.id,
             subject: subject,
             content: finalContent,
-            to_users: toUsers.map(u => ({ type: u.type, id: u.id })),
-            cc_users: ccUsers.map(u => ({ type: u.type, id: u.id })),
+            // to_users: toUsers.map(u => ({ type: u.type, id: u.id })),
+            // cc_users: ccUsers.map(u => ({ type: u.type, id: u.id })),
+            to_users: rawNoteData.toUsers.map(u => ({ type: u.type, id: u.id })),
+            cc_users: rawNoteData.ccUsers.map(u => ({ type: u.type, id: u.id })),
             attachments: (rawNoteData.attachments || []).map(att => ({
                 id: att.id,
                 file_type: att.file_type,
@@ -169,7 +171,10 @@ export function useShotGridPublish() {
 
         const promises = notesToPublish.map(noteData => {
             const finalPayload = createPublishPayload(noteData);
-            return _publishSingleNote(finalPayload)
+            // return _publishSingleNote(finalPayload)
+            return _publishSingleNote({
+                ...finalPayload
+            })
                 .then(draftNoteId => publishResults.value.push({
                     noteId: draftNoteId,
                     status: 'success'
@@ -192,7 +197,7 @@ export function useShotGridPublish() {
         summaryMessage: readonly(summaryMessage),
         failedNotes: readonly(failedNotes),
         successfulNotes: readonly(successfulNotes),
-        getPublishUsers,
+        getInitialPublishUsers,
         getGlobalNotes,
         clearPublishResults,
         publishNotes,

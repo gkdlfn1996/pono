@@ -202,7 +202,7 @@ const {
   successfulNotes,
   clearPublishResults,
   publishNotes,
-  getPublishUsers, getGlobalNotes
+  getInitialPublishUsers, getGlobalNotes
 } = useShotGridPublish();
 const { getIconForFile, handleAttachmentClick, copiedPath } = useAttachments();
 const { user: currentUser } = useAuth();
@@ -284,7 +284,7 @@ watch(() => props.modelValue, async (newValue) => {
       .filter(note => (note.content || note.attachments?.length > 0) && versionMap.has(note.version_id))
       .map(note => {
         const version = versionMap.get(note.version_id);
-        const { toUsers, ccUsers } = getPublishUsers(version, selectedProject.value);
+        const { toUsers, ccUsers } = getInitialPublishUsers(version, selectedProject.value);
         const { formattedHeader } = getGlobalNotes(version);
         const formattedContent = `${formattedHeader}${note.content}`;
         // to, cc, formattedContent는 UI 표시용. content는 게시 재료용.

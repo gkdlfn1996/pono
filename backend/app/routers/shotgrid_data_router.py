@@ -105,3 +105,10 @@ async def get_linked_entity_notes(entity_type: str, entity_id: int, sg=Depends(g
     연결된 샷, 에셋의 모든 오픈 노트를 조회합니다.
     """
     return await async_api.get_linked_entity_notes(sg, entity_type, entity_id)
+
+@router.get("/users")
+async def get_all_users(sg=Depends(get_shotgrid_instance)):
+    """
+    ShotGrid에서 활성화된 모든 HumanUser 목록을 조회합니다.
+    """
+    return await async_api.get_all_human_users(sg)

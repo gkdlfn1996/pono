@@ -1,6 +1,7 @@
 <template>
   <!-- 
     v-dialog: Vuetify의 모달 컴포넌트. 
+    CcEditor: CC 관리 컴포넌트.
     v-model 바인딩을 통해 부모 컴포넌트에서 모달의 표시 여부를 제어합니다.
     :persistent="isLoading"을 추가하여 API 요청 중에는 모달이 닫히지 않도록 합니다.
   -->
@@ -30,28 +31,13 @@
         </p>
 
         <!-- To / CC 필드 -->
-        <div class="mb-4">
-          <div class="d-flex align-center mb-2">
-            <div class="text-body-2 font-weight-bold" style="width: 50px;">To:</div>
-            <v-chip v-if="toUsers && toUsers.length > 0" size="small" color="primary" variant="tonal">
-              {{ toUsers[0].name }}
-            </v-chip>
-          </div>
-          <div class="d-flex">
-            <div class="text-body-2 font-weight-bold" style="width: 50px;">CC:</div>
-            <v-chip-group class="flex-wrap">
-              <v-chip
-                v-for="user in ccUsers"
-                :key="user.id"
-                size="small"
-                variant="tonal"
-              >
-                {{ user.name }}
-              </v-chip>
-            </v-chip-group>
-          </div>
-        </div>
-
+        <CcEditor
+          :to-user="initialToUser"
+          :cc-users="initialCcUsers"
+          @update:cc-users="updatedCc => editableCcUsers = updatedCc"
+          class="mb-4"
+        />
+        
         <!-- 
           가짜 입력창 (Fake Textarea) 구현부.
           실제로는 div이지만, CSS를 통해 textarea처럼 보이게 만듭니다.
@@ -118,6 +104,7 @@
  * @description 개별 노트를 ShotGrid에 게시하기 전, 최종 내용을 확인하고 편집하는 모달.
  */
 import { ref, watch, onMounted, onBeforeUnmount, computed } from 'vue';
+import CcEditor from '@/components/common/CcEditor.vue'; // CcEditor 컴포넌트 임포트
 import AttachmentHandler from './draftnote_attachments/AttachmentHandler.vue';
 import { useShotGridPublish } from '@/composables/useShotGridPublish.js';
 
@@ -148,11 +135,21 @@ const {
   failedNotes,
   clearPublishResults,
   publishNotes,
-  getPublishUsers,
+  getInitialPublishUsers,
   getGlobalNotes,
 } = useShotGridPublish();
 
 // --- 함수 (Functions) ---
+
+// ToUser와 CcUsers 초기값 계산
+const { toUsers: initialToUserComputed, ccUsers: initialCcUsersComputed } = computed(() => 
+  getInitialPublishUsers(props.version, props.selectedProject)
+).value;
+
+// CcEditor에서 편집 가능한 CC 목록
+const editableCcUsers = ref([]);
+const initialToUser = ref(initialToUserComputed[0]); // toUsers는 배열이므로 첫 번째 요소를 가져옴
+const initialCcUsers = ref(initialCcUsersComputed); // ccUsers는 배열 그대로 사용
 
 // 모달을 닫는 함수.
 const close = () => {
@@ -174,6 +171,8 @@ const handlePublish = async () => {
     version: props.version, // 버전 정보
     noteContent: internalContent.value,
     attachments: props.attachments,
+    toUsers: [initialToUser.value],
+    ccUsers: editableCcUsers.value,
     draftNoteId: props.draftNoteId,
   };
 
@@ -193,9 +192,6 @@ const handlePublish = async () => {
 // UI 표시에 필요한 글로벌 서브젝트와 포매팅된 헤더를 계산합니다.
 const globalNotes = computed(() => getGlobalNotes(props.version));
 
-const { toUsers, ccUsers } = computed(() => 
-  getPublishUsers(props.version, props.selectedProject)
-).value; // 컴포넌트 로드 시 To/CC 사용자를 계산합니다.
 
 // ---
 
@@ -205,7 +201,8 @@ watch(() => props.modelValue, (newValue) => {
     internalContent.value = props.noteContent || ''; // 모달이 열릴 때 부모 컨텐츠로 초기화
     // 모달이 열릴 때마다 이전 게시 결과를 초기화합니다.
     clearPublishResults();
-
+    // CcEditor에 전달할 초기 CC 목록 설정
+    editableCcUsers.value = [...initialCcUsers.value];
     setTimeout(() => textareaRef.value?.focus(), 100); // DOM 렌더링 후 포커스
   }
 });

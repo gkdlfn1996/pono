@@ -25,8 +25,9 @@ const activeFilters = ref([]); // SearchBar로부터 받은 필터 조건
 const suggestionSources = ref({}); // SearchBar 제안 목록 데이터
 const versionsPerPage = 50; // 페이지 당 버전 수
 const linkedNotesCache = ref({}); // 링크 노트 캐시를 위한 객체
-
-
+const allUsers = ref([]); // 모든 사용자 목록
+const isLoadingAllUsers = ref(false); // 사용자 목록 로딩 상태
+const isAllUsersLoaded = ref(false); // 사용자 목록 로드 완료 여부
 
 
 
@@ -254,6 +255,27 @@ export function useShotGridData() {
         }
     };
 
+    /**
+     * 활성 상태의 모든 HumanUser 목록을 불러옵니다.
+     * `allUsers` 반응형 변수를 업데이트합니다.
+     * @returns {Promise<void>} 사용자 목록 로딩 완료 시 resolve되는 Promise
+     */
+    const loadAllUsers = async () => {
+        if (isAllUsersLoaded.value || isLoadingAllUsers.value) {
+            return; // 이미 로드되었거나 로드 중이면 다시 시도하지 않음
+        }
+        isLoadingAllUsers.value = true;
+        try {
+            const response = await apiClient.get('/api/data/users');
+            allUsers.value = response.data.map(user => ({ ...user, type: 'HumanUser' })); 
+            isAllUsersLoaded.value = true;
+        } catch (error) {
+            console.error('Failed to load all users:', error);
+            allUsers.value = [];
+        } finally {
+            isLoadingAllUsers.value = false;
+        }
+    };
 
 
     //============================== 데이터 선택 및 조작 함수 (Data Selection & Manipulation Functions) ================================
@@ -408,6 +430,9 @@ export function useShotGridData() {
         DisplayVersionCount: readonly(DisplayVersionCount),
         sortBy: readonly(sortBy),
         sortOrder: readonly(sortOrder),
+        allUsers: readonly(allUsers),
+        isLoadingAllUsers: readonly(isLoadingAllUsers),
+        loadAllUsers,
         loadProjects,
         loadPipelineSteps,
         loadLinkedNotes,

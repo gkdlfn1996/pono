@@ -310,6 +310,17 @@ def get_group_leaders_for_artists(sg, artist_id_list: List[int]):
 
     return result
 
+@timing
+def get_all_human_users(sg):
+    """
+    ShotGrid에서 활성화된 모든 HumanUser를 조회합니다.
+    """
+    print("Attempting to fetch all active human users...")
+    filters = [['sg_status_list', 'is', 'act']]
+    fields = ['id', 'name', 'login']
+    users = sg.find("HumanUser", filters, fields)
+    return users
+
 
 
 def create_shotgrid_note_with_attachments(sg, payload: dict, author_user: dict):
@@ -413,13 +424,11 @@ if __name__ == "__main__":
     sys.path.append("/netapp/INHouse/sg")
     from shotgrid_authenticator import UserSG, SessionTokenSG
     from pprint import pprint
-    
-    session_token = '0dde9ec2cd79f9912229c6996272a35a'
+
+    session_token = 'b766b6539f78fc7d6a0ef441d379dc66'
     project_id = 848
     pipeline_step_name = 'All'
     
     token_sg = SessionTokenSG(session_token).sg
     
-
-    get_thumbnails_by_ids(token_sg, [188650])
-    get_notes_by_ids(token_sg,[188650])
+    pprint(get_all_human_users(token_sg))
