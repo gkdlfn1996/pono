@@ -73,22 +73,9 @@ const {
 } = useShotGridData();
 
 const currentToUser = ref(props.toUser);
-const currentCcUsers = ref([]);
+const currentCcUsers = ref(props.ccUsers ? [...props.ccUsers] : []);
 const newCcSearchQuery = ref('');
 
-/**
- * 부모로부터 받은 ccUsers prop을 내부 상태(currentCcUsers)와 동기화합니다.
- */
-watch(() => props.ccUsers, (newCc) => {
-  currentCcUsers.value = [...newCc];
-}, { immediate: true });
-
-/**
- * 부모로부터 받은 toUser prop이 변경될 때 내부 상태(currentToUser)를 업데이트합니다.
- */
-watch(() => props.toUser, (newToUser) => {
-  currentToUser.value = newToUser;
-}, { deep: true });
 
 /**
  * v-autocomplete의 v-model(currentCcUsers)이 변경될 때 부모 컴포넌트에 변경사항을 알립니다.
@@ -118,8 +105,8 @@ const filteredSuggestions = computed(() => {
 
   // 이미 'To' 또는 'CC'에 있는 사용자는 제외
   const existingUserIds = new Set([
-    currentToUser.value.id,
-    ...currentCcUsers.value.map(u => u.id)
+    ...(currentToUser.value && currentToUser.value.id !== undefined ? [currentToUser.value.id] : []),
+    ...currentCcUsers.value.filter(u => u && u.id !== undefined).map(u => u.id)
   ]);  
 
   return allCcList.value.filter(item => {

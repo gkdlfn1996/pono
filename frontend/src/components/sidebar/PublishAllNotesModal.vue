@@ -85,16 +85,11 @@
                   </v-responsive>
                   <!-- To/CC -->
                   <div class="mt-2">
-                    <div class="d-flex align-center mb-2">
-                      <div class="text-body-2 font-weight-bold" style="width: 40px;">To:</div>
-                      <v-chip v-if="note.to" size="small" color="primary" variant="tonal">{{ note.to.name }}</v-chip>
-                    </div>
-                    <div class="d-flex">
-                      <div class="text-body-2 font-weight-bold mr-3" style="width: 40px;">CC:</div>
-                      <div class="d-flex flex-wrap" v-if="note.cc && note.cc.length > 0">
-                        <v-chip v-for="user in note.cc" :key="user.id" size="small" variant="tonal" class="ma-1">{{ user.name }}</v-chip>
-                      </div>
-                    </div>
+                    <CcEditor
+                      :to-user="note.to"
+                      :cc-users="note.editableCcUsers"
+                      @update:cc-users="updatedCc => note.editableCcUsers = updatedCc"
+                    />
                   </div>
                 </v-col>
 
@@ -178,6 +173,7 @@ import { useAuth } from '@/composables/useAuth';
 import { useShotGridData } from '@/composables/useShotGridData';
 import { useAttachments } from '@/composables/useAttachments';
 import { useShotGridPublish } from '@/composables/useShotGridPublish';
+import CcEditor from '@/components/common/CcEditor.vue'; // CcEditor 컴포넌트 임포트
 
 /**
  * @props {Boolean} modelValue - v-model을 통해 모달의 열림/닫힘 상태를 제어.
@@ -194,7 +190,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue']);
 
 const { getCachedVersionsForPub, fetchThumbnailsForPub, selectedProject, loadVersions } = useShotGridData();
-const { 
+const {
   isProcessing,
   publishResults,
   summaryMessage,
@@ -228,7 +224,7 @@ const notesToDisplay = computed(() => {
 /**
  * 모달을 닫고, 부모 컴포넌트에 상태 변경을 알립니다.
  */
-const close = () => {  
+const close = () => {
   if (isProcessing.value) return;
   // 성공적으로 게시된 노트가 하나라도 있으면, 메인 뷰를 새로고침합니다.
   if (successfulNotes.value.length > 0) {
@@ -256,6 +252,8 @@ const handlePublishAll = async () => {
     noteContent: note.content,
     attachments: note.attachments,
     draftNoteId: note.draft_note_id,
+    toUsers: note.to ? [note.to] : [],
+    ccUsers: note.editableCcUsers || [], // CcEditor에서 편집된 Cc 사용자
   }));
 
   await publishNotes(notesToPublish);
@@ -287,8 +285,8 @@ watch(() => props.modelValue, async (newValue) => {
         const { toUsers, ccUsers } = getInitialPublishUsers(version, selectedProject.value);
         const { formattedHeader } = getGlobalNotes(version);
         const formattedContent = `${formattedHeader}${note.content}`;
-        // to, cc, formattedContent는 UI 표시용. content는 게시 재료용.
-        return { draft_note_id: note.id, version, content: note.content, formattedContent, attachments: note.attachments || [], to: toUsers[0], cc: ccUsers };
+        // to, editableCcUsers, formattedContent는 UI 표시용. content는 게시 재료용.
+        return { draft_note_id: note.id, version, content: note.content, formattedContent, attachments: note.attachments || [], to: toUsers[0], editableCcUsers: ccUsers };
       });
 
     notesInModal.value = notesWithFullData;
