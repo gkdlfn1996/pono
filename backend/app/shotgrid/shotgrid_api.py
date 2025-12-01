@@ -315,12 +315,20 @@ def get_all_human_users(sg):
     """
     ShotGrid에서 활성화된 모든 HumanUser를 조회합니다.
     """
-    print("Attempting to fetch all active human users...")
     filters = [['sg_status_list', 'is', 'act']]
     fields = ['id', 'name', 'login']
     users = sg.find("HumanUser", filters, fields)
     return users
 
+@timing
+def get_all_groups(sg):
+    """
+    ShotGrid에서 모든 Group 목록을 조회합니다.
+    """
+    filters = []
+    fields = ['id', 'code']
+    groups = sg.find("Group", filters, fields)
+    return groups
 
 
 def create_shotgrid_note_with_attachments(sg, payload: dict, author_user: dict):
@@ -425,10 +433,10 @@ if __name__ == "__main__":
     from shotgrid_authenticator import UserSG, SessionTokenSG
     from pprint import pprint
 
-    session_token = 'b766b6539f78fc7d6a0ef441d379dc66'
+    session_token = 'b4e731d5c4bc730f633a75d6cc046c07'
     project_id = 848
     pipeline_step_name = 'All'
     
     token_sg = SessionTokenSG(session_token).sg
     
-    pprint(get_all_human_users(token_sg))
+    pprint(get_all_groups(token_sg))

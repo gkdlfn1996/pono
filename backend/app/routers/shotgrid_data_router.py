@@ -106,9 +106,36 @@ async def get_linked_entity_notes(entity_type: str, entity_id: int, sg=Depends(g
     """
     return await async_api.get_linked_entity_notes(sg, entity_type, entity_id)
 
-@router.get("/users")
-async def get_all_users(sg=Depends(get_shotgrid_instance)):
+@router.get("/user_and_group_list")
+async def get_user_and_group_list(request: Request, sg=Depends(get_shotgrid_instance)):
     """
-    ShotGrid에서 활성화된 모든 HumanUser 목록을 조회합니다.
+    ShotGrid에서 활성화된 모든 HumanUser와 모든 Group 목록을 조회합니다.
     """
-    return await async_api.get_all_human_users(sg)
+    # 각 비동기 작업에 독립적인 ShotGrid 인스턴스를 전달하여 SSL 에러를 방지합니다.
+    authorization = request.headers.get("Authorization")
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authorization header missing or invalid")
+    session_token = authorization.split(" ")[1]
+
+    # 각 작업에 대한 별도의 인스턴스 생성
+    sg_users = shotgrid_authenticator.SessionTokenSG(session_token=session_token).sg
+    sg_groups = shotgrid_authenticator.SessionTokenSG(session_token=session_token).sg
+
+    # 독립적인 인스턴스를 사용하여 병렬 조회
+    users_task = async_api.get_all_human_users(sg_users)
+    groups_task = async_api.get_all_groups(sg_groups)
+    results = await asyncio.gather(users_task, groups_task)
+    
+    users, groups = results
+
+    processed_groups = []
+    for group in groups:
+        new_group = dict(group)
+        new_group['type'] = 'Group'
+        new_group['login'] = None
+        processed_groups.append(new_group)
+
+    combined_list = users + processed_groups
+
+    
+    return combined_list

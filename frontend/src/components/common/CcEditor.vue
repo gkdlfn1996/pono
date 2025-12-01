@@ -13,7 +13,7 @@
         v-model="currentCcUsers"
         v-model:search="newCcSearchQuery"
         :items="filteredSuggestions"
-        :loading="isLoadingAllUsers"
+        :loading="isLoadingCcList"
         no-filter
         label=""
         variant="outlined"
@@ -29,11 +29,19 @@
       >
         <!-- 칩의 표시 형식을 제어하는 슬롯 -->
         <template v-slot:chip="{ props, item }">
-          <v-chip v-bind="props" :text="item.raw.name"></v-chip>
+          <v-chip 
+            v-bind="props" 
+            :prepend-icon="item.raw.type === 'Group' ? 'mdi-account-multiple' : 'mdi-account'"
+            :text="item.raw.type === 'Group' ? item.raw.code : item.raw.name"
+          ></v-chip>
         </template>
         <!-- 드롭다운 목록의 표시 형식을 제어하는 슬롯 -->
         <template v-slot:item="{ props, item }">
-          <v-list-item v-bind="props" :title="`${item.raw.name} (${item.raw.login})`"></v-list-item>
+          <v-list-item 
+            v-bind="props" 
+            :prepend-icon="item.raw.type === 'Group' ? 'mdi-account-multiple' : 'mdi-account'"
+            :title="item.raw.type === 'Group' ? item.raw.code : `${item.raw.name} (${item.raw.login})`"
+          ></v-list-item>
         </template>
       </v-autocomplete>
       </div>
@@ -59,9 +67,9 @@ const props = defineProps({
 const emit = defineEmits(['update:ccUsers']);
 
 const {
-  allUsers,
-  isLoadingAllUsers,
-  loadAllUsers,
+  allCcList,
+  isLoadingCcList,
+  loadAllCcList,
 } = useShotGridData();
 
 const currentToUser = ref(props.toUser);
@@ -76,26 +84,35 @@ watch(() => props.ccUsers, (newCc) => {
 }, { immediate: true });
 
 /**
+ * 부모로부터 받은 toUser prop이 변경될 때 내부 상태(currentToUser)를 업데이트합니다.
+ */
+watch(() => props.toUser, (newToUser) => {
+  currentToUser.value = newToUser;
+}, { deep: true });
+
+/**
  * v-autocomplete의 v-model(currentCcUsers)이 변경될 때 부모 컴포넌트에 변경사항을 알립니다.
  * @param {Array} newSelectedUsers - v-autocomplete에 의해 업데이트된 CC 사용자 목록.
  */
 watch(currentCcUsers, (newSelectedUsers) => {
   emit('update:ccUsers', newSelectedUsers);
-}, { deep: true });
+}, { deep: true });  
+
+
 
 /**
- * 컴포넌트가 마운트될 때, 모든 사용자 목록을 비동기적으로 불러옵니다.
- */
+ * 컴포넌트가 마운트될 때, 모든 CC 목록을 비동기적으로 불러옵니다.
+ */ 
 onMounted(() => {
-  loadAllUsers(); // 필요 시 모든 사용자 정보 로드 시작
-});
+  loadAllCcList(); // 필요 시 모든 CC 목록 정보 로드 시작
+});  
 
 /**
  * 자동 완성 제안 목록을 계산하는 computed 속성.
  * 검색어와 일치하고, 이미 'To' 또는 'CC'에 없는 사용자만 필터링합니다.
- */
+ */ 
 const filteredSuggestions = computed(() => {
-  if (!allUsers.value) return [];
+  if (!allCcList.value) return [];
   // 검색어가 null 또는 undefined일 경우를 대비하여 안전하게 처리합니다.
   const lowerCaseQuery = (newCcSearchQuery.value || '').toLowerCase();
 
@@ -103,42 +120,37 @@ const filteredSuggestions = computed(() => {
   const existingUserIds = new Set([
     currentToUser.value.id,
     ...currentCcUsers.value.map(u => u.id)
-  ]);
+  ]);  
 
-  return allUsers.value.filter(user =>
-    !existingUserIds.has(user.id) &&
-    (user.name.toLowerCase().includes(lowerCaseQuery) || user.login.toLowerCase().includes(lowerCaseQuery))
-  );
-});
+  return allCcList.value.filter(item => {
+    const name = (item.type === 'Group' ? item.code : item.name) || '';
+    const login = (item.login || '');
+    return !existingUserIds.has(item.id) &&
+           (name.toLowerCase().includes(lowerCaseQuery) || login.toLowerCase().includes(lowerCaseQuery));
+  });         
+});  
 
 /**
  * v-autocomplete 입력창에서 포커스가 벗어났을 때 호출되는 핸들러.
- */
+ */ 
 const handleAutocompleteBlur = () => {
   // 포커스가 벗어날 때 검색어를 비웁니다.
   newCcSearchQuery.value = null;
-};
+};  
 
 /**
  * v-autocomplete 입력창에서 Enter 키를 눌렀을 때 호출되는 핸들러.
- */
+ */ 
 const handleAutocompleteEnter = (event) => {
   event.preventDefault(); // Enter 키 입력 시 기본 폼 제출 동작을 방지합니다.
   if (newCcSearchQuery.value && filteredSuggestions.value.length > 0) {
-    const userToAdd = filteredSuggestions.value[0];
-    if (!currentCcUsers.value.some(u => u.id === userToAdd.id)) {
-      currentCcUsers.value.push(userToAdd);
-    }
+    const itemToAdd = filteredSuggestions.value[0];
+    if (!currentCcUsers.value.some(u => u.id === itemToAdd.id)) {
+      currentCcUsers.value.push(itemToAdd);
+    }  
     newCcSearchQuery.value = null; // 검색어 초기화 (입력창 비우기)
-  }
-};
-
-/**
- * 부모로부터 받은 toUser prop이 변경될 때 내부 상태(currentToUser)를 업데이트합니다.
- */
-watch(() => props.toUser, (newToUser) => {
-  currentToUser.value = newToUser;
-}, { deep: true });
+  }  
+};  
 
 
 </script>
