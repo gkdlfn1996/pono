@@ -117,7 +117,9 @@ const filteredSuggestions = computed(() => {
   });         
 });  
 
-
+/**
+ * v-autocomplete 입력창에서 벗어났을때 입력창 비우기.
+ */ 
 const handleAutocompleteBlur = (event) => {
   const related = event.relatedTarget;
 
