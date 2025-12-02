@@ -10,6 +10,7 @@
       <div class="text-body-2 font-weight-bold" style="width: 40px;">CC:</div>
       <div class="cc-autocomplete-wrapper flex-grow-1">
       <v-autocomplete
+        ref="autocompleteRef"
         v-model="currentCcUsers"
         v-model:search="newCcSearchQuery"
         :items="filteredSuggestions"
@@ -21,7 +22,6 @@
         hide-details
         clearable
         return-object
-        @blur="handleAutocompleteBlur"
         @keydown.enter.prevent="handleAutocompleteEnter"
         multiple
         chips
@@ -117,13 +117,30 @@ const filteredSuggestions = computed(() => {
   });         
 });  
 
-/**
- * v-autocomplete 입력창에서 포커스가 벗어났을 때 호출되는 핸들러.
- */ 
-const handleAutocompleteBlur = () => {
-  // 포커스가 벗어날 때 검색어를 비웁니다.
-  newCcSearchQuery.value = null;
-};  
+
+const handleAutocompleteBlur = (event) => {
+  const related = event.relatedTarget;
+
+  // 1) relatedTarget이 없다면 → 진짜 창 밖 클릭
+  if (!related) {
+    newCcSearchQuery.value = null;
+    return;
+  }
+
+  // 2) relatedTarget이 autocomplete 내부인지 체크
+  //    Vue 컴포넌트 루트 DOM 접근
+  const root = autocompleteRef.value?.$el;
+
+  // autocompleteRef 는 template 에 ref 지정 필요
+  if (root && root.contains(related)) {
+    // 내부 이동이다 → 검색어 유지
+    return;
+  }
+
+  newCcSearchQuery.value = null;  // 외부 클릭 → 검색어 리셋
+};
+
+
 
 /**
  * v-autocomplete 입력창에서 Enter 키를 눌렀을 때 호출되는 핸들러.
